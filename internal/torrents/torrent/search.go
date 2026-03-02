@@ -86,6 +86,20 @@ func (r *Repository) SearchAnime(ctx context.Context, opts AnimeSearchOptions) (
 	}
 
 	providers := []extension.AnimeTorrentProviderExtension{providerExtension}
+	seenProviders := map[string]bool{providerExtension.GetID(): true}
+
+	// Fallback chain: Animetosho -> Nyaa Sukebei (dumb search) -> Nyaa
+	if providerExtension.GetID() == "tosho" {
+		for _, fallbackID := range []string{"nyaa-sukebei", "nyaa"} {
+			if seenProviders[fallbackID] {
+				continue
+			}
+			if fbExt, found := r.GetAnimeProviderExtension(fallbackID); found {
+				providers = append(providers, fbExt)
+				seenProviders[fallbackID] = true
+			}
+		}
+	}
 	includedSpeicalProviders := make([]string, 0)
 
 	// Add other special providers if requested
@@ -185,6 +199,10 @@ func (r *Repository) SearchAnime(ctx context.Context, opts AnimeSearchOptions) (
 			r.logger.Debug().Str("provider", provider.GetID()).Str("type", string(opts.Type)).Str("query", opts.Query).Msg("torrent search: Searching for anime torrents")
 
 			searchType := opts.Type
+			// Fallback providers: force Sukebei to simple (dumb) search to maximize hits
+			if provider.GetID() == "nyaa-sukebei" {
+				searchType = AnimeSearchTypeSimple
+			}
 			if isMain && opts.Type == AnimeSearchTypeSmart && !provider.GetProvider().GetSettings().CanSmartSearch {
 				mainErr = fmt.Errorf("provider %s does not support smart search", provider.GetID())
 				return

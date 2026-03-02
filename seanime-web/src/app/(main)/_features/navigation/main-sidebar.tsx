@@ -727,13 +727,19 @@ function SidebarSubMenu({ items, collapsed }: { items: SidebarSubMenuItem[], col
                     key={item.id}
                     href={item.href}
                     className={cn(
-                        "w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition",
+                        "w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition group",
                         "bg-[rgba(255,255,255,0.02)]",
                         "hover:bg-gradient-to-r hover:from-[rgba(0,230,255,0.15)] hover:via-transparent hover:to-transparent",
                         item.isCurrent ? "text-[--foreground]" : "text-[--muted]"
                     )}
                 >
-                    <item.iconType className="text-base" />
+                    <item.iconType
+                        className={cn(
+                            "text-xl transition-colors",
+                            item.isCurrent ? "text-[--foreground]" : "text-[--muted]",
+                            "group-hover:text-[--foreground]"
+                        )}
+                    />
                     {!collapsed && <span className="font-semibold tracking-wide">{item.name}</span>}
                 </SeaLink>
             ))}
