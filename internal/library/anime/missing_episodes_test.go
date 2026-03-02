@@ -10,6 +10,7 @@ import (
 	"seanime/internal/util"
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -65,8 +66,8 @@ func TestNewMissingEpisodes(t *testing.T) {
 
 			// Mock Anilist collection
 			anilist.TestModifyAnimeCollectionEntry(animeCollection, tt.mediaId, anilist.TestModifyAnimeCollectionEntryInput{
-				Progress:      new(tt.currentProgress), // Mock progress
-				AiredEpisodes: new(tt.mediaAiredEpisodes),
+				Progress:      lo.ToPtr(tt.currentProgress), // Mock progress
+				AiredEpisodes: lo.ToPtr(tt.mediaAiredEpisodes),
 				NextAiringEpisode: &anilist.BaseAnime_NextAiringEpisode{
 					Episode: tt.mediaAiredEpisodes + 1,
 				},

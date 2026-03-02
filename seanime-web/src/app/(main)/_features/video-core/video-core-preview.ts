@@ -1,4 +1,4 @@
-import type { VideoCore_VideoPlaybackInfo } from "@/app/(main)/_features/video-core/video-core.atoms"
+import { VideoCore_VideoPlaybackInfo } from "@/app/(main)/_features/video-core/video-core.atoms"
 import { logger } from "@/lib/helpers/debug"
 import Hls from "hls.js"
 
@@ -131,14 +131,6 @@ export class VideoCorePreviewManager {
         return promise
     }
 
-    getLastestCachedIndex(): number {
-        return this.highestCachedIndex
-    }
-
-    calculateTimeFromIndex(segmentIndex: number): number {
-        return segmentIndex * VIDEOCORE_PREVIEW_CAPTURE_INTERVAL_SECONDS
-    }
-
     private loadMediaSource(source: string): void {
         this.currentMediaSource = source
 
@@ -177,9 +169,17 @@ export class VideoCorePreviewManager {
                 !this.previewCache.has(nextIndex) &&
                 !this.inFlightPromises.has(nextIndex)
             ) {
-                this.schedulePreviewGeneration(nextIndex).catch(() => { })
+                this.schedulePreviewGeneration(nextIndex).catch(() => {})
             }
         }
+    }
+
+    getLastestCachedIndex(): number {
+        return this.highestCachedIndex
+    }
+
+    calculateTimeFromIndex(segmentIndex: number): number {
+        return segmentIndex * VIDEOCORE_PREVIEW_CAPTURE_INTERVAL_SECONDS
     }
 
     private throttledCaptureFrame(segmentIndex: number): void {
@@ -317,7 +317,7 @@ export class VideoCorePreviewManager {
     }
 
     private addJob(segmentIndex: number): Job {
-        //
+        // @ts-expect-error Promise.withResolvers
         const { promise, resolve } = Promise.withResolvers<string | undefined>()
 
         const execute = async (): Promise<void> => {

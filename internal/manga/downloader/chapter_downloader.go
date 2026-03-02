@@ -57,6 +57,7 @@ type (
 		MediaId       int    `json:"mediaId"`
 		ChapterId     string `json:"chapterId"`
 		ChapterNumber string `json:"chapterNumber"`
+		MediaTitle    string `json:"mediaTitle"` // Romaji title for folder naming
 	}
 
 	//+-------------------------------------------------------------------------------------------------------------------+
@@ -174,15 +175,15 @@ func (cd *Downloader) Stop() {
 	cd.mu.Lock()
 	defer cd.mu.Unlock()
 
-	defer func() {
-		if r := recover(); r != nil {
-			cd.logger.Error().Msgf("chapter downloader: cancelCh is already closed")
+	// Close the existing cancelCh to signal running downloads to stop
+	if cd.cancelCh != nil {
+		select {
+		case <-cd.cancelCh:
+			// Already closed, do nothing
+		default:
+			close(cd.cancelCh)
 		}
-	}()
-
-	cd.cancelCh = make(chan struct{})
-
-	close(cd.cancelCh) // Cancel download process
+	}
 
 	cd.queue.Stop()
 }
@@ -380,7 +381,15 @@ func (r *Registry) save(queueInfo *QueueInfo, destination string, logger *zerolo
 }
 
 func (cd *Downloader) getChapterDownloadDir(downloadId DownloadID) string {
-	return filepath.Join(cd.downloadDir, FormatChapterDirName(downloadId.Provider, downloadId.MediaId, downloadId.ChapterId, downloadId.ChapterNumber))
+	// Organize chapters into per-manga subfolders using Romaji title (or mediaId as fallback)
+	var mediaDir string
+	if downloadId.MediaTitle != "" {
+		// Sanitize the title for use as a directory name
+		mediaDir = SanitizeDirectoryName(downloadId.MediaTitle)
+	} else {
+		mediaDir = fmt.Sprintf("%d", downloadId.MediaId)
+	}
+	return filepath.Join(cd.downloadDir, mediaDir, FormatChapterDirName(downloadId.Provider, downloadId.MediaId, downloadId.ChapterId, downloadId.ChapterNumber))
 }
 
 func FormatChapterDirName(provider string, mediaId int, chapterId string, chapterNumber string) string {
@@ -438,6 +447,27 @@ func UnescapeChapterID(id string) string {
 	id = strings.ReplaceAll(id, "$SPACE$", " ")
 	id = strings.ReplaceAll(id, "$UNDERSCORE$", "_")
 	return id
+}
+
+// SanitizeDirectoryName removes or replaces characters that are invalid in directory names
+func SanitizeDirectoryName(name string) string {
+	// Replace invalid characters with safe alternatives
+	name = strings.ReplaceAll(name, "/", "-")
+	name = strings.ReplaceAll(name, "\\", "-")
+	name = strings.ReplaceAll(name, ":", "-")
+	name = strings.ReplaceAll(name, "*", "")
+	name = strings.ReplaceAll(name, "?", "")
+	name = strings.ReplaceAll(name, "\"", "")
+	name = strings.ReplaceAll(name, "<", "")
+	name = strings.ReplaceAll(name, ">", "")
+	name = strings.ReplaceAll(name, "|", "-")
+	// Trim leading/trailing spaces and dots
+	name = strings.Trim(name, " .")
+	// Limit length to avoid filesystem issues
+	if len(name) > 200 {
+		name = name[:200]
+	}
+	return name
 }
 
 func (cd *Downloader) getChapterRegistryPath(downloadId DownloadID) string {

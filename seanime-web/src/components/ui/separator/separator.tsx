@@ -1,3 +1,5 @@
+"use client"
+
 import { cn } from "../core/styling"
 import * as SeparatorPrimitive from "@radix-ui/react-separator"
 import { cva } from "class-variance-authority"

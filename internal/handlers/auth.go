@@ -5,6 +5,7 @@ import (
 	"errors"
 	"seanime/internal/database/models"
 	"seanime/internal/platforms/anilist_platform"
+	"seanime/internal/platforms/simulated_platform"
 	"seanime/internal/util"
 	"time"
 
@@ -70,7 +71,7 @@ func (h *Handler) HandleLogin(c echo.Context) error {
 	h.App.Logger.Info().Msg("app: Authenticated to AniList")
 
 	// Update the platform
-	anilistPlatform := anilist_platform.NewAnilistPlatform(h.App.AnilistClientRef, h.App.ExtensionBankRef, h.App.Logger, h.App.Database, h.App.LogoutFromAnilist)
+	anilistPlatform := anilist_platform.NewAnilistPlatform(h.App.AnilistClientRef, h.App.ExtensionBankRef, h.App.Logger, h.App.Database)
 	h.App.UpdatePlatform(anilistPlatform)
 
 	// Create a new status
@@ -100,8 +101,38 @@ func (h *Handler) HandleLogin(c echo.Context) error {
 //	@route /api/v1/auth/logout [POST]
 //	@returns handlers.Status
 func (h *Handler) HandleLogout(c echo.Context) error {
-	h.App.LogoutFromAnilist()
+
+	// Update the anilist client
+	h.App.UpdateAnilistClientToken("")
+
+	// Update the platform
+	simulatedPlatform, err := simulated_platform.NewSimulatedPlatform(h.App.LocalManager, h.App.AnilistClientRef, h.App.ExtensionBankRef, h.App.Logger, h.App.Database)
+	if err != nil {
+		return h.RespondWithError(c, err)
+	}
+	h.App.UpdatePlatform(simulatedPlatform)
+
+	_, err = h.App.Database.UpsertAccount(&models.Account{
+		BaseModel: models.BaseModel{
+			ID:        1,
+			UpdatedAt: time.Now(),
+		},
+		Username: "",
+		Token:    "",
+		Viewer:   nil,
+	})
+
+	if err != nil {
+		return h.RespondWithError(c, err)
+	}
+
+	h.App.Logger.Info().Msg("Logged out of AniList")
 
 	status := h.NewStatus(c)
+
+	h.App.InitOrRefreshModules()
+
+	h.App.InitOrRefreshAnilistData()
+
 	return h.RespondWithData(c, status)
 }

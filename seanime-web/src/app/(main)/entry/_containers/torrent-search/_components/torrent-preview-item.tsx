@@ -12,7 +12,7 @@ import { cn } from "@/components/ui/core/styling"
 import { Tooltip } from "@/components/ui/tooltip"
 import { openTab } from "@/lib/helpers/browser"
 import { formatDistanceToNowSafe } from "@/lib/helpers/date"
-import uniqBy from "lodash/uniqBy"
+import { uniqBy } from "lodash"
 import React, { memo } from "react"
 import { AiFillWarning } from "react-icons/ai"
 import { BiCalendarAlt, BiLinkExternal } from "react-icons/bi"
@@ -43,7 +43,7 @@ export const TorrentListItem = ({ torrent, metadata, debridCached, onClick, isSe
         <TorrentPreviewItem
             link={overrideProps?.link ?? torrent?.link}
             confirmed={overrideProps?.confirmed ?? torrent?.confirmed}
-            key={torrent.infoHash}
+            key={torrent.link}
             displayName={overrideProps?.displayName ?? (episode?.displayTitle || episode?.baseAnime?.title?.userPreferred || "")}
             releaseGroup={overrideProps?.releaseGroup ?? (torrent.releaseGroup || "")}
             torrentName={overrideProps?.torrentName ?? torrent.name}
@@ -310,9 +310,9 @@ const TorrentPreviewItem = memo((props: TorrentPreviewItemProps) => {
                         className="text-lg text-red-500"
                     /> Unidentified</p>}
 
-                    {mainTitle && <div
+                    {mainTitle && <p
                         className={cn(
-                            "font-normal text-[1rem] transition line-clamp-1 tracking-wide flex gap-2 items-center max-w-[35rem] lg:max-w-[35rem] 3xl:max-w-[35rem]",
+                            "font-normal text-[1.1rem] transition line-clamp-1 tracking-wide flex gap-2 items-center max-w-[20rem] 3xl:max-w-[35rem]",
                             // isBasic && "text-sm",
                         )}
                         data-torrent-preview-item-title
@@ -323,7 +323,7 @@ const TorrentPreviewItem = memo((props: TorrentPreviewItemProps) => {
                                 isBestRelease ? "text-[--pink] opacity-70" : "opacity-30",
                             )}
                         />
-                    </span>}</div>}
+                    </span>}</p>}
 
                     {!!torrentName && <p
                         className={cn(

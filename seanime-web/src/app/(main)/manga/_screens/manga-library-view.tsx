@@ -1,5 +1,5 @@
 import { AL_MediaListStatus, Manga_Collection, Manga_CollectionList } from "@/api/generated/types"
-import { useRefetchMangaChapterContainers } from "@/api/hooks/manga.hooks"
+import { useGetMangaReadingHistory, useGetRecentlyReadSyntheticManga, useRefetchMangaChapterContainers } from "@/api/hooks/manga.hooks"
 import { MediaCardLazyGrid } from "@/app/(main)/_features/media/_components/media-card-grid"
 import { MediaEntryCard } from "@/app/(main)/_features/media/_components/media-entry-card"
 import { MediaGenreSelector } from "@/app/(main)/_features/media/_components/media-genre-selector"
@@ -10,24 +10,27 @@ import { __mangaLibraryHeaderImageAtom, __mangaLibraryHeaderMangaAtom } from "@/
 import { __mangaLibrary_paramsAtom, __mangaLibrary_paramsInputAtom } from "@/app/(main)/manga/_lib/handle-manga-collection"
 import { LuffyError } from "@/components/shared/luffy-error"
 import { PageWrapper } from "@/components/shared/page-wrapper"
-import { SeaLink } from "@/components/shared/sea-link"
 import { TextGenerateEffect } from "@/components/shared/text-generate-effect"
 import { Button, IconButton } from "@/components/ui/button"
 import { Carousel, CarouselContent, CarouselDotButtons } from "@/components/ui/carousel"
 import { cn } from "@/components/ui/core/styling"
 import { DropdownMenu, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { useDebounce } from "@/hooks/use-debounce"
-import { useRouter } from "@/lib/navigation"
 import { getMangaCollectionTitle } from "@/lib/server/utils"
-import { ThemeLibraryScreenBannerType, useThemeSettings } from "@/lib/theme/theme-hooks"
+import { ThemeLibraryScreenBannerType, useThemeSettings } from "@/lib/theme/hooks"
 import { useSetAtom } from "jotai"
 import { useAtom, useAtomValue } from "jotai/react"
 import { AnimatePresence } from "motion/react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import React, { memo } from "react"
 import { BiDotsVertical } from "react-icons/bi"
-import { LuBookOpenCheck, LuRefreshCcw } from "react-icons/lu"
+import { LuBookOpenCheck, LuRefreshCcw, LuSparkles } from "react-icons/lu"
 import { toast } from "sonner"
-import { CommandItemMedia } from "../../_features/sea-command/_components/command-utils"
+import { CommandItemMedia, CommandItemSyntheticManga } from "../../_features/sea-command/_components/command-utils"
+import { Badge } from "@/components/ui/badge"
+import { SeaImage } from "@/components/shared/sea-image"
+import { imageShimmer } from "@/components/shared/image-helpers"
 
 type MangaLibraryViewProps = {
     collection: Manga_Collection
@@ -77,11 +80,11 @@ export function MangaLibraryView(props: MangaLibraryViewProps) {
                             </p>
 
                             <div className="!mt-4">
-                                <SeaLink href="/discover?type=manga">
+                                <Link href="/discover?type=manga">
                                     <Button intent="white-outline" rounded>
                                         Browse manga
                                     </Button>
-                                </SeaLink>
+                                </Link>
                             </div>
                         </div>
                     </LuffyError>}
@@ -236,6 +239,23 @@ export function FilteredCollectionLists({ collectionList, genres, showStatuses, 
 
 }
 
+// Unified item type for merged manga list (regular + synthetic)
+type UnifiedMangaItem = {
+    type: "regular" | "synthetic"
+    mediaId: number
+    title: string
+    coverImage: string | undefined
+    bannerImage: string | undefined
+    lastReadAt: Date | null
+    entry?: Manga_CollectionList["entries"] extends (infer E)[] | undefined ? E : never
+    syntheticManga?: {
+        syntheticId: number
+        title: string
+        coverImage: string
+        chapters: number
+    }
+}
+
 const CollectionListItem = memo(({ list, storedProviders, showStatuses, type, withTitle }: {
     list: Manga_CollectionList,
     storedProviders: Record<string, string>,
@@ -254,41 +274,120 @@ const CollectionListItem = memo(({ list, storedProviders, showStatuses, type, wi
 
     const { inject, remove } = useSeaCommandInject()
 
-    React.useEffect(() => {
-        if (list.type === "CURRENT") {
-            if (currentHeaderImage === null && list.entries?.[0]?.media?.bannerImage) {
-                setCurrentHeaderImage(list.entries?.[0]?.media?.bannerImage)
+    // Fetch reading history and synthetic manga for CURRENT list
+    const { data: readingHistory } = useGetMangaReadingHistory()
+    const { data: syntheticMangaList } = useGetRecentlyReadSyntheticManga()
+
+    // Create a merged and sorted list for CURRENT type
+    const mergedEntries = React.useMemo((): UnifiedMangaItem[] => {
+        if (list.type !== "CURRENT") return []
+
+        const historyMap = new Map<number, Date>()
+        if (readingHistory) {
+            for (const h of readingHistory) {
+                historyMap.set(h.mediaId, new Date(h.lastReadAt))
             }
         }
-    }, [])
+
+        const items: UnifiedMangaItem[] = []
+
+        // Add regular manga entries
+        if (list.entries) {
+            for (const entry of list.entries) {
+                items.push({
+                    type: "regular",
+                    mediaId: entry.mediaId,
+                    title: entry.media?.title?.userPreferred || "",
+                    coverImage: entry.media?.coverImage?.large || entry.media?.coverImage?.medium,
+                    bannerImage: entry.media?.bannerImage,
+                    lastReadAt: historyMap.get(entry.mediaId) || null,
+                    entry,
+                })
+            }
+        }
+
+        // Add synthetic manga entries
+        if (syntheticMangaList) {
+            for (const sm of syntheticMangaList) {
+                // Check if already in list (shouldn't be, but just in case)
+                if (!items.some(i => i.mediaId === sm.syntheticId)) {
+                    items.push({
+                        type: "synthetic",
+                        mediaId: sm.syntheticId,
+                        title: sm.title,
+                        coverImage: sm.coverImage,
+                        bannerImage: undefined,
+                        lastReadAt: historyMap.get(sm.syntheticId) || null,
+                        syntheticManga: {
+                            syntheticId: sm.syntheticId,
+                            title: sm.title,
+                            coverImage: sm.coverImage,
+                            chapters: sm.chapters,
+                        },
+                    })
+                }
+            }
+        }
+
+        // Sort by lastReadAt (most recent first), items without history go to end
+        items.sort((a, b) => {
+            if (a.lastReadAt && b.lastReadAt) {
+                return b.lastReadAt.getTime() - a.lastReadAt.getTime()
+            }
+            if (a.lastReadAt) return -1
+            if (b.lastReadAt) return 1
+            return 0
+        })
+
+        return items
+    }, [list.type, list.entries, readingHistory, syntheticMangaList])
+
+    React.useEffect(() => {
+        if (list.type === "CURRENT") {
+            const firstItem = mergedEntries[0]
+            if (currentHeaderImage === null && firstItem?.bannerImage) {
+                setCurrentHeaderImage(firstItem.bannerImage)
+            }
+        }
+    }, [mergedEntries])
 
     // Inject command for currently reading manga
     React.useEffect(() => {
-        if (list.type === "CURRENT" && list.entries?.length) {
+        if (list.type === "CURRENT" && mergedEntries.length) {
             inject("currently-reading-manga", {
-                items: list.entries.map(entry => ({
-                    data: entry,
-                    id: `manga-${entry.mediaId}`,
-                    value: entry.media?.title?.userPreferred || "",
+                items: mergedEntries.map(item => ({
+                    data: item,
+                    id: `manga-${item.mediaId}`,
+                    value: item.title,
                     heading: "Currently Reading",
                     priority: 100,
-                    render: () => (
-                        <CommandItemMedia media={entry.media!} type="manga" />
-                    ),
+                    render: () => {
+                        if (item.type === "regular" && item.entry) {
+                            return <CommandItemMedia media={item.entry.media!} type="manga" />
+                        }
+                        if (item.type === "synthetic" && item.syntheticManga) {
+                            return <CommandItemSyntheticManga manga={item.syntheticManga as any} />
+                        }
+                        return null
+                    },
                     onSelect: () => {
-                        router.push(`/manga/entry?id=${entry.mediaId}`)
+                        router.push(`/manga/entry?id=${item.mediaId}`)
                     },
                 })),
                 filter: ({ item, input }: { item: SeaCommandInjectableItem, input: string }) => {
                     if (!input) return true
-                    return seaCommand_compareMediaTitles((item.data as typeof list.entries[0])?.media?.title, input)
+                    const data = item.data as UnifiedMangaItem
+                    return data.title.toLowerCase().includes(input.toLowerCase())
                 },
                 priority: 100,
             })
         }
 
         return () => remove("currently-reading-manga")
-    }, [list.entries])
+    }, [mergedEntries])
+
+    // For non-CURRENT lists, use original entries
+    const displayEntries = list.type === "CURRENT" ? mergedEntries : null
 
     return (
         <React.Fragment>
@@ -362,55 +461,141 @@ const CollectionListItem = memo(({ list, storedProviders, showStatuses, type, wi
                 />
             }
 
-            {type === "grid" && <MediaCardLazyGrid itemCount={list.entries?.length ?? 0}>
-                {list.entries?.map(entry => {
-                    return <div
-                        key={entry.media?.id}
-                        onMouseEnter={() => {
-                            if (list.type === "CURRENT" && entry.media?.bannerImage) {
-                                React.startTransition(() => {
-                                    setCurrentHeaderImage(entry.media?.bannerImage!)
-                                })
+            {/* CURRENT list: Use merged entries sorted by reading history */}
+            {list.type === "CURRENT" && type === "grid" && displayEntries && (
+                <MediaCardLazyGrid itemCount={displayEntries.length}>
+                    {displayEntries.map(item => {
+                        if (item.type === "regular" && item.entry) {
+                            return (
+                                <div
+                                    key={item.entry.media?.id}
+                                    onMouseEnter={() => {
+                                        if (item.bannerImage) {
+                                            React.startTransition(() => {
+                                                setCurrentHeaderImage(item.bannerImage!)
+                                            })
+                                        }
+                                    }}
+                                >
+                                    <MediaEntryCard
+                                        media={item.entry.media!}
+                                        listData={item.entry.listData}
+                                        showListDataButton
+                                        withAudienceScore={false}
+                                        type="manga"
+                                    />
+                                </div>
+                            )
+                        }
+                        if (item.type === "synthetic" && item.syntheticManga) {
+                            return (
+                                <div
+                                    key={`synthetic-${item.syntheticManga.syntheticId}`}
+                                    className="cursor-pointer"
+                                    onClick={() => router.push(`/manga/entry?id=${item.syntheticManga!.syntheticId}`)}
+                                >
+                                    <div className="relative aspect-[2/3] rounded-[--radius-md] overflow-hidden group">
+                                        <SeaImage
+                                            src={item.syntheticManga.coverImage || ""}
+                                            alt={item.syntheticManga.title}
+                                            fill
+                                            className="object-cover object-center transition-transform group-hover:scale-105"
+                                            placeholder={imageShimmer(200, 300)}
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                                        <div className="absolute bottom-0 left-0 right-0 p-3">
+                                            <p className="text-sm font-medium text-white line-clamp-2">{item.syntheticManga.title}</p>
+                                            <Badge intent="warning" size="sm" className="mt-1 gap-1">
+                                                <LuSparkles className="text-xs" />
+                                                Synthetic
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                </div>
+                            )
+                        }
+                        return null
+                    })}
+                </MediaCardLazyGrid>
+            )}
+
+            {list.type === "CURRENT" && type === "carousel" && displayEntries && (
+                <Carousel
+                    className={cn("w-full max-w-full !mt-0")}
+                    gap="xl"
+                    opts={{
+                        align: "start",
+                        dragFree: true,
+                    }}
+                    autoScroll={false}
+                >
+                    <CarouselDotButtons className="-top-2" />
+                    <CarouselContent className="px-6">
+                        {displayEntries.map(item => {
+                            if (item.type === "regular" && item.entry) {
+                                return (
+                                    <div
+                                        key={item.entry.media?.id}
+                                        className="relative basis-[200px] col-span-1 place-content-stretch flex-none md:basis-[250px] mx-2 mt-8 mb-0"
+                                        onMouseEnter={() => {
+                                            if (item.bannerImage) {
+                                                React.startTransition(() => {
+                                                    setCurrentHeaderImage(item.bannerImage!)
+                                                })
+                                            }
+                                        }}
+                                    >
+                                        <MediaEntryCard
+                                            media={item.entry.media!}
+                                            listData={item.entry.listData}
+                                            showListDataButton
+                                            withAudienceScore={false}
+                                            type="manga"
+                                        />
+                                    </div>
+                                )
                             }
-                        }}
-                    >
-                        <MediaEntryCard
-                            media={entry.media!}
-                            listData={entry.listData}
-                            showListDataButton
-                            withAudienceScore={false}
-                            type="manga"
-                        />
-                    </div>
-                })}
-            </MediaCardLazyGrid>}
-            {type === "carousel" && <Carousel
-                className={cn("w-full max-w-full !mt-0")}
-                gap="xl"
-                opts={{
-                    align: "start",
-                    dragFree: true,
-                }}
-                autoScroll={false}
-            >
-                <CarouselDotButtons className="-top-2" />
-                <CarouselContent className="px-6">
+                            if (item.type === "synthetic" && item.syntheticManga) {
+                                return (
+                                    <div
+                                        key={`synthetic-${item.syntheticManga.syntheticId}`}
+                                        className="relative basis-[200px] col-span-1 place-content-stretch flex-none md:basis-[250px] mx-2 mt-8 mb-0 cursor-pointer"
+                                        onClick={() => router.push(`/manga/entry?id=${item.syntheticManga!.syntheticId}`)}
+                                    >
+                                        <div className="relative aspect-[2/3] rounded-[--radius-md] overflow-hidden group">
+                                            <SeaImage
+                                                src={item.syntheticManga.coverImage || ""}
+                                                alt={item.syntheticManga.title}
+                                                fill
+                                                className="object-cover object-center transition-transform group-hover:scale-105"
+                                                placeholder={imageShimmer(200, 300)}
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                                            <div className="absolute bottom-0 left-0 right-0 p-3">
+                                                <p className="text-sm font-medium text-white line-clamp-2">{item.syntheticManga.title}</p>
+                                                <Badge intent="warning" size="sm" className="mt-1 gap-1">
+                                                    <LuSparkles className="text-xs" />
+                                                    Synthetic
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                            }
+                            return null
+                        })}
+                    </CarouselContent>
+                </Carousel>
+            )}
+
+            {/* Non-CURRENT lists: Use original entries */}
+            {list.type !== "CURRENT" && type === "grid" && (
+                <MediaCardLazyGrid itemCount={list.entries?.length ?? 0}>
                     {list.entries?.map(entry => {
                         return <div
                             key={entry.media?.id}
-                            className={type === "carousel"
-                                ? "relative basis-[200px] col-span-1 place-content-stretch flex-none md:basis-[250px] mx-2 mt-8 mb-0"
-                                : undefined}
-                            onMouseEnter={() => {
-                                if (list.type === "CURRENT" && entry.media?.bannerImage) {
-                                    React.startTransition(() => {
-                                        setCurrentHeaderImage(entry.media?.bannerImage!)
-                                    })
-                                }
-                            }}
                         >
                             <MediaEntryCard
-                                key={entry.media?.id}
                                 media={entry.media!}
                                 listData={entry.listData}
                                 showListDataButton
@@ -419,8 +604,38 @@ const CollectionListItem = memo(({ list, storedProviders, showStatuses, type, wi
                             />
                         </div>
                     })}
-                </CarouselContent>
-            </Carousel>}
+                </MediaCardLazyGrid>
+            )}
+
+            {list.type !== "CURRENT" && type === "carousel" && (
+                <Carousel
+                    className={cn("w-full max-w-full !mt-0")}
+                    gap="xl"
+                    opts={{
+                        align: "start",
+                        dragFree: true,
+                    }}
+                    autoScroll={false}
+                >
+                    <CarouselDotButtons className="-top-2" />
+                    <CarouselContent className="px-6">
+                        {list.entries?.map(entry => {
+                            return <div
+                                key={entry.media?.id}
+                                className="relative basis-[200px] col-span-1 place-content-stretch flex-none md:basis-[250px] mx-2 mt-8 mb-0"
+                            >
+                                <MediaEntryCard
+                                    media={entry.media!}
+                                    listData={entry.listData}
+                                    showListDataButton
+                                    withAudienceScore={false}
+                                    type="manga"
+                                />
+                            </div>
+                        })}
+                    </CarouselContent>
+                </Carousel>
+            )}
         </React.Fragment>
     )
 })
@@ -461,3 +676,4 @@ function GenreSelector({
         />
     )
 }
+

@@ -14,6 +14,7 @@ import (
 	"seanime/internal/directstream"
 	discordrpc_presence "seanime/internal/discordrpc/presence"
 	"seanime/internal/doh"
+	"seanime/internal/enmasse"
 	"seanime/internal/events"
 	"seanime/internal/extension"
 	"seanime/internal/extension_playground"
@@ -46,6 +47,7 @@ import (
 	"seanime/internal/torrent_clients/torrent_client"
 	"seanime/internal/torrents/torrent"
 	"seanime/internal/torrentstream"
+	"seanime/internal/unmatched"
 	"seanime/internal/updater"
 	"seanime/internal/user"
 	"seanime/internal/util"
@@ -53,7 +55,6 @@ import (
 	"seanime/internal/util/result"
 	"seanime/internal/videocore"
 	"sync"
-	"sync/atomic"
 
 	"github.com/rs/zerolog"
 )
@@ -66,9 +67,10 @@ type (
 		Logger   *zerolog.Logger
 
 		// Torrent and debrid services
-		TorrentClientRepository *torrent_client.Repository
-		TorrentRepository       *torrent.Repository
-		DebridClientRepository  *debrid_client.Repository
+		TorrentClientRepository    *torrent_client.Repository
+		TorrentClientRepositoryRef *util.Ref[*torrent_client.Repository]
+		TorrentRepository          *torrent.Repository
+		DebridClientRepository     *debrid_client.Repository
 
 		// File system monitoring
 		Watcher *scanner.Watcher
@@ -159,7 +161,6 @@ type (
 		ServerReady        bool
 		isOfflineRef       *util.Ref[bool]
 		ServerPasswordHash string
-		logoutInProgress   atomic.Bool
 
 		// Plugin system
 		HookManager hook.Manager
@@ -169,16 +170,19 @@ type (
 		LibraryExplorer *library_explorer.LibraryExplorer
 		NakamaManager   *nakama.Manager
 
-		// Show this version's tour on the frontend
-		// Hydrated by migrations.go when there's a version change
-		ShowTour string
+		// Unmatched torrent management
+		UnmatchedRepository *unmatched.Repository
+		UnmatchedScanner    *unmatched.Scanner
+
+		// En Masse Downloader
+		EnMasseDownloader       *enmasse.Downloader
+		MangaEnMasseDownloader  *enmasse.MangaDownloader
+		GlobalEnMasseDownloader *enmasse.GlobalDownloader
 	}
 )
 
 // NewApp creates a new server instance
 func NewApp(configOpts *ConfigOptions, selfupdater *updater.SelfUpdater) *App {
-
-	var app *App
 
 	// Initialize logger with predefined format
 	logger := util.NewLogger()
@@ -312,11 +316,7 @@ func NewApp(configOpts *ConfigOptions, selfupdater *updater.SelfUpdater) *App {
 	})
 
 	// Initialize Anilist platform
-	anilistPlatform := anilist_platform.NewAnilistPlatform(anilistCWRef, extensionBankRef, logger, database, func() {
-		if app != nil {
-			app.LogoutFromAnilist()
-		}
-	})
+	anilistPlatform := anilist_platform.NewAnilistPlatform(anilistCWRef, extensionBankRef, logger, database)
 
 	activePlatformRef := util.NewRef[platform.Platform](anilistPlatform)
 	metadataProviderRef := util.NewRef[metadata_provider.Provider](activeMetadataProvider)
@@ -388,7 +388,7 @@ func NewApp(configOpts *ConfigOptions, selfupdater *updater.SelfUpdater) *App {
 	extensionPlaygroundRepository := extension_playground.NewPlaygroundRepository(logger, activePlatformRef, metadataProviderRef)
 
 	// Create the main app instance with initialized components
-	app = &App{
+	app := &App{
 		Config:                        cfg,
 		Flags:                         configOpts.Flags,
 		FeatureManager:                NewFeatureManager(logger, configOpts.Flags),
@@ -426,6 +426,7 @@ func NewApp(configOpts *ConfigOptions, selfupdater *updater.SelfUpdater) *App {
 		NakamaManager:                 nil, // Initialized in App.initModulesOnce
 		LibraryExplorer:               nil, // Initialized in App.initModulesOnce
 		TorrentClientRepository:       nil, // Initialized in App.InitOrRefreshModules
+		TorrentClientRepositoryRef:    util.NewRef[*torrent_client.Repository](nil), // Ref for late binding
 		MediaPlayerRepository:         nil, // Initialized in App.InitOrRefreshModules
 		DiscordPresence:               nil, // Initialized in App.InitOrRefreshModules
 		previousVersion:               previousVersion,

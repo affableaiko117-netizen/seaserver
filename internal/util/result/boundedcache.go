@@ -18,6 +18,7 @@ type boundedCacheItem[K comparable, V any] struct {
 	key        K
 	value      V
 	expiration time.Time
+	timer      *time.Timer
 }
 
 // NewBoundedCache creates a new bounded cache with the specified capacity
@@ -62,11 +63,10 @@ func (c *BoundedCache[K, V]) SetT(key K, value V, ttl time.Duration) {
 	elem := c.order.PushFront(item)
 	c.items[key] = elem
 
-	// Set up expiration cleanup
-	go func() {
-		<-time.After(ttl)
+	// Set up expiration cleanup using time.AfterFunc (no goroutine leak)
+	item.timer = time.AfterFunc(ttl, func() {
 		c.Delete(key)
-	}()
+	})
 }
 
 // Get retrieves an item from the cache and marks it as recently used
@@ -121,6 +121,10 @@ func (c *BoundedCache[K, V]) Delete(key K) {
 // delete removes an item from the cache (internal, assumes lock is held)
 func (c *BoundedCache[K, V]) delete(key K) {
 	if elem, exists := c.items[key]; exists {
+		item := elem.Value.(*boundedCacheItem[K, V])
+		if item.timer != nil {
+			item.timer.Stop()
+		}
 		c.order.Remove(elem)
 		delete(c.items, key)
 	}

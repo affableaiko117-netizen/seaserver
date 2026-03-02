@@ -63,23 +63,37 @@ func (r *Repository) GetDownloadedChapterContainers(mangaCollection *anilist.Man
 		return ret, nil
 	}
 
-	// Read download directory
-	files, err := os.ReadDir(r.downloadDir)
+	// Read download directory (top-level contains media ID folders)
+	mediaDirs, err := os.ReadDir(r.downloadDir)
 	if err != nil {
 		r.logger.Error().Err(err).Msg("manga: Failed to read download directory")
 		return nil, err
 	}
 
-	// Get all chapter directories
-	// e.g. manga_comick_123_10010_13
+	// Get all chapter directories from nested media folders
+	// Structure: downloadDir/{mediaId}/{provider}_{mediaId}_{chapterId}_{chapterNumber}
 	chapterDirs := make([]string, 0)
-	for _, file := range files {
-		if file.IsDir() {
-			_, ok := chapter_downloader.ParseChapterDirName(file.Name())
-			if !ok {
-				continue
+	for _, mediaDir := range mediaDirs {
+		if !mediaDir.IsDir() {
+			continue
+		}
+
+		// Read chapter directories inside each media folder
+		mediaDirPath := filepath.Join(r.downloadDir, mediaDir.Name())
+		chapterFiles, err := os.ReadDir(mediaDirPath)
+		if err != nil {
+			r.logger.Error().Err(err).Str("mediaDir", mediaDir.Name()).Msg("manga: Failed to read media directory")
+			continue
+		}
+
+		for _, chapterFile := range chapterFiles {
+			if chapterFile.IsDir() {
+				_, ok := chapter_downloader.ParseChapterDirName(chapterFile.Name())
+				if !ok {
+					continue
+				}
+				chapterDirs = append(chapterDirs, chapterFile.Name())
 			}
-			chapterDirs = append(chapterDirs, file.Name())
 		}
 	}
 
@@ -238,15 +252,41 @@ func (r *Repository) getDownloadedMangaPageContainer(
 	// Check if the chapter is downloaded
 	found := false
 
-	// Read download directory
-	files, err := os.ReadDir(r.downloadDir)
-	if err != nil {
-		r.logger.Error().Err(err).Msg("manga: Failed to read download directory")
-		return nil, err
+	// Try multiple possible directory names:
+	// 1. Numeric media ID (e.g., "12345" or "-12345")
+	// 2. Sanitized title from synthetic manga database
+	possibleMediaDirs := []string{fmt.Sprintf("%d", mediaId)}
+
+	// For synthetic manga (negative IDs), also try looking up the title
+	if mediaId < 0 && r.db != nil {
+		syntheticManga, dbFound := r.db.GetSyntheticManga(mediaId)
+		if dbFound && syntheticManga.Title != "" {
+			possibleMediaDirs = append([]string{chapter_downloader.SanitizeDirectoryName(syntheticManga.Title)}, possibleMediaDirs...)
+		}
 	}
 
-	chapterDir := "" // e.g. manga_comick_123_10010_13
-	for _, file := range files {
+	var mediaDirPath string
+	var chapterFiles []os.DirEntry
+	var err error
+	var mediaDir string
+
+	// Try each possible directory
+	for _, dir := range possibleMediaDirs {
+		mediaDirPath = filepath.Join(r.downloadDir, dir)
+		chapterFiles, err = os.ReadDir(mediaDirPath)
+		if err == nil {
+			mediaDir = dir
+			break
+		}
+	}
+
+	if err != nil {
+		// No media directory found
+		return nil, ErrChapterNotDownloaded
+	}
+
+	chapterDir := "" // e.g. comick_123_10010_13
+	for _, file := range chapterFiles {
 		if file.IsDir() {
 
 			downloadId, ok := chapter_downloader.ParseChapterDirName(file.Name())
@@ -271,7 +311,7 @@ func (r *Repository) getDownloadedMangaPageContainer(
 	r.logger.Debug().Msg("manga: Found downloaded chapter directory")
 
 	// Open registry file
-	registryFile, err := os.Open(filepath.Join(r.downloadDir, chapterDir, "registry.json"))
+	registryFile, err := os.Open(filepath.Join(mediaDirPath, chapterDir, "registry.json"))
 	if err != nil {
 		r.logger.Error().Err(err).Msg("manga: Failed to open registry file")
 		return nil, err
@@ -295,7 +335,7 @@ func (r *Repository) getDownloadedMangaPageContainer(
 	for pageIndex, pageInfo := range *pageRegistry {
 		pageList = append(pageList, &hibikemanga.ChapterPage{
 			Index:    pageIndex,
-			URL:      filepath.Join(chapterDir, pageInfo.Filename),
+			URL:      filepath.Join(mediaDir, chapterDir, pageInfo.Filename),
 			Provider: provider,
 		})
 		pageDimensions[pageIndex] = &PageDimension{

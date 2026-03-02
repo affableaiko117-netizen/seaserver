@@ -1,4 +1,6 @@
-import { useThemeSettings } from "@/lib/theme/theme-hooks"
+"use client"
+
+import { useThemeSettings } from "@/lib/theme/hooks"
 import { cva } from "class-variance-authority"
 import { EmblaCarouselType } from "embla-carousel"
 import AutoScroll from "embla-carousel-autoplay"

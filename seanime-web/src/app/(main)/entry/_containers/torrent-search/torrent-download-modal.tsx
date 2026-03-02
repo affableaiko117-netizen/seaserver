@@ -19,10 +19,10 @@ import { Switch } from "@/components/ui/switch"
 import { Tooltip } from "@/components/ui/tooltip"
 import { Vaul, VaulContent } from "@/components/vaul"
 import { openTab } from "@/lib/helpers/browser"
-import { useRouter } from "@/lib/navigation"
 import { TORRENT_CLIENT } from "@/lib/server/settings"
 import { atom } from "jotai"
 import { useAtom, useAtomValue, useSetAtom } from "jotai/react"
+import { useRouter } from "next/navigation"
 import React, { useMemo, useState } from "react"
 import { AiOutlineCloudServer } from "react-icons/ai"
 import { BiCollection, BiDownload, BiX } from "react-icons/bi"
@@ -90,7 +90,7 @@ export function TorrentDownloadModal({ onToggleTorrent, media, entry }: {
         setConfirmationModalOpen(false)
         setTorrentDrawerIsOpen(undefined)
         router.push("/torrent-list")
-    })
+    }, media.id)
 
     // download torrent file
     const { mutate: downloadTorrentFiles, isPending: isDownloadingFiles } = useDownloadTorrentFile(() => {
@@ -197,7 +197,7 @@ export function TorrentDownloadModal({ onToggleTorrent, media, entry }: {
                     {selectedTorrents.map(torrent => (
                         <Tooltip
                             data-torrent-confirmation-modal-tooltip
-                            key={`${torrent.infoHash}`}
+                            key={`${torrent.link}`}
                             trigger={<div
                                 className={cn(
                                     "ml-12 gap-2 p-2 border rounded-[--radius-md] hover:bg-gray-800 relative",

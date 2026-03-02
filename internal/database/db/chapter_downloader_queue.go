@@ -8,7 +8,8 @@ import (
 
 func (db *Database) GetChapterDownloadQueue() ([]*models.ChapterDownloadQueueItem, error) {
 	var res []*models.ChapterDownloadQueueItem
-	err := db.gormdb.Find(&res).Error
+	// Order by media_id first to group series together, then by id for insertion order
+	err := db.gormdb.Order("media_id ASC, id ASC").Find(&res).Error
 	if err != nil {
 		db.Logger.Error().Err(err).Msg("db: Failed to get chapter download queue")
 		return nil, err
@@ -19,7 +20,9 @@ func (db *Database) GetChapterDownloadQueue() ([]*models.ChapterDownloadQueueIte
 
 func (db *Database) GetNextChapterDownloadQueueItem() (*models.ChapterDownloadQueueItem, error) {
 	var res models.ChapterDownloadQueueItem
-	err := db.gormdb.Where("status = ?", "not_started").First(&res).Error
+	// Order by media_id first to ensure all chapters from one series are processed together,
+	// then by id to maintain insertion order within a series
+	err := db.gormdb.Where("status = ?", "not_started").Order("media_id ASC, id ASC").First(&res).Error
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			db.Logger.Error().Err(err).Msg("db: Failed to get next chapter download queue item")
@@ -47,6 +50,10 @@ func (db *Database) DequeueChapterDownloadQueueItem() (*models.ChapterDownloadQu
 	return &res, nil
 }
 
+// MaxQueuedSeries is the maximum number of unique manga series allowed in the download queue at once.
+// Chapters per series are unlimited.
+const MaxQueuedSeries = 50
+
 func (db *Database) InsertChapterDownloadQueueItem(item *models.ChapterDownloadQueueItem) error {
 
 	// Check if the item already exists
@@ -55,6 +62,20 @@ func (db *Database) InsertChapterDownloadQueueItem(item *models.ChapterDownloadQ
 	if err == nil {
 		db.Logger.Debug().Msg("db: Chapter download queue item already exists")
 		return errors.New("chapter is already in the download queue")
+	}
+
+	// Check if this media is already in the queue (if so, allow adding more chapters)
+	var existingMediaItem models.ChapterDownloadQueueItem
+	mediaAlreadyInQueue := db.gormdb.Where("media_id = ?", item.MediaID).First(&existingMediaItem).Error == nil
+
+	// If this is a new series, check the series limit
+	if !mediaAlreadyInQueue {
+		var uniqueSeriesCount int64
+		db.gormdb.Model(&models.ChapterDownloadQueueItem{}).Distinct("media_id").Count(&uniqueSeriesCount)
+		if uniqueSeriesCount >= MaxQueuedSeries {
+			db.Logger.Debug().Int64("currentCount", uniqueSeriesCount).Int("max", MaxQueuedSeries).Msg("db: Maximum queued series limit reached")
+			return errors.New("maximum of 50 series allowed in the download queue at once")
+		}
 	}
 
 	if item.ChapterID == "" {
@@ -98,6 +119,28 @@ func (db *Database) GetMediaQueuedChapters(mediaId int) ([]*models.ChapterDownlo
 	}
 
 	return res, nil
+}
+
+// GetMediaQueuedChapterCount returns the number of chapters in the queue for a specific media
+func (db *Database) GetMediaQueuedChapterCount(mediaId int) (int64, error) {
+	var count int64
+	err := db.gormdb.Model(&models.ChapterDownloadQueueItem{}).Where("media_id = ?", mediaId).Count(&count).Error
+	if err != nil {
+		db.Logger.Error().Err(err).Msg("db: Failed to get media queued chapter count")
+		return 0, err
+	}
+	return count, nil
+}
+
+// GetTotalQueuedChapterCount returns the total number of chapters in the queue
+func (db *Database) GetTotalQueuedChapterCount() (int64, error) {
+	var count int64
+	err := db.gormdb.Model(&models.ChapterDownloadQueueItem{}).Count(&count).Error
+	if err != nil {
+		db.Logger.Error().Err(err).Msg("db: Failed to get total queued chapter count")
+		return 0, err
+	}
+	return count, nil
 }
 
 func (db *Database) ClearAllChapterDownloadQueueItems() error {

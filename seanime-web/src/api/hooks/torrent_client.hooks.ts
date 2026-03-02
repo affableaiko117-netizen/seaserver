@@ -7,6 +7,7 @@ import {
 } from "@/api/generated/endpoint.types"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { HibikeTorrent_AnimeTorrent, Nullish, TorrentClient_Torrent } from "@/api/generated/types"
+import { useDownloadingAnime } from "@/app/(main)/_atoms/downloading.atoms"
 import { useQueryClient } from "@tanstack/react-query"
 import React from "react"
 import { toast } from "sonner"
@@ -44,12 +45,17 @@ export function useTorrentClientAction(onSuccess?: () => void) {
     })
 }
 
-export function useTorrentClientDownload(onSuccess?: () => void) {
+export function useTorrentClientDownload(onSuccess?: () => void, mediaId?: number) {
+    const { addDownloadingAnime } = useDownloadingAnime()
+
     return useServerMutation<boolean, TorrentClientDownload_Variables>({
         endpoint: API_ENDPOINTS.TORRENT_CLIENT.TorrentClientDownload.endpoint,
         method: API_ENDPOINTS.TORRENT_CLIENT.TorrentClientDownload.methods[0],
         mutationKey: [API_ENDPOINTS.TORRENT_CLIENT.TorrentClientDownload.key],
         onSuccess: async () => {
+            if (mediaId) {
+                addDownloadingAnime(mediaId)
+            }
             toast.success("Download started")
             onSuccess?.()
         },

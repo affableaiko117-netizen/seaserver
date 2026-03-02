@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, Tray, ipcMain, shell, dialog, remote, net, protocol, nativeImage } = require("electron")
+const { app, BrowserWindow, Menu, Tray, ipcMain, shell, dialog, remote, net, protocol, contextBridge } = require("electron")
 const path = require("path")
 const { spawn } = require("child_process")
 const fs = require("fs")
@@ -8,48 +8,7 @@ import("strip-ansi").then(module => {
     stripAnsi = module.default
 })
 const { autoUpdater } = require("electron-updater")
-const log = require("electron-log/main")
-log.initialize()
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Settings
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-const DENSHI_SETTINGS_DEFAULTS = {
-    minimizeToTray: true,
-    openInBackground: false,
-    openAtLaunch: false,
-}
-
-function getDenshiSettingsPath() {
-    return path.join(app.getPath("userData"), "denshi-settings.json")
-}
-
-function loadDenshiSettings() {
-    try {
-        const settingsPath = getDenshiSettingsPath()
-        if (fs.existsSync(settingsPath)) {
-            const data = JSON.parse(fs.readFileSync(settingsPath, "utf-8"))
-            return { ...DENSHI_SETTINGS_DEFAULTS, ...data }
-        }
-    } catch (err) {
-        log.error("[Denshi] Failed to load settings:", err)
-    }
-    return { ...DENSHI_SETTINGS_DEFAULTS }
-}
-
-function saveDenshiSettings(settings) {
-    try {
-        const settingsPath = getDenshiSettingsPath()
-        fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), "utf-8")
-    } catch (err) {
-        log.error("[Denshi] Failed to save settings:", err)
-    }
-}
-
-let denshiSettings = DENSHI_SETTINGS_DEFAULTS
-
-const _isRsbuildFrontend = true
+const log = require("electron-log")
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Chromium flags
@@ -60,6 +19,7 @@ function setupChromiumFlags() {
     app.commandLine.appendSwitch("bypasscsp-schemes")
     app.commandLine.appendSwitch("no-sandbox")
     app.commandLine.appendSwitch("no-zygote")
+
 
     app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required")
     app.commandLine.appendSwitch("force_high_performance_gpu")
@@ -216,87 +176,50 @@ function setupCustomProtocol() {
 // call before app.whenReady
 setupCustomProtocol()
 
-// Sets up the app protocol to serve the static files
+// Sets up the app protocol to serve the next.js static files from web-denshi/
 function setupAppProtocol() {
     if (_development) return
 
     const webPath = path.join(__dirname, "../web-denshi")
 
-    if (!_isRsbuildFrontend) {
-        protocol.handle("app", (request) => {
-            const requestUrl = new URL(request.url)
-            let urlPath = requestUrl.pathname
+    protocol.handle("app", (request) => {
+        const requestUrl = new URL(request.url)
+        let urlPath = requestUrl.pathname
 
-            // next.js ssg: add .html to path
-            if (!urlPath.endsWith(".html") && path.extname(urlPath) === "") {
-                urlPath = urlPath + ".html"
+        // next.js ssg: add .html to path
+        if (!urlPath.endsWith(".html") && path.extname(urlPath) === "") {
+            urlPath = urlPath + ".html"
+        }
+
+        // might not happen?
+        if (urlPath === "/.html") {
+            urlPath = "/index.html"
+        }
+
+        let filePath = path.join(webPath, urlPath)
+
+        const resolvedPath = path.resolve(filePath)
+        const resolvedWebPath = path.resolve(webPath)
+        if (!resolvedPath.startsWith(resolvedWebPath)) {
+            filePath = path.join(webPath, "index.html")
+        }
+
+        if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+            return net.fetch(`file://${filePath}`)
+        }
+
+        if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {
+            const indexPath = path.join(filePath, "index.html")
+            if (fs.existsSync(indexPath)) {
+                return net.fetch(`file://${indexPath}`)
             }
+        }
 
-            // might not happen?
-            if (urlPath === "/.html") {
-                urlPath = "/index.html"
-            }
-
-            let filePath = path.join(webPath, urlPath)
-
-            const resolvedPath = path.resolve(filePath)
-            const resolvedWebPath = path.resolve(webPath)
-            if (!resolvedPath.startsWith(resolvedWebPath)) {
-                filePath = path.join(webPath, "index.html")
-            }
-
-            if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-                return net.fetch(`file://${filePath}`)
-            }
-
-            if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {
-                const indexPath = path.join(filePath, "index.html")
-                if (fs.existsSync(indexPath)) {
-                    return net.fetch(`file://${indexPath}`)
-                }
-            }
-
-            // fallback to root index.html
-            log.warn(`[Protocol] Fallback for ${request.url}, serving index.html`) // Added a log
-            const fallbackPath = path.join(webPath, "index.html")
-            return net.fetch(`file://${fallbackPath}`)
-        })
-    } else {
-        protocol.handle("app", async (request) => {
-            const requestUrl = new URL(request.url)
-            const urlPath = requestUrl.pathname
-            let filePath = path.join(webPath, urlPath)
-
-            if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-                const response = await net.fetch(`file://${filePath}`)
-                const newHeaders = new Headers(response.headers)
-                newHeaders.set("Cross-Origin-Opener-Policy", "same-origin")
-                newHeaders.set("Cross-Origin-Embedder-Policy", "credentialless")
-                return new Response(response.body, {
-                    status: response.status,
-                    statusText: response.statusText,
-                    headers: newHeaders,
-                })
-            }
-
-            const ext = path.extname(urlPath)
-            if (!ext || ext === ".html") {
-                const fallbackPath = path.join(webPath, "index.html")
-                const response = await net.fetch(`file://${fallbackPath}`)
-                const newHeaders = new Headers(response.headers)
-                newHeaders.set("Cross-Origin-Opener-Policy", "same-origin")
-                newHeaders.set("Cross-Origin-Embedder-Policy", "credentialless")
-                return new Response(response.body, {
-                    status: response.status,
-                    statusText: response.statusText,
-                    headers: newHeaders,
-                })
-            }
-
-            console.error(`[App Protocol] 404 Not Found: ${urlPath}`)
-            return new Response("Not Found", { status: 404 })
-        })
-    }
+        // fallback to root index.html
+        log.warn(`[Protocol] Fallback for ${request.url}, serving index.html`) // Added a log
+        const fallbackPath = path.join(webPath, "index.html")
+        return net.fetch(`file://${fallbackPath}`)
+    })
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -459,7 +382,7 @@ autoUpdater.on("error", (err) => {
 // Single instance
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-const gotTheLock = _development ? true : app.requestSingleInstanceLock({ development: _development })
+const gotTheLock = app.requestSingleInstanceLock({ development: _development })
 
 /**
  * Force single instance
@@ -471,12 +394,10 @@ if (!gotTheLock) {
 } else {
     app.on("second-instance", (event, commandLine, workingDirectory, additionalData) => {
         if (additionalData && additionalData.development) return
-        if (!serverStarted) return
         // tried to run a second instance, focus the window.
         if (mainWindow && !mainWindow.isDestroyed()) {
             if (mainWindow.isMinimized()) mainWindow.restore()
             if (!mainWindow.isVisible()) {
-                if (!mainWindow.isMaximized()) mainWindow.maximize()
                 mainWindow.show()
                 if (process.platform === "darwin") {
                     app.dock.show()
@@ -492,25 +413,20 @@ if (!gotTheLock) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function createTray() {
-    const iconName = process.platform === "darwin" ? "18x18.png" : "icon.png"
-
-    let iconPath = path.join(__dirname, "../assets", iconName)
-    if (_development) {
-        iconPath = path.join(app.getAppPath(), "assets", iconName)
+    let iconPath = path.join(__dirname, "../assets/icon.png")
+    if (process.platform === "darwin") {
+        iconPath = path.join(__dirname, "../assets/18x18.png")
     }
-    const icon = nativeImage.createFromPath(iconPath)
-    tray = new Tray(icon)
+    tray = new Tray(iconPath)
 
     const contextMenu = Menu.buildFromTemplate([{
-        id: "toggle_visibility", label: "Toggle Visibility", click: () => {
-            if (!serverStarted) return
+        id: "toggle_visibility", label: "Toggle visibility", click: () => {
             if (mainWindow.isVisible()) {
                 mainWindow.hide()
                 if (process.platform === "darwin") {
                     app.dock.hide()
                 }
             } else {
-                if (!mainWindow.isMaximized()) mainWindow.maximize()
                 mainWindow.show()
                 mainWindow.focus()
                 if (process.platform === "darwin") {
@@ -519,7 +435,7 @@ function createTray() {
             }
         }
     }, ...(process.platform === "darwin" ? [{
-        id: "accessory_mode", label: "Remove from Dock", click: () => {
+        id: "accessory_mode", label: "Remove from dock", click: () => {
             app.dock.hide()
         }
     }
@@ -531,33 +447,15 @@ function createTray() {
     ])
 
     tray.setToolTip("Seanime")
-
-    if (process.platform !== "darwin") {
-        tray.setContextMenu(contextMenu)
-    }
+    tray.setContextMenu(contextMenu)
 
     tray.on("click", () => {
-        if (!serverStarted) return
-        if (mainWindow.isVisible()) {
-            mainWindow.hide()
-            if (process.platform === "darwin") {
-                app.dock.hide()
-            }
-        } else {
-            if (!mainWindow.isMaximized()) mainWindow.maximize()
-            mainWindow.show()
-            mainWindow.focus()
-            if (process.platform === "darwin") {
-                app.dock.show()
-            }
+        mainWindow.show()
+        mainWindow.focus()
+        if (process.platform === "darwin") {
+            app.dock.show()
         }
     })
-
-    if (process.platform === "darwin") {
-        tray.on("right-click", () => {
-            tray.popUpContextMenu(contextMenu)
-        })
-    }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -576,7 +474,7 @@ async function launchSeanimeServer(isRestart) {
                 splashScreen.close()
                 splashScreen = null
             }
-            if (mainWindow && !mainWindow.isDestroyed() && !denshiSettings.openInBackground) {
+            if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.maximize()
                 mainWindow.show()
             }
@@ -628,15 +526,9 @@ async function launchSeanimeServer(isRestart) {
         const args = []
 
         // Development mode
-        if (_development) {
-            args.push("-port", "43000")
-            if (process.env.TEST_DATADIR) {
-                console.log("[Main] TEST_DATADIR", process.env.TEST_DATADIR)
-                args.push("-datadir", process.env.TEST_DATADIR)
-            } else {
-                const devDataDir = path.join(app.getPath("appData"), "Seanime-dev")
-                args.push("-datadir", devDataDir)
-            }
+        if (_development && process.env.TEST_DATADIR) {
+            console.log("[Main] TEST_DATADIR", process.env.TEST_DATADIR)
+            args.push("-datadir", process.env.TEST_DATADIR)
         }
 
         args.push("-desktop-sidecar", "true")
@@ -673,13 +565,8 @@ async function launchSeanimeServer(isRestart) {
                     console.log("[Main] Server started close splash screen")
                     setTimeout(() => {
                         if (mainWindow && !mainWindow.isDestroyed()) {
-                            if (denshiSettings.openInBackground) {
-                                // Don't maximize or show
-                                log.info("[Denshi] Opened in background")
-                            } else {
-                                mainWindow.maximize()
-                                mainWindow.show()
-                            }
+                            mainWindow.maximize()
+                            mainWindow.show()
                         }
                     }, 1000)
                     resolve()
@@ -741,7 +628,6 @@ function createMainWindow() {
     const windowOptions = {
         width: 800, height: 600, show: false,
         backgroundColor: "#111111",
-        acceptFirstMouse: false,
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
@@ -824,15 +710,10 @@ function createMainWindow() {
 
     mainWindow.on("close", (event) => {
         if (!isShutdown) {
-            if (denshiSettings.minimizeToTray) {
-                event.preventDefault()
-                mainWindow.hide()
-                if (process.platform === "darwin") {
-                    app.dock.hide()
-                }
-            } else {
-                // Close the app completely
-                cleanupAndExit()
+            event.preventDefault()
+            mainWindow.hide()
+            if (process.platform === "darwin") {
+                app.dock.hide()
             }
         }
     })
@@ -845,7 +726,7 @@ function createMainWindow() {
 function createSplashScreen() {
     logStartupEvent("Creating splash screen")
     splashScreen = new BrowserWindow({
-        width: 800, height: 600, frame: false, resizable: false, show: !denshiSettings.openInBackground, backgroundColor: "#0c0c0c", webPreferences: {
+        width: 800, height: 600, frame: false, resizable: false, webPreferences: {
             nodeIntegration: false, contextIsolation: true, preload: path.join(__dirname, "preload.js")
         }
     })
@@ -942,24 +823,6 @@ function cleanupAndExit() {
 // Initialize the app
 app.whenReady().then(async () => {
     logStartupEvent("App ready")
-
-    // Load denshi settings early
-    denshiSettings = loadDenshiSettings()
-    if (_development) {
-        denshiSettings.openInBackground = false
-    }
-    // Disregard openInBackground on Linux
-    if (process.platform === "linux") {
-        denshiSettings.openInBackground = false
-    }
-    log.info("[Denshi] Loaded settings:", JSON.stringify(denshiSettings))
-
-    // Apply openAtLaunch setting (only supported on macOS and Windows)
-    if (!_development && (process.platform === "darwin" || process.platform === "win32")) {
-        app.setLoginItemSettings({
-            openAtLogin: denshiSettings.openAtLaunch,
-        })
-    }
 
     // Set up Chromium flags for better video playback
     setupChromiumFlags()
@@ -1212,26 +1075,6 @@ app.whenReady().then(async () => {
     })
 
     ipcMain.handle("get-local-server-port", () => localServerPort)
-
-    // Denshi settings IPC handlers
-    ipcMain.handle("denshi:getSettings", () => {
-        return { ...denshiSettings }
-    })
-
-    ipcMain.handle("denshi:setSettings", (_, newSettings) => {
-        denshiSettings = { ...DENSHI_SETTINGS_DEFAULTS, ...newSettings }
-        saveDenshiSettings(denshiSettings)
-        log.info("[Denshi] Settings updated:", JSON.stringify(denshiSettings))
-
-        // Apply openAtLaunch immediately (only supported on macOS and Windows)
-        if (!_development && (process.platform === "darwin" || process.platform === "win32")) {
-            app.setLoginItemSettings({
-                openAtLogin: denshiSettings.openAtLaunch,
-            })
-        }
-
-        return { ...denshiSettings }
-    })
 
     app.on("window-all-closed", () => {
         if (process.platform !== "darwin") {

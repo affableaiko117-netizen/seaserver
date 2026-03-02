@@ -1,6 +1,21 @@
 import { VideoCoreSettings } from "@/app/(main)/_features/video-core/video-core.atoms"
 import { logger } from "@/lib/helpers/debug"
-import type { Anime4KPipeline } from "anime4k-webgpu"
+import {
+    Anime4KPipeline,
+    CNNx2M,
+    CNNx2UL,
+    CNNx2VL,
+    DenoiseCNNx2VL,
+    GANx3L,
+    GANx4UUL,
+    ModeA,
+    ModeAA,
+    ModeB,
+    ModeBB,
+    ModeC,
+    ModeCA,
+    render,
+} from "anime4k-webgpu"
 
 const log = logger("VIDEO CORE ANIME 4K MANAGER")
 
@@ -38,18 +53,10 @@ interface FrameDropState {
     enabled: boolean
     frameDropThreshold: number
     frameDropCount: number
-    totalFrameDrops: number
     lastFrameTime: number
     targetFrameTime: number
     performanceGracePeriod: number
     initTime: number
-}
-
-interface RenderStats {
-    currentFps: number
-    frameTimeSamples: number[]
-    lastRenderTime: number
-    renderCallbackId: number | null
 }
 
 export class VideoCoreAnime4KManager extends EventTarget {
@@ -64,17 +71,10 @@ export class VideoCoreAnime4KManager extends EventTarget {
         enabled: true,
         frameDropThreshold: 5,
         frameDropCount: 0,
-        totalFrameDrops: 0,
         lastFrameTime: 0,
         targetFrameTime: 1000 / 16, // 30fps target
         performanceGracePeriod: 1000,
         initTime: 0,
-    }
-    private _renderStats: RenderStats = {
-        currentFps: 0,
-        frameTimeSamples: [],
-        lastRenderTime: 0,
-        renderCallbackId: null,
     }
     private readonly _onFallback?: (message: string) => void
     private readonly _onOptionChanged?: (option: Anime4KOption) => void
@@ -102,17 +102,6 @@ export class VideoCoreAnime4KManager extends EventTarget {
         this._onOptionChanged = onOptionChanged
 
         log.info("Anime4K manager initialized")
-    }
-
-    getStats() {
-        return {
-            currentOption: this._currentOption,
-            frameDropCount: this._frameDropState.frameDropCount,
-            totalFrameDrops: this._frameDropState.totalFrameDrops,
-            currentFps: this._renderStats.currentFps,
-            targetFrameTime: this._frameDropState.targetFrameTime,
-            lastFrameTime: this._frameDropState.lastFrameTime,
-        }
     }
 
     getCurrentOption(): Anime4KOption {
@@ -265,18 +254,6 @@ export class VideoCoreAnime4KManager extends EventTarget {
 
         this._initialized = false
 
-        if (this._renderStats.renderCallbackId !== null) {
-            this.videoElement.cancelVideoFrameCallback(this._renderStats.renderCallbackId)
-            this._renderStats.renderCallbackId = null
-        }
-
-        this._renderStats = {
-            currentFps: 0,
-            frameTimeSamples: [],
-            lastRenderTime: 0,
-            renderCallbackId: null,
-        }
-
         if (this._initializationTimeout) {
             clearTimeout(this._initializationTimeout)
             this._initializationTimeout = null
@@ -290,11 +267,6 @@ export class VideoCoreAnime4KManager extends EventTarget {
         if (this._renderLoopId) {
             cancelAnimationFrame(this._renderLoopId)
             this._renderLoopId = null
-        }
-
-        if (this._renderStats.renderCallbackId !== null) {
-            this.videoElement.cancelVideoFrameCallback(this._renderStats.renderCallbackId)
-            this._renderStats.renderCallbackId = null
         }
 
         if (this._webgpuResources?.device) {
@@ -329,16 +301,8 @@ export class VideoCoreAnime4KManager extends EventTarget {
         this._frameDropState = {
             ...this._frameDropState,
             frameDropCount: 0,
-            totalFrameDrops: 0,
             initTime: performance.now(),
             lastFrameTime: 0,
-        }
-
-        this._renderStats = {
-            currentFps: 0,
-            frameTimeSamples: [],
-            lastRenderTime: 0,
-            renderCallbackId: null,
         }
 
         // Check WebGPU support, create canvas, and start rendering
@@ -441,8 +405,6 @@ export class VideoCoreAnime4KManager extends EventTarget {
             return
         }
 
-        const anime4k = await import("anime4k-webgpu")
-
         const nativeDimensions = {
             width: this.videoElement.videoWidth,
             height: this.videoElement.videoHeight,
@@ -455,7 +417,7 @@ export class VideoCoreAnime4KManager extends EventTarget {
 
         log.info("Rendering started")
 
-        await anime4k.render({
+        await render({
             video: this.videoElement,
             canvas: this.canvas,
             pipelineBuilder: (device, inputTexture) => {
@@ -468,7 +430,7 @@ export class VideoCoreAnime4KManager extends EventTarget {
                     targetDimensions,
                 }
 
-                return this.createPipeline(commonProps, anime4k)
+                return this.createPipeline(commonProps)
             },
         })
 
@@ -484,8 +446,6 @@ export class VideoCoreAnime4KManager extends EventTarget {
 
                 const event: Anime4KManagerCanvasCreatedEvent = new CustomEvent("canvascreated", { detail: { canvas: this.canvas } })
                 this.dispatchEvent(event)
-
-                this._startRenderFpsTracking()
             }
         }, 100)
 
@@ -495,34 +455,34 @@ export class VideoCoreAnime4KManager extends EventTarget {
         }
     }
 
-    private createPipeline(commonProps: any, anime4k: typeof import("anime4k-webgpu")): [Anime4KPipeline] {
+    private createPipeline(commonProps: any): [Anime4KPipeline] {
         switch (this._currentOption) {
             case "mode-a":
-                return [new anime4k.ModeA(commonProps)]
+                return [new ModeA(commonProps)]
             case "mode-b":
-                return [new anime4k.ModeB(commonProps)]
+                return [new ModeB(commonProps)]
             case "mode-c":
-                return [new anime4k.ModeC(commonProps)]
+                return [new ModeC(commonProps)]
             case "mode-aa":
-                return [new anime4k.ModeAA(commonProps)]
+                return [new ModeAA(commonProps)]
             case "mode-bb":
-                return [new anime4k.ModeBB(commonProps)]
+                return [new ModeBB(commonProps)]
             case "mode-ca":
-                return [new anime4k.ModeCA(commonProps)]
+                return [new ModeCA(commonProps)]
             case "cnn-2x-medium":
-                return [new anime4k.CNNx2M(commonProps)]
+                return [new CNNx2M(commonProps)]
             case "cnn-2x-very-large":
-                return [new anime4k.CNNx2VL(commonProps)]
+                return [new CNNx2VL(commonProps)]
             case "denoise-cnn-2x-very-large":
-                return [new anime4k.DenoiseCNNx2VL(commonProps)]
+                return [new DenoiseCNNx2VL(commonProps)]
             case "cnn-2x-ultra-large":
-                return [new anime4k.CNNx2UL(commonProps)]
+                return [new CNNx2UL(commonProps)]
             case "gan-3x-large":
-                return [new anime4k.GANx3L(commonProps)]
+                return [new GANx3L(commonProps)]
             case "gan-4x-ultra-large":
-                return [new anime4k.GANx4UUL(commonProps)]
+                return [new GANx4UUL(commonProps)]
             default:
-                return [new anime4k.ModeA(commonProps)]
+                return [new ModeA(commonProps)]
         }
     }
 
@@ -558,7 +518,6 @@ export class VideoCoreAnime4KManager extends EventTarget {
 
             if (isFrameDrop) {
                 this._frameDropState.frameDropCount++
-                this._frameDropState.totalFrameDrops++
 
                 if (this._frameDropState.frameDropCount >= this._frameDropState.frameDropThreshold) {
                     log.warning(`Detected ${this._frameDropState.frameDropCount} consecutive frame drops. Falling back to 'off' mode.`)
@@ -637,31 +596,5 @@ export class VideoCoreAnime4KManager extends EventTarget {
 
     private _isCanvasHidden(): boolean {
         return this.canvas ? this.canvas.style.display === "none" : false
-    }
-
-    private _startRenderFpsTracking() {
-        if (!this.videoElement.requestVideoFrameCallback) return
-
-        const trackFrame = (now: number, metadata: VideoFrameCallbackMetadata) => {
-            if (this._renderStats.lastRenderTime > 0) {
-                const frameTime = now - this._renderStats.lastRenderTime
-
-                this._renderStats.frameTimeSamples.push(frameTime)
-                if (this._renderStats.frameTimeSamples.length > 10) {
-                    this._renderStats.frameTimeSamples.shift()
-                }
-
-                const avgFrameTime = this._renderStats.frameTimeSamples.reduce((a, b) => a + b, 0) / this._renderStats.frameTimeSamples.length
-                this._renderStats.currentFps = avgFrameTime > 0 ? 1000 / avgFrameTime : 0
-            }
-
-            this._renderStats.lastRenderTime = now
-
-            if (this._isOptionSelected(this._currentOption)) {
-                this._renderStats.renderCallbackId = this.videoElement.requestVideoFrameCallback(trackFrame)
-            }
-        }
-
-        this._renderStats.renderCallbackId = this.videoElement.requestVideoFrameCallback(trackFrame)
     }
 }

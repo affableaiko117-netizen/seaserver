@@ -1,5 +1,7 @@
+"use client"
 import { ElectronSidebarPaddingMacOS } from "@/app/(main)/_electron/electron-padding"
-import { __isDesktop__, __isElectronDesktop__ } from "@/types/constants"
+import { TauriSidebarPaddingMacOS } from "@/app/(main)/_tauri/tauri-padding"
+import { __isDesktop__, __isElectronDesktop__, __isTauriDesktop__ } from "@/types/constants"
 import { cva, VariantProps } from "class-variance-authority"
 import * as React from "react"
 import { __AppSidebarContext } from "."
@@ -235,6 +237,7 @@ export const AppLayoutSidebar = React.forwardRef<HTMLElement, AppLayoutSidebarPr
             className={cn(AppLayoutSidebarAnatomy.root(), className)}
             {...rest}
         >
+            {__isTauriDesktop__ && <TauriSidebarPaddingMacOS />}
             {__isElectronDesktop__ && <ElectronSidebarPaddingMacOS />}
             {children}
         </aside>

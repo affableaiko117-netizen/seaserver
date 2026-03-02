@@ -1,3 +1,5 @@
+"use client"
+
 import { hiddenInputStyles } from "@/components/ui/input"
 import { Popover } from "@/components/ui/popover"
 import * as SwitchPrimitive from "@radix-ui/react-switch"
@@ -177,7 +179,7 @@ export const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>((props, r
                     </label>
                     {moreHelp && <Popover
                         className="text-sm"
-                        trigger={<span><AiOutlineExclamationCircle className="transition-opacity opacity-45 hover:opacity-90" /></span>}
+                        trigger={<AiOutlineExclamationCircle className="transition-opacity opacity-45 hover:opacity-90" />}
                     >
                         {moreHelp}
                     </Popover>}

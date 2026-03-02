@@ -21,6 +21,7 @@ func (h *Handler) HandleDownloadMangaChapters(c echo.Context) error {
 		Provider   string   `json:"provider"`
 		ChapterIds []string `json:"chapterIds"`
 		StartNow   bool     `json:"startNow"`
+		MediaTitle string   `json:"mediaTitle"` // Romaji title for folder naming
 	}
 
 	var b body
@@ -33,10 +34,11 @@ func (h *Handler) HandleDownloadMangaChapters(c echo.Context) error {
 	// Add chapters to the download queue
 	for _, chapterId := range b.ChapterIds {
 		err := h.App.MangaDownloader.DownloadChapter(manga.DownloadChapterOptions{
-			Provider:  b.Provider,
-			MediaId:   b.MediaId,
-			ChapterId: chapterId,
-			StartNow:  b.StartNow,
+			Provider:   b.Provider,
+			MediaId:    b.MediaId,
+			ChapterId:  chapterId,
+			StartNow:   b.StartNow,
+			MediaTitle: b.MediaTitle,
 		})
 		if err != nil {
 			return h.RespondWithError(c, err)

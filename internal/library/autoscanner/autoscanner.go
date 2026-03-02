@@ -3,7 +3,6 @@ package autoscanner
 import (
 	"context"
 	"errors"
-	"seanime/internal/api/anilist"
 	"seanime/internal/api/metadata_provider"
 	"seanime/internal/database/db"
 	"seanime/internal/database/db_bridge"
@@ -16,7 +15,6 @@ import (
 	"seanime/internal/platforms/platform"
 	"seanime/internal/util"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -39,9 +37,6 @@ type (
 		autoDownloader      *autodownloader.AutoDownloader // AutoDownloader instance is required to refresh queue.
 		metadataProviderRef *util.Ref[metadata_provider.Provider]
 		logsDir             string
-		scanning            atomic.Bool
-		onRefreshCollection func()
-		animeCollection     *anilist.AnimeCollection
 	}
 	NewAutoScannerOptions struct {
 		Database            *db.Database
@@ -53,7 +48,6 @@ type (
 		WaitTime            time.Duration
 		MetadataProviderRef *util.Ref[metadata_provider.Provider]
 		LogsDir             string
-		OnRefreshCollection func()
 	}
 )
 
@@ -78,12 +72,7 @@ func New(opts *NewAutoScannerOptions) *AutoScanner {
 		autoDownloader:      opts.AutoDownloader,
 		metadataProviderRef: opts.MetadataProviderRef,
 		logsDir:             opts.LogsDir,
-		onRefreshCollection: opts.OnRefreshCollection,
 	}
-}
-
-func (as *AutoScanner) SetAnimeCollection(ac *anilist.AnimeCollection) {
-	as.animeCollection = ac
 }
 
 // Notify is used to notify the AutoScanner that a file action has occurred.
@@ -164,7 +153,7 @@ func (as *AutoScanner) waitAndScan() {
 	<-time.After(as.waitTime)
 
 	as.mu.Lock()
-	// If a file action occurred while we were waiting, wait again.
+	// If a file action occurred while we were waiting, we will trigger another scan.
 	if as.missedAction {
 		as.logger.Trace().Msg("autoscanner: Missed file action")
 		as.mu.Unlock()
@@ -189,13 +178,6 @@ func (as *AutoScanner) scan() {
 	defer util.HandlePanicInModuleThen("scanner/autoscanner/scan", func() {
 		as.logger.Error().Msg("autoscanner: Recovered from panic")
 	})
-
-	// Guard: prevent concurrent scans
-	if !as.scanning.CompareAndSwap(false, true) {
-		as.logger.Warn().Msg("autoscanner: Scan already in progress, skipping")
-		return
-	}
-	defer as.scanning.Store(false)
 
 	// Create scan summary logger
 	scanSummaryLogger := summary.NewScanSummaryLogger()
@@ -222,12 +204,6 @@ func (as *AutoScanner) scan() {
 		return
 	}
 
-	// Get the latest shelved local files
-	existingShelvedLfs, err := db_bridge.GetShelvedLocalFiles(as.db)
-	if err != nil {
-		as.logger.Error().Err(err).Msg("autoscanner: Failed to get existing shelved local files")
-	}
-
 	// Create a new scan logger
 	var scanLogger *scanner.ScanLogger
 	if as.logsDir != "" {
@@ -241,34 +217,30 @@ func (as *AutoScanner) scan() {
 
 	// Create a new scanner
 	sc := scanner.Scanner{
-		DirPath:              settings.Library.LibraryPath,
-		OtherDirPaths:        settings.Library.LibraryPaths,
-		Enhanced:             false, // Do not use enhanced mode for auto scanner.
-		PlatformRef:          as.platformRef,
-		Logger:               as.logger,
-		WSEventManager:       as.wsEventManager,
-		ExistingLocalFiles:   existingLfs,
-		SkipLockedFiles:      true, // Skip locked files by default.
-		SkipIgnoredFiles:     true,
-		ScanSummaryLogger:    scanSummaryLogger,
-		ScanLogger:           scanLogger,
-		MetadataProviderRef:  as.metadataProviderRef,
-		MatchingThreshold:    as.settings.ScannerMatchingThreshold,
-		MatchingAlgorithm:    as.settings.ScannerMatchingAlgorithm,
-		WithShelving:         true,
-		ExistingShelvedFiles: existingShelvedLfs,
-		ConfigAsString:       as.settings.ScannerConfig,
-		AnimeCollection:      as.animeCollection,
+		DirPath:             settings.Library.LibraryPath,
+		OtherDirPaths:       settings.Library.LibraryPaths,
+		Enhanced:            false, // Do not use enhanced mode for auto scanner.
+		PlatformRef:         as.platformRef,
+		Logger:              as.logger,
+		WSEventManager:      as.wsEventManager,
+		ExistingLocalFiles:  existingLfs,
+		SkipLockedFiles:     true, // Skip locked files by default.
+		SkipIgnoredFiles:    true,
+		ScanSummaryLogger:   scanSummaryLogger,
+		ScanLogger:          scanLogger,
+		MetadataProviderRef: as.metadataProviderRef,
+		MatchingThreshold:   as.settings.ScannerMatchingThreshold,
+		MatchingAlgorithm:   as.settings.ScannerMatchingAlgorithm,
 	}
 
 	allLfs, err := sc.Scan(context.Background())
 	if err != nil {
 		if errors.Is(err, scanner.ErrNoLocalFiles) {
 			return
+		} else {
+			as.logger.Error().Err(err).Msg("autoscanner: Failed to scan library")
+			return
 		}
-
-		as.logger.Error().Err(err).Msg("autoscanner: Failed to scan library")
-		return
 	}
 
 	if as.db != nil && len(allLfs) > 0 {
@@ -277,32 +249,20 @@ func (as *AutoScanner) scan() {
 		// Insert the local files
 		_, err = db_bridge.InsertLocalFiles(as.db, allLfs)
 		if err != nil {
-			as.logger.Error().Err(err).Msg("autoscanner: failed to insert local files")
+			as.logger.Error().Err(err).Msg("failed to insert local files")
 			return
 		}
-	}
 
-	if as.db != nil {
-		as.logger.Trace().Msg("autoscanner: Updating shelved local files")
-		// Save the shelved local files
-		err = db_bridge.SaveShelvedLocalFiles(as.db, sc.GetShelvedLocalFiles())
-		if err != nil {
-			as.logger.Error().Err(err).Msg("autoscanner: failed to save shelved local files")
-		}
 	}
 
 	// Save the scan summary
 	err = db_bridge.InsertScanSummary(as.db, scanSummaryLogger.GenerateSummary())
 	if err != nil {
-		as.logger.Error().Err(err).Msg("autoscanner: failed to insert scan summary")
+		as.logger.Error().Err(err).Msg("failed to insert scan summary")
 	}
 
 	// Refresh the queue
 	go as.autoDownloader.CleanUpDownloadedItems()
-
-	if as.onRefreshCollection != nil {
-		go as.onRefreshCollection()
-	}
 
 	notifier.GlobalNotifier.Notify(notifier.AutoScanner, "Your library has been scanned.")
 

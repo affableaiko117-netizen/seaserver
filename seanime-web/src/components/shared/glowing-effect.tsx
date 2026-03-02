@@ -1,3 +1,5 @@
+"use client"
+
 import { animate } from "motion/react"
 import { memo, useCallback, useEffect, useRef } from "react"
 import { cn } from "../ui/core/styling"

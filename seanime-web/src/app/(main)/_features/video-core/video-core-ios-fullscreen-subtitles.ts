@@ -1,9 +1,5 @@
 import { useDirectstreamConvertSubs } from "@/api/hooks/directstream.hooks"
-
-import { vc_subtitleManager } from "@/app/(main)/_features/video-core/video-core"
-import { vc_mediaCaptionsManager } from "@/app/(main)/_features/video-core/video-core"
-
-import { vc_isFullscreen } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_isFullscreen, vc_mediaCaptionsManager, vc_subtitleManager } from "@/app/(main)/_features/video-core/video-core"
 import { logger } from "@/lib/helpers/debug"
 import { isApple } from "@/lib/utils/browser-detection"
 import { useAtomValue } from "jotai"

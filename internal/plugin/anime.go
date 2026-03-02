@@ -80,7 +80,7 @@ func (m *Anime) getAnimeEntry(call goja.FunctionCall) goja.Value {
 	mediaId := call.Argument(0).ToInteger()
 
 	if mediaId == 0 {
-		_ = reject(goja_bindings.NewErrorString(m.vm, "invalid media id"))
+		_ = reject(goja_bindings.NewErrorString(m.vm, "anilist platform not found"))
 		return m.vm.ToValue(promise)
 	}
 

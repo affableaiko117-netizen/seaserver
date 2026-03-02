@@ -1,5 +1,5 @@
 import { AL_BaseAnime, Anime_EntryListData, Manga_EntryListData } from "@/api/generated/types"
-import { atom } from "jotai"
+import { atom } from "jotai/index"
 
 export const __anilist_userAnimeMediaAtom = atom<AL_BaseAnime[] | undefined>(undefined)
 

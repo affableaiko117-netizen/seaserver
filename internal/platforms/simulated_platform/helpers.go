@@ -5,6 +5,8 @@ import (
 	"errors"
 	"seanime/internal/api/anilist"
 	"time"
+
+	"github.com/samber/lo"
 )
 
 // CollectionWrapper provides an ambivalent interface for anime and manga collections
@@ -40,7 +42,7 @@ func (cw *CollectionWrapper) UpdateEntry(mediaId int, status *anilist.MediaListS
 // UpdateEntryProgress updates the progress of an entry
 func (cw *CollectionWrapper) UpdateEntryProgress(mediaId int, progress int, totalCount *int) error {
 	status := anilist.MediaListStatusCurrent
-	if totalCount != nil && *totalCount > 0 && progress >= *totalCount {
+	if totalCount != nil && progress >= *totalCount {
 		status = anilist.MediaListStatusCompleted
 	}
 
@@ -112,8 +114,8 @@ func (cw *CollectionWrapper) addAnimeEntry(mediaId int, status anilist.MediaList
 		// Create new list
 		targetList = &anilist.AnimeCollection_MediaListCollection_Lists{
 			Status:       &status,
-			Name:         new(string(status)),
-			IsCustomList: new(false),
+			Name:         lo.ToPtr(string(status)),
+			IsCustomList: lo.ToPtr(false),
 			Entries:      []*anilist.AnimeCollection_MediaListCollection_Lists_Entries{},
 		}
 		collection.GetMediaListCollection().Lists = append(collection.GetMediaListCollection().Lists, targetList)
@@ -123,12 +125,12 @@ func (cw *CollectionWrapper) addAnimeEntry(mediaId int, status anilist.MediaList
 	newEntry := &anilist.AnimeCollection_MediaListCollection_Lists_Entries{
 		ID:          int(time.Now().UnixNano()), // Generate unique ID
 		Status:      &status,
-		Progress:    new(0),
+		Progress:    lo.ToPtr(0),
 		Media:       mediaResp.GetMedia(),
-		Score:       new(0.0),
+		Score:       lo.ToPtr(0.0),
 		Notes:       nil,
-		Repeat:      new(0),
-		Private:     new(false),
+		Repeat:      lo.ToPtr(0),
+		Private:     lo.ToPtr(false),
 		StartedAt:   &anilist.AnimeCollection_MediaListCollection_Lists_Entries_StartedAt{},
 		CompletedAt: &anilist.AnimeCollection_MediaListCollection_Lists_Entries_CompletedAt{},
 	}
@@ -174,7 +176,7 @@ func (cw *CollectionWrapper) updateAnimeEntry(mediaId int, status *anilist.Media
 		foundEntry.Progress = progress
 	}
 	if scoreRaw != nil {
-		foundEntry.Score = new(float64(*scoreRaw))
+		foundEntry.Score = lo.ToPtr(float64(*scoreRaw))
 	}
 	if startedAt != nil {
 		foundEntry.StartedAt = &anilist.AnimeCollection_MediaListCollection_Lists_Entries_StartedAt{
@@ -210,8 +212,8 @@ func (cw *CollectionWrapper) updateAnimeEntry(mediaId int, status *anilist.Media
 		if targetList == nil {
 			targetList = &anilist.AnimeCollection_MediaListCollection_Lists{
 				Status:       status,
-				Name:         new(string(*status)),
-				IsCustomList: new(false),
+				Name:         lo.ToPtr(string(*status)),
+				IsCustomList: lo.ToPtr(false),
 				Entries:      []*anilist.AnimeCollection_MediaListCollection_Lists_Entries{},
 			}
 			collection.GetMediaListCollection().Lists = append(collection.GetMediaListCollection().Lists, targetList)
@@ -330,8 +332,8 @@ func (cw *CollectionWrapper) addMangaEntry(mediaId int, status anilist.MediaList
 		// Create new list
 		targetList = &anilist.MangaCollection_MediaListCollection_Lists{
 			Status:       &status,
-			Name:         new(string(status)),
-			IsCustomList: new(false),
+			Name:         lo.ToPtr(string(status)),
+			IsCustomList: lo.ToPtr(false),
 			Entries:      []*anilist.MangaCollection_MediaListCollection_Lists_Entries{},
 		}
 		collection.GetMediaListCollection().Lists = append(collection.GetMediaListCollection().Lists, targetList)
@@ -341,12 +343,12 @@ func (cw *CollectionWrapper) addMangaEntry(mediaId int, status anilist.MediaList
 	newEntry := &anilist.MangaCollection_MediaListCollection_Lists_Entries{
 		ID:          int(time.Now().UnixNano()),
 		Status:      &status,
-		Progress:    new(0),
+		Progress:    lo.ToPtr(0),
 		Media:       mediaResp.GetMedia(),
-		Score:       new(0.0),
+		Score:       lo.ToPtr(0.0),
 		Notes:       nil,
-		Repeat:      new(0),
-		Private:     new(false),
+		Repeat:      lo.ToPtr(0),
+		Private:     lo.ToPtr(false),
 		StartedAt:   &anilist.MangaCollection_MediaListCollection_Lists_Entries_StartedAt{},
 		CompletedAt: &anilist.MangaCollection_MediaListCollection_Lists_Entries_CompletedAt{},
 	}
@@ -392,7 +394,7 @@ func (cw *CollectionWrapper) updateMangaEntry(mediaId int, status *anilist.Media
 		foundEntry.Progress = progress
 	}
 	if scoreRaw != nil {
-		foundEntry.Score = new(float64(*scoreRaw))
+		foundEntry.Score = lo.ToPtr(float64(*scoreRaw))
 	}
 	if startedAt != nil {
 		foundEntry.StartedAt = &anilist.MangaCollection_MediaListCollection_Lists_Entries_StartedAt{
@@ -428,8 +430,8 @@ func (cw *CollectionWrapper) updateMangaEntry(mediaId int, status *anilist.Media
 		if targetList == nil {
 			targetList = &anilist.MangaCollection_MediaListCollection_Lists{
 				Status:       status,
-				Name:         new(string(*status)),
-				IsCustomList: new(false),
+				Name:         lo.ToPtr(string(*status)),
+				IsCustomList: lo.ToPtr(false),
 				Entries:      []*anilist.MangaCollection_MediaListCollection_Lists_Entries{},
 			}
 			collection.GetMediaListCollection().Lists = append(collection.GetMediaListCollection().Lists, targetList)

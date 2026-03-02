@@ -61,6 +61,11 @@ type (
 		eventMu                    sync.RWMutex
 		cancel                     context.CancelFunc
 
+		// currentClientID is the client ID that initiated the current playback session.
+		// Events will only be sent to this client, not broadcast to all clients.
+		currentClientID   string
+		currentClientIDMu sync.RWMutex
+
 		// historyMap stores a PlaybackState whose state is "completed"
 		// Since PlaybackState is sent to client continuously, once a PlaybackState is stored in historyMap, only IT will be sent to the client.
 		// This is so when the user seeks back to a video, the client can show the last known "completed" state of the video
@@ -239,6 +244,37 @@ func New(opts *NewPlaybackManagerOptions) *PlaybackManager {
 
 func (pm *PlaybackManager) SetAnimeCollection(ac *anilist.AnimeCollection) {
 	pm.animeCollection = mo.Some(ac)
+}
+
+// SetCurrentClientID sets the client ID for the current playback session.
+// All playback events will be sent only to this client.
+func (pm *PlaybackManager) SetCurrentClientID(clientID string) {
+	pm.currentClientIDMu.Lock()
+	defer pm.currentClientIDMu.Unlock()
+	pm.currentClientID = clientID
+	pm.Logger.Debug().Str("clientId", clientID).Msg("playback manager: Set current client ID")
+}
+
+// GetCurrentClientID returns the current client ID.
+func (pm *PlaybackManager) GetCurrentClientID() string {
+	pm.currentClientIDMu.RLock()
+	defer pm.currentClientIDMu.RUnlock()
+	return pm.currentClientID
+}
+
+// sendEventToCurrentClient sends an event only to the client that initiated the playback.
+// If no client ID is set, it falls back to broadcasting to all clients.
+func (pm *PlaybackManager) sendEventToCurrentClient(eventType string, payload interface{}) {
+	pm.currentClientIDMu.RLock()
+	clientID := pm.currentClientID
+	pm.currentClientIDMu.RUnlock()
+
+	if clientID != "" {
+		pm.wsEventManager.SendEventTo(clientID, eventType, payload)
+	} else {
+		// Fallback to broadcast if no client ID is set
+		pm.wsEventManager.SendEvent(eventType, payload)
+	}
 }
 
 func (pm *PlaybackManager) SetSettings(s *Settings) {

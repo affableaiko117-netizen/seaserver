@@ -87,7 +87,7 @@ export function useMangaEntryDownloadData() {
 /**
  * Handle downloading manga chapters
  */
-export function useHandleDownloadMangaChapter(mediaId: string | undefined | null) {
+export function useHandleDownloadMangaChapter(mediaId: string | undefined | null, mediaTitle?: string) {
     const { selectedProvider } = useSelectedMangaProvider(mediaId)
 
     const { mutate, isPending } = useDownloadMangaChapters(mediaId, selectedProvider)
@@ -100,6 +100,7 @@ export function useHandleDownloadMangaChapter(mediaId: string | undefined | null
                     provider: selectedProvider,
                     chapterIds: chapters.map(ch => ch.id),
                     startNow: false,
+                    mediaTitle: mediaTitle,
                 }, {
                     onSuccess: () => {
                         toast.success("Chapters added to download queue")

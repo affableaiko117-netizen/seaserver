@@ -220,3 +220,63 @@ export function useRefetchMangaChapterContainers() {
         },
     })
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Synthetic Manga
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+export interface SyntheticManga {
+    id: number
+    syntheticId: number
+    title: string
+    coverImage: string
+    provider: string
+    providerId: string
+    description: string
+    status: string
+    chapters: number
+}
+
+const SYNTHETIC_MANGA_ENDPOINTS = {
+    Search: {
+        key: "synthetic-manga-search",
+        endpoint: "/api/v1/manga/synthetic/search",
+        methods: ["POST"] as const,
+    },
+}
+
+export function useSearchSyntheticManga(query: string, enabled: boolean = true) {
+    return useServerQuery<SyntheticManga[], { query: string; limit: number }>({
+        endpoint: SYNTHETIC_MANGA_ENDPOINTS.Search.endpoint,
+        method: SYNTHETIC_MANGA_ENDPOINTS.Search.methods[0],
+        queryKey: [SYNTHETIC_MANGA_ENDPOINTS.Search.key, query],
+        data: { query, limit: 10 },
+        enabled: enabled && query.length >= 2,
+    })
+}
+
+export function useGetRecentlyReadSyntheticManga() {
+    return useServerQuery<SyntheticManga[]>({
+        endpoint: "/api/v1/manga/synthetic/recently-read",
+        method: "GET",
+        queryKey: ["recently-read-synthetic-manga"],
+        enabled: true,
+    })
+}
+
+export interface MangaReadingHistory {
+    id: number
+    mediaId: number
+    lastReadAt: string
+    lastChapterNumber: string
+    isSynthetic: boolean
+}
+
+export function useGetMangaReadingHistory() {
+    return useServerQuery<MangaReadingHistory[]>({
+        endpoint: "/api/v1/manga/reading-history",
+        method: "GET",
+        queryKey: ["manga-reading-history"],
+        enabled: true,
+    })
+}

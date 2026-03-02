@@ -31,7 +31,6 @@ import { TextInput } from "@/components/ui/text-input"
 import { Tooltip } from "@/components/ui/tooltip"
 import { copyToClipboard } from "@/lib/helpers/browser"
 import { WSEvents } from "@/lib/server/ws-events"
-import { useThemeSettings } from "@/lib/theme/theme-hooks"
 import { __isElectronDesktop__ } from "@/types/constants"
 import { atom, useAtom, useAtomValue } from "jotai"
 import React from "react"
@@ -87,7 +86,6 @@ export function NakamaManager() {
     const [isModalOpen, setIsModalOpen] = useAtom(nakamaModalOpenAtom)
     const [nakamaStatus, setNakamaStatus] = useAtom(nakamaStatusAtom)
     const clientId = useAtomValue(clientIdAtom)
-    const ts = useThemeSettings()
     const serverStatus = useServerStatus()
 
     const watchPartySession = React.useMemo(() => nakamaStatus?.currentWatchPartySession, [nakamaStatus])
@@ -305,7 +303,7 @@ export function NakamaManager() {
 
     const confirmRoom = useConfirmationDialog({
         title: "Create a Cloud Room",
-        description: "By continuing, you agree to broadcast your playback state through Seanime's servers to sync with peers while the room is active. You are limited to 10 rooms per day and 4 peers per room (subject to change).",
+        description: "By continuing, you agree to broadcast your playback state through Seanime's servers to sync with peers only the room is active. You are limited to 10 rooms per day and 4 peers per room (subject to change).",
         onConfirm: () => {
             handleCreateRoom()
         },
@@ -320,11 +318,8 @@ export function NakamaManager() {
                 <MdOutlineConnectWithoutContact className="size-8" />
                 Nakama
             </div>}
-            contentClass={cn(
-                "max-w-3xl bg-gray-950 bg-opacity-90 firefox:bg-opacity-100 firefox:backdrop-blur-none sm:rounded-3xl",
-                ts.enableBlurringEffects && "bg-gray-950 bg-opacity-90 backdrop-blur-sm firefox:bg-opacity-100 firefox:backdrop-blur-none",
-            )}
-            overlayClass={cn(ts.enableBlurringEffects ? "bg-gray-950/70 backdrop-blur-sm" : "bg-black/80")}
+            contentClass="max-w-3xl bg-gray-950 bg-opacity-90 firefox:bg-opacity-100 firefox:backdrop-blur-none sm:rounded-3xl"
+            overlayClass="bg-black/80"
             // allowOutsideInteraction
         >
 

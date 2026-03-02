@@ -1,3 +1,4 @@
+"use client"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import {
     ADVANCED_SEARCH_COUNTRIES_MANGA,
@@ -29,7 +30,6 @@ import { LuCalendar, LuLeaf } from "react-icons/lu"
 import { MdOutlineBook, MdPersonalVideo } from "react-icons/md"
 import { RiSignalTowerLine } from "react-icons/ri"
 import { TbSwords } from "react-icons/tb"
-import { useMount } from "react-use"
 import { useUpdateEffect } from "react-use"
 
 export function AdvancedSearchOptions() {
@@ -213,12 +213,6 @@ function TitleInput() {
     const debouncedTitle = useDebounce(inputValue, 500)
     const [params, setParams] = useAtom(__advancedSearch_paramsAtom)
 
-    const ref = React.useRef<HTMLInputElement | null>(null)
-
-    useMount(() => {
-        ref.current?.focus()
-    })
-
     useUpdateEffect(() => {
         setParams(draft => {
             draft.title = debouncedTitle
@@ -232,7 +226,6 @@ function TitleInput() {
 
     return (
         <TextInput
-            ref={ref}
             leftIcon={<FiSearch />} placeholder="Title" className="w-full"
             value={inputValue}
             onValueChange={v => setInputValue(v)}

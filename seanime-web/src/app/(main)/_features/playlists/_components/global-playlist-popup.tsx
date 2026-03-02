@@ -1,3 +1,5 @@
+"use client"
+
 import { Button, IconButton } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
 import { __isDesktop__ } from "@/types/constants"

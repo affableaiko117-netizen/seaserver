@@ -47,7 +47,6 @@ type Status struct {
 	DisabledFeatures      []core.FeatureKey             `json:"disabledFeatures"`
 	ServerReady           bool                          `json:"serverReady"`
 	ServerHasPassword     bool                          `json:"serverHasPassword"`
-	ShowChangelogTour     string                        `json:"showChangelogTour"`
 }
 
 var clientInfoCache = result.NewMap[string, util.ClientInfo]()
@@ -109,7 +108,6 @@ func (h *Handler) NewStatus(c echo.Context) *Status {
 		ServerReady:           h.App.ServerReady,
 		ServerHasPassword:     h.App.Config.Server.Password != "",
 		DisabledFeatures:      h.App.FeatureManager.DisabledFeatures,
-		ShowChangelogTour:     h.App.ShowTour,
 	}
 
 	if c.Get("unauthenticated") != nil && c.Get("unauthenticated").(bool) {
@@ -178,7 +176,6 @@ func (h *Handler) HandleGetLogContent(c echo.Context) error {
 		Content:        contentB,
 		Settings:       h.App.Settings,
 		DebridSettings: h.App.SecondarySettings.Debrid,
-		Username:       h.App.GetUsername(),
 	})
 
 	return h.RespondWithData(c, content)
@@ -330,7 +327,6 @@ func (h *Handler) HandleGetLatestLogContent(c echo.Context) error {
 		Content:        contentB,
 		Settings:       h.App.Settings,
 		DebridSettings: h.App.SecondarySettings.Debrid,
-		Username:       h.App.GetUsername(),
 	})
 
 	return h.RespondWithData(c, content)

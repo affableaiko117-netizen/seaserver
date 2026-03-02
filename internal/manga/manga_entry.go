@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"seanime/internal/api/anilist"
+	"seanime/internal/database/db"
+	"seanime/internal/database/models"
 	"seanime/internal/hook"
 	"seanime/internal/platforms/platform"
 	"seanime/internal/util"
@@ -38,6 +40,7 @@ type (
 		FileCacher      *filecache.Cacher
 		MangaCollection *anilist.MangaCollection
 		PlatformRef     *util.Ref[platform.Platform]
+		Database        *db.Database
 	}
 )
 
@@ -45,6 +48,17 @@ type (
 func NewEntry(ctx context.Context, opts *NewEntryOptions) (entry *Entry, err error) {
 	entry = &Entry{
 		MediaId: opts.MediaId,
+	}
+
+	// Handle synthetic manga (negative IDs)
+	if opts.MediaId < 0 && opts.Database != nil {
+		syntheticManga, found := opts.Database.GetSyntheticManga(opts.MediaId)
+		if found {
+			entry.Media = createBaseMangaFromSyntheticEntry(syntheticManga)
+			// Synthetic manga doesn't have list data from AniList
+			return entry, nil
+		}
+		return nil, errors.New("synthetic manga not found")
 	}
 
 	reqEvent := new(MangaEntryRequestedEvent)
@@ -111,4 +125,33 @@ func NewEntry(ctx context.Context, opts *NewEntryOptions) (entry *Entry, err err
 	}
 
 	return mangaEvent.Entry, nil
+}
+
+// createBaseMangaFromSyntheticEntry creates a BaseManga object from a SyntheticManga entry
+func createBaseMangaFromSyntheticEntry(sm *models.SyntheticManga) *anilist.BaseManga {
+	status := anilist.MediaStatusReleasing
+	if sm.Status == "FINISHED" {
+		status = anilist.MediaStatusFinished
+	}
+
+	format := anilist.MediaFormatManga
+
+	return &anilist.BaseManga{
+		ID: sm.SyntheticID,
+		Title: &anilist.BaseManga_Title{
+			Romaji:        &sm.Title,
+			English:       &sm.Title,
+			UserPreferred: &sm.Title,
+		},
+		CoverImage: &anilist.BaseManga_CoverImage{
+			Large:      &sm.CoverImage,
+			ExtraLarge: &sm.CoverImage,
+			Medium:     &sm.CoverImage,
+		},
+		BannerImage: &sm.CoverImage,
+		Description: &sm.Description,
+		Status:      &status,
+		Format:      &format,
+		Chapters:    &sm.Chapters,
+	}
 }

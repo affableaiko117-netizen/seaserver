@@ -11,6 +11,7 @@ import (
 	"seanime/internal/util"
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -87,7 +88,7 @@ func TestNewAnimeEntry(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			anilist.TestModifyAnimeCollectionEntry(animeCollection, tt.mediaId, anilist.TestModifyAnimeCollectionEntryInput{
-				Progress: new(tt.currentProgress), // Mock progress
+				Progress: lo.ToPtr(tt.currentProgress), // Mock progress
 			})
 
 			entry, err := anime.NewEntry(t.Context(), &anime.NewEntryOptions{

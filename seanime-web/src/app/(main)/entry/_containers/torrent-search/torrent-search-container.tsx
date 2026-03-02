@@ -126,15 +126,15 @@ export function TorrentSearchContainer({ type, entry }: { type: TorrentSelection
     const handleToggleTorrent = React.useCallback((t: HibikeTorrent_AnimeTorrent) => {
         if (type === "download") {
             setSelectedTorrents(prev => {
-                const idx = prev.findIndex(n => n.infoHash === t.infoHash)
+                const idx = prev.findIndex(n => n.link === t.link)
                 if (idx !== -1) {
-                    return prev.filter(n => n.infoHash !== t.infoHash)
+                    return prev.filter(n => n.link !== t.link)
                 }
                 return [...prev, t]
             })
         } else {
             setSelectedTorrents(prev => {
-                const idx = prev.findIndex(n => n.infoHash === t.infoHash)
+                const idx = prev.findIndex(n => n.link === t.link)
                 if (idx !== -1) {
                     return []
                 }
@@ -148,14 +148,6 @@ export function TorrentSearchContainer({ type, entry }: { type: TorrentSelection
      */
 
     const { torrentSearchStreamEpisode } = useTorrentSearchSelectedStreamEpisode()
-
-    const providerOptions = React.useMemo(() => [
-        ...(providerExtensions?.map(ext => ({
-            label: ext.name,
-            value: ext.id,
-        })) ?? []).sort((a, b) => a?.label?.localeCompare(b?.label) ?? 0),
-        { label: "None", value: TORRENT_PROVIDER.NONE },
-    ], [providerExtensions])
 
 
     return (
@@ -203,7 +195,13 @@ export function TorrentSearchContainer({ type, entry }: { type: TorrentSelection
                                 value={selectedProviderExtension?.id ?? TORRENT_PROVIDER.NONE}
                                 onValueChange={setSelectedProviderExtensionId}
                                 leftIcon={<LuFileSearch />}
-                                options={providerOptions}
+                                options={[
+                                    ...(providerExtensions?.map(ext => ({
+                                        label: ext.name,
+                                        value: ext.id,
+                                    })) ?? []).sort((a, b) => a?.label?.localeCompare(b?.label) ?? 0),
+                                    { label: "None", value: TORRENT_PROVIDER.NONE },
+                                ]}
                             />
                         </div>
 
@@ -215,8 +213,8 @@ export function TorrentSearchContainer({ type, entry }: { type: TorrentSelection
                                 // side="right"
                                 label="Smart search"
                                 moreHelp={selectedProviderExtension?.settings?.canSmartSearch
-                                    ? "Automated search based on given parameters."
-                                    : "This provider does not support smart search."}
+                                    ? "Automatically search based on given parameters"
+                                    : "This provider does not support smart search"}
                                 value={searchType === Torrent_SearchType.SMART}
                                 onValueChange={v => setSearchType(v ? Torrent_SearchType.SMART : Torrent_SearchType.SIMPLE)}
                                 disabled={!selectedProviderExtension?.settings?.canSmartSearch}
@@ -267,7 +265,6 @@ export function TorrentSearchContainer({ type, entry }: { type: TorrentSelection
                                                 setSmartSearchEpisode(value)
                                             })
                                         }}
-                                        min={0}
                                         formatOptions={{ useGrouping: false }}
                                         // hideControls
                                         size="sm"
@@ -393,7 +390,7 @@ export function TorrentSearchContainer({ type, entry }: { type: TorrentSelection
                                     <TorrentPreviewList
                                         entry={entry}
                                         previews={previews}
-                                        isLoading={isLoading}
+                                        isLoading={isLoading || isFetching}
                                         selectedTorrents={selectedTorrents}
                                         onToggleTorrent={handleToggleTorrent}
                                         debridInstantAvailability={debridInstantAvailability}

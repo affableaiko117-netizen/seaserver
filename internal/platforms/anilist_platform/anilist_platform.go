@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 	"github.com/samber/mo"
 )
 
@@ -36,9 +37,9 @@ type (
 	}
 )
 
-func NewAnilistPlatform(anilistClientRef *util.Ref[anilist.AnilistClient], extensionBankRef *util.Ref[*extension.UnifiedBank], logger *zerolog.Logger, db *db.Database, logoutFunc ...func()) platform.Platform {
+func NewAnilistPlatform(anilistClientRef *util.Ref[anilist.AnilistClient], extensionBankRef *util.Ref[*extension.UnifiedBank], logger *zerolog.Logger, db *db.Database) platform.Platform {
 	ap := &AnilistPlatform{
-		anilistClient:      shared_platform.NewCacheLayer(anilistClientRef, logoutFunc...),
+		anilistClient:      shared_platform.NewCacheLayer(anilistClientRef),
 		logger:             logger,
 		username:           mo.None[string](),
 		animeCollection:    mo.None[*anilist.AnimeCollection](),
@@ -432,8 +433,10 @@ func (ap *AnilistPlatform) refreshAnimeCollection(ctx context.Context) error {
 	ap.helper.MergeCustomSourceAnimeEntries(collection)
 
 	// Save the raw collection to App (retains the lists with no status)
-	ap.rawAnimeCollection = mo.Some(new(*collection))
-	ap.rawAnimeCollection.MustGet().MediaListCollection = new(*collection.MediaListCollection)
+	collectionCopy := *collection
+	ap.rawAnimeCollection = mo.Some(&collectionCopy)
+	listCollectionCopy := *collection.MediaListCollection
+	ap.rawAnimeCollection.MustGet().MediaListCollection = &listCollectionCopy
 	listsCopy := make([]*anilist.AnimeCollection_MediaListCollection_Lists, len(collection.MediaListCollection.Lists))
 	copy(listsCopy, collection.MediaListCollection.Lists)
 	ap.rawAnimeCollection.MustGet().MediaListCollection.Lists = listsCopy
@@ -571,8 +574,10 @@ func (ap *AnilistPlatform) refreshMangaCollection(ctx context.Context) error {
 	ap.helper.MergeCustomSourceMangaEntries(collection)
 
 	// Save the raw collection to App (retains the lists with no status)
-	ap.rawMangaCollection = mo.Some(new(*collection))
-	ap.rawMangaCollection.MustGet().MediaListCollection = new(*collection.MediaListCollection)
+	collectionCopy := *collection
+	ap.rawMangaCollection = mo.Some(&collectionCopy)
+	listCollectionCopy := *collection.MediaListCollection
+	ap.rawMangaCollection.MustGet().MediaListCollection = &listCollectionCopy
 	listsCopy := make([]*anilist.MangaCollection_MediaListCollection_Lists, len(collection.MediaListCollection.Lists))
 	copy(listsCopy, collection.MediaListCollection.Lists)
 	ap.rawMangaCollection.MustGet().MediaListCollection.Lists = listsCopy
@@ -609,9 +614,9 @@ func (ap *AnilistPlatform) AddMediaToCollection(ctx context.Context, mIds []int)
 			if customsource.IsExtensionId(id) {
 				_, err := ap.helper.HandleCustomSourceUpdateEntry(ctx,
 					id,
-					new(anilist.MediaListStatusPlanning),
-					new(0),
-					new(0),
+					lo.ToPtr(anilist.MediaListStatusPlanning),
+					lo.ToPtr(0),
+					lo.ToPtr(0),
 					nil,
 					nil,
 				)
@@ -624,9 +629,9 @@ func (ap *AnilistPlatform) AddMediaToCollection(ctx context.Context, mIds []int)
 			_, err := ap.anilistClient.UpdateMediaListEntry(
 				ctx,
 				&id,
-				new(anilist.MediaListStatusPlanning),
-				new(0),
-				new(0),
+				lo.ToPtr(anilist.MediaListStatusPlanning),
+				lo.ToPtr(0),
+				lo.ToPtr(0),
 				nil,
 				nil,
 			)

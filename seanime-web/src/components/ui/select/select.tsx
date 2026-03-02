@@ -1,3 +1,5 @@
+"use client"
+
 import * as SelectPrimitive from "@radix-ui/react-select"
 import { SelectItem, SelectItemIndicator, SelectItemText } from "@radix-ui/react-select"
 import { cva } from "class-variance-authority"

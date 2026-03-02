@@ -81,7 +81,12 @@ func (m *BaseManga) GetAllTitles() []*string {
 	if m.HasEnglishTitle() {
 		titles = append(titles, m.Title.English)
 	}
-	if m.HasSynonyms() && len(m.Synonyms) > 1 {
+	// Include native title for better matching
+	if m.Title != nil && m.Title.Native != nil {
+		titles = append(titles, m.Title.Native)
+	}
+	// Include all synonyms (removed > 1 restriction)
+	if m.HasSynonyms() && len(m.Synonyms) > 0 {
 		titles = append(titles, m.Synonyms...)
 	}
 	return titles

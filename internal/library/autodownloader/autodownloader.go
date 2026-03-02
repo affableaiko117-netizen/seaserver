@@ -455,7 +455,7 @@ func (ad *AutoDownloader) groupTorrentCandidates(data *runData) map[uint]map[int
 			}
 
 			// Skip if already in library or queue (not delayed)
-			if ad.isEpisodeAlreadyHandled(episode, rule.CustomEpisodeNumberAbsoluteOffset, rule.DbID, rule.MediaId, data.localFileWrapper, ruleQueuedItems) {
+			if ad.isEpisodeAlreadyHandled(episode, rule.DbID, rule.MediaId, data.localFileWrapper, ruleQueuedItems) {
 				continue
 			}
 
@@ -506,18 +506,12 @@ func (ad *AutoDownloader) isTorrentAlreadyDownloaded(t *NormalizedTorrent, exist
 }
 
 // isEpisodeAlreadyHandled checks if an episode is already in the library or queue but not delayed
-func (ad *AutoDownloader) isEpisodeAlreadyHandled(episode int, absoluteOffset int, ruleId uint, mediaId int, lfWrapper *anime.LocalFileWrapper, queuedItems []*models.AutoDownloaderItem) bool {
+func (ad *AutoDownloader) isEpisodeAlreadyHandled(episode int, ruleId uint, mediaId int, lfWrapper *anime.LocalFileWrapper, queuedItems []*models.AutoDownloaderItem) bool {
 	// Check if already in the library
 	le, found := lfWrapper.GetLocalEntryById(mediaId)
 	if found {
 		if _, ok := le.FindLocalFileWithEpisodeNumber(episode); ok {
 			return true
-		}
-		// Check for the episode number by taking the custom offset into account
-		if absoluteOffset != 0 {
-			if _, ok := le.FindLocalFileWithEpisodeNumber(episode - absoluteOffset); ok {
-				return true
-			}
 		}
 	}
 
@@ -538,12 +532,6 @@ func (ad *AutoDownloader) isEpisodeAlreadyHandled(episode int, absoluteOffset in
 		// Check rule id again
 		if item.Episode == episode && item.RuleID == ruleId {
 			return true
-		}
-		// Check for the episode number by taking the custom offset into account
-		if absoluteOffset != 0 {
-			if item.Episode == episode-absoluteOffset && item.RuleID == ruleId {
-				return true
-			}
 		}
 	}
 
@@ -1331,9 +1319,9 @@ func (ad *AutoDownloader) isTitleMatch(torrentParsedData *habari.Metadata, torre
 			if season > 1 {
 				// If the torrent has a season number, add it to the variations
 				torrentTitleVariations = []*string{
-					new(fmt.Sprintf("%s Season %s", torrentParsedData.Title, torrentParsedData.SeasonNumber[0])),
-					new(fmt.Sprintf("%s S%s", torrentParsedData.Title, torrentParsedData.SeasonNumber[0])),
-					new(fmt.Sprintf("%s %s Season", torrentParsedData.Title, util.IntegerToOrdinal(util.StringToIntMust(torrentParsedData.SeasonNumber[0])))),
+					lo.ToPtr(fmt.Sprintf("%s Season %s", torrentParsedData.Title, torrentParsedData.SeasonNumber[0])),
+					lo.ToPtr(fmt.Sprintf("%s S%s", torrentParsedData.Title, torrentParsedData.SeasonNumber[0])),
+					lo.ToPtr(fmt.Sprintf("%s %s Season", torrentParsedData.Title, util.IntegerToOrdinal(util.StringToIntMust(torrentParsedData.SeasonNumber[0])))),
 				}
 			}
 		}
@@ -1428,12 +1416,8 @@ func (ad *AutoDownloader) isSeasonAndEpisodeMatch(
 
 	// Add the absolute offset
 	if rule.CustomEpisodeNumberAbsoluteOffset > 0 {
-		episode = episode - rule.CustomEpisodeNumberAbsoluteOffset
+		episode = episode + rule.CustomEpisodeNumberAbsoluteOffset
 		hasAbsoluteEpisode = true
-		if episode < 1 {
-			episode = 1
-			hasAbsoluteEpisode = false
-		}
 	} else {
 		// Handle absolute episode numbers from metadata
 		if listEntry.GetMedia().GetCurrentEpisodeCount() != -1 && episode > listEntry.GetMedia().GetCurrentEpisodeCount() {

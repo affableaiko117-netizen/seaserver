@@ -314,11 +314,11 @@ func (h *Handler) HandleFetchAnimeEntrySuggestions(c echo.Context) error {
 
 	res, err := anilist.ListAnimeM(
 		shared_platform.NewCacheLayer(h.App.AnilistClientRef),
-		new(1),
+		lo.ToPtr(1),
 		&title,
-		new(8),
+		lo.ToPtr(8),
 		nil,
-		[]*anilist.MediaStatus{new(anilist.MediaStatusFinished), new(anilist.MediaStatusReleasing), new(anilist.MediaStatusCancelled), new(anilist.MediaStatusHiatus)},
+		[]*anilist.MediaStatus{lo.ToPtr(anilist.MediaStatusFinished), lo.ToPtr(anilist.MediaStatusReleasing), lo.ToPtr(anilist.MediaStatusCancelled), lo.ToPtr(anilist.MediaStatusHiatus)},
 		nil,
 		nil,
 		nil,
@@ -523,48 +523,6 @@ func (h *Handler) HandleGetMissingEpisodes(c echo.Context) error {
 	missingEpisodesCache = event.MissingEpisodes
 
 	return h.RespondWithData(c, event.MissingEpisodes)
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-
-var upcomingEpisodesCache *anime.UpcomingEpisodes
-
-// HandleGetUpcomingEpisodes
-//
-//	@summary returns a list of upcoming episodes based on the user's anime collection
-//	@desc It uses the AniList 'next airing episode' data to determine upcoming episodes.
-//	@desc This route can be called multiple times, as it does not bypass the cache.
-//	@route /api/v1/library/upcoming-episodes [GET]
-//	@returns anime.UpcomingEpisodes
-func (h *Handler) HandleGetUpcomingEpisodes(c echo.Context) error {
-	h.App.AddOnRefreshAnilistCollectionFunc("HandleGetUpcomingEpisodes", func() {
-		upcomingEpisodesCache = nil
-	})
-
-	if upcomingEpisodesCache != nil {
-		return h.RespondWithData(c, upcomingEpisodesCache)
-	}
-
-	// Get the user's anilist collection
-	animeCollection, err := h.App.GetAnimeCollection(false)
-	if err != nil {
-		return h.RespondWithError(c, err)
-	}
-	upcomingEps := anime.NewUpcomingEpisodes(&anime.NewUpcomingEpisodesOptions{
-		AnimeCollection:     animeCollection,
-		MetadataProviderRef: h.App.MetadataProviderRef,
-	})
-
-	event := new(anime.UpcomingEpisodesEvent)
-	event.UpcomingEpisodes = upcomingEps
-	err = hook.GlobalHookManager.OnUpcomingEpisodes().Trigger(event)
-	if err != nil {
-		return h.RespondWithError(c, err)
-	}
-
-	upcomingEpisodesCache = event.UpcomingEpisodes
-
-	return h.RespondWithData(c, event.UpcomingEpisodes)
 }
 
 //----------------------------------------------------------------------------------------------------------------------

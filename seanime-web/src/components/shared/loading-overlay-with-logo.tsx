@@ -3,12 +3,12 @@ import { TextGenerateEffect } from "@/components/shared/text-generate-effect"
 import { Button } from "@/components/ui/button"
 import { LoadingOverlay } from "@/components/ui/loading-spinner"
 import { __isDesktop__ } from "@/types/constants"
-import { SeaImage } from "@/components/shared/sea-image"
+import Image from "next/image"
 import React from "react"
 
 export function LoadingOverlayWithLogo({ refetch, title }: { refetch?: () => void, title?: string }) {
     return <LoadingOverlay showSpinner={false}>
-        <SeaImage
+        <Image
             src="/seanime-logo.png"
             alt="Loading..."
             priority

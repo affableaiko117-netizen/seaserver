@@ -2,6 +2,7 @@ package directstream
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -210,7 +211,7 @@ func (m *Manager) listenToPlayerEvents() {
 					}
 				case *videocore.VideoErrorEvent:
 					m.Logger.Debug().Msgf("directstream: Video error, Error: %s", event.Error)
-					cs.StreamError(fmt.Errorf(event.Error))
+					cs.StreamError(errors.New(event.Error))
 				case *videocore.SubtitleFileUploadedEvent:
 					m.Logger.Debug().Msgf("directstream: Subtitle file uploaded, Filename: %s", event.Filename)
 					cs.OnSubtitleFileUploaded(event.Filename, event.Content)

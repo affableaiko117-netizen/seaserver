@@ -4,10 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"seanime/internal/api/anilist"
 	"seanime/internal/database/db"
 	"seanime/internal/database/models"
 	"seanime/internal/events"
+	hibikemanga "seanime/internal/extension/hibike/manga"
 	"seanime/internal/hook"
 	chapter_downloader "seanime/internal/manga/downloader"
 	manga_providers "seanime/internal/manga/providers"
@@ -71,10 +73,11 @@ type (
 	}
 
 	DownloadChapterOptions struct {
-		Provider  string
-		MediaId   int
-		ChapterId string
-		StartNow  bool
+		Provider   string
+		MediaId    int
+		ChapterId  string
+		StartNow   bool
+		MediaTitle string // Romaji title for folder naming (optional, will be fetched if empty)
 	}
 )
 
@@ -214,8 +217,46 @@ func (d *Downloader) DownloadChapter(opts DownloadChapterOptions) error {
 			MediaId:       opts.MediaId,
 			ChapterId:     opts.ChapterId,
 			ChapterNumber: manga_providers.GetNormalizedChapter(chapter.Chapter),
+			MediaTitle:    opts.MediaTitle,
 		},
 		Pages: pageContainer.Pages,
+	})
+}
+
+// DownloadChapterDirectOptions contains options for direct chapter download
+type DownloadChapterDirectOptions struct {
+	Provider      string
+	MediaId       int
+	ChapterId     string
+	ChapterNumber string
+	MediaTitle    string
+	Pages         []*hibikemanga.ChapterPage
+	StartNow      bool
+}
+
+// DownloadChapterDirect is called to download a chapter with pre-fetched pages.
+// This bypasses the cache lookup and uses the provided pages directly.
+// Used by the en masse downloader which fetches pages directly from the provider.
+func (d *Downloader) DownloadChapterDirect(opts DownloadChapterDirectOptions) error {
+	if d.isOfflineRef.Get() {
+		return errors.New("manga downloader: Manga downloader is in offline mode")
+	}
+
+	if len(opts.Pages) == 0 {
+		return errors.New("manga downloader: No pages provided")
+	}
+
+	// Add the chapter to the download queue
+	return d.chapterDownloader.AddToQueue(chapter_downloader.DownloadOptions{
+		DownloadID: chapter_downloader.DownloadID{
+			Provider:      opts.Provider,
+			MediaId:       opts.MediaId,
+			ChapterId:     opts.ChapterId,
+			ChapterNumber: opts.ChapterNumber,
+			MediaTitle:    opts.MediaTitle,
+		},
+		Pages:    opts.Pages,
+		StartNow: opts.StartNow,
 	})
 }
 
@@ -305,6 +346,27 @@ func (d *Downloader) NewDownloadList(opts *NewDownloadListOptions) (ret []*Downl
 	ret = make([]*DownloadListItem, 0)
 
 	for mId, data := range *mm {
+		// Check if this is a synthetic manga (negative ID)
+		if mId < 0 {
+			syntheticManga, found := d.database.GetSyntheticManga(mId)
+			if found {
+				// Create a BaseManga from synthetic manga data
+				media := createBaseMangaFromSynthetic(syntheticManga)
+				ret = append(ret, &DownloadListItem{
+					MediaId:      mId,
+					Media:        media,
+					DownloadData: data,
+				})
+			} else {
+				ret = append(ret, &DownloadListItem{
+					MediaId:      mId,
+					Media:        nil,
+					DownloadData: data,
+				})
+			}
+			continue
+		}
+
 		listEntry, ok := opts.MangaCollection.GetListEntryFromMangaId(mId)
 		if !ok {
 			ret = append(ret, &DownloadListItem{
@@ -335,6 +397,33 @@ func (d *Downloader) NewDownloadList(opts *NewDownloadListOptions) (ret []*Downl
 	}
 
 	return
+}
+
+// createBaseMangaFromSynthetic creates a BaseManga object from a SyntheticManga entry
+func createBaseMangaFromSynthetic(sm *models.SyntheticManga) *anilist.BaseManga {
+	status := anilist.MediaStatusReleasing
+	if sm.Status == "FINISHED" {
+		status = anilist.MediaStatusFinished
+	}
+
+	format := anilist.MediaFormatManga
+
+	return &anilist.BaseManga{
+		ID: sm.SyntheticID,
+		Title: &anilist.BaseManga_Title{
+			Romaji:        &sm.Title,
+			English:       &sm.Title,
+			UserPreferred: &sm.Title,
+		},
+		CoverImage: &anilist.BaseManga_CoverImage{
+			Large:      &sm.CoverImage,
+			ExtraLarge: &sm.CoverImage,
+			Medium:     &sm.CoverImage,
+		},
+		Status:   &status,
+		Format:   &format,
+		Chapters: &sm.Chapters,
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -404,45 +493,60 @@ func (d *Downloader) hydrateMediaMap() {
 
 	ret := make(MediaMap)
 
-	files, err := os.ReadDir(d.downloadDir)
+	// Read top-level directories (media ID folders)
+	mediaDirs, err := os.ReadDir(d.downloadDir)
 	if err != nil {
 		d.logger.Error().Err(err).Msg("manga downloader: Failed to read download directory")
 	}
 
-	// Hydrate MediaMap by going through all chapter directories
+	// Hydrate MediaMap by going through all media directories and their chapter subdirectories
 	mu := sync.Mutex{}
 	wg := sync.WaitGroup{}
-	for _, file := range files {
-		wg.Add(1)
-		go func(file os.DirEntry) {
-			defer wg.Done()
+	for _, mediaDir := range mediaDirs {
+		if !mediaDir.IsDir() {
+			continue
+		}
 
-			if file.IsDir() {
-				// e.g. comick_1234_abc_13.5
-				id, ok := chapter_downloader.ParseChapterDirName(file.Name())
-				if !ok {
-					return
-				}
+		// Read chapter directories inside each media folder
+		mediaDirPath := filepath.Join(d.downloadDir, mediaDir.Name())
+		chapterDirs, err := os.ReadDir(mediaDirPath)
+		if err != nil {
+			d.logger.Error().Err(err).Str("mediaDir", mediaDir.Name()).Msg("manga downloader: Failed to read media directory")
+			continue
+		}
 
-				mu.Lock()
-				newMapInfo := ProviderDownloadMapChapterInfo{
-					ChapterID:     id.ChapterId,
-					ChapterNumber: id.ChapterNumber,
-				}
+		for _, chapterDir := range chapterDirs {
+			wg.Add(1)
+			go func(chapterDir os.DirEntry) {
+				defer wg.Done()
 
-				if _, ok := ret[id.MediaId]; !ok {
-					ret[id.MediaId] = make(map[string][]ProviderDownloadMapChapterInfo)
-					ret[id.MediaId][id.Provider] = []ProviderDownloadMapChapterInfo{newMapInfo}
-				} else {
-					if _, ok := ret[id.MediaId][id.Provider]; !ok {
+				if chapterDir.IsDir() {
+					// e.g. comick_1234_abc_13.5
+					id, ok := chapter_downloader.ParseChapterDirName(chapterDir.Name())
+					if !ok {
+						return
+					}
+
+					mu.Lock()
+					newMapInfo := ProviderDownloadMapChapterInfo{
+						ChapterID:     id.ChapterId,
+						ChapterNumber: id.ChapterNumber,
+					}
+
+					if _, ok := ret[id.MediaId]; !ok {
+						ret[id.MediaId] = make(map[string][]ProviderDownloadMapChapterInfo)
 						ret[id.MediaId][id.Provider] = []ProviderDownloadMapChapterInfo{newMapInfo}
 					} else {
-						ret[id.MediaId][id.Provider] = append(ret[id.MediaId][id.Provider], newMapInfo)
+						if _, ok := ret[id.MediaId][id.Provider]; !ok {
+							ret[id.MediaId][id.Provider] = []ProviderDownloadMapChapterInfo{newMapInfo}
+						} else {
+							ret[id.MediaId][id.Provider] = append(ret[id.MediaId][id.Provider], newMapInfo)
+						}
 					}
+					mu.Unlock()
 				}
-				mu.Unlock()
-			}
-		}(file)
+			}(chapterDir)
+		}
 	}
 	wg.Wait()
 

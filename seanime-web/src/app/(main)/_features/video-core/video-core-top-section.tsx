@@ -1,8 +1,5 @@
-import { vc_hoveringControlBar } from "@/app/(main)/_features/video-core/video-core-atoms"
-import { vc_isFullscreen } from "@/app/(main)/_features/video-core/video-core-atoms"
-import { vc_paused } from "@/app/(main)/_features/video-core/video-core-atoms"
-import { vc_miniPlayer } from "@/app/(main)/_features/video-core/video-core-atoms"
-import { vc_busy } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_busy, vc_isFullscreen, vc_miniPlayer, vc_paused } from "@/app/(main)/_features/video-core/video-core"
+import { vc_hoveringControlBar } from "@/app/(main)/_features/video-core/video-core-control-bar"
 import { VideoCoreLifecycleState } from "@/app/(main)/_features/video-core/video-core.atoms"
 import { cn } from "@/components/ui/core/styling"
 import { __isDesktop__ } from "@/types/constants"
@@ -18,20 +15,16 @@ export function VideoCoreTopSection(props: { children?: React.ReactNode, inline?
     const hoveringControlBar = useAtomValue(vc_hoveringControlBar)
     const fullscreen = useAtomValue(vc_isFullscreen)
 
-    const showTopSection = busy || paused || hoveringControlBar
-
     return (
         <>
             <div
                 data-vc-element="control-bar-top-section"
                 className={cn(
-                    "absolute left-0 w-full py-4 px-5 duration-200 transition-all opacity-0 z-[999] transform-gpu",
-                    (__isDesktop__ && ((inline && fullscreen) || !inline)) ? "top-8" : "top-0",
-                    showTopSection && "opacity-100",
+                    "top-0 absolute left-0 w-full py-4 px-5 duration-200 transition-opacity opacity-0 z-[999]",
+                    (__isDesktop__ && ((inline && fullscreen) || !inline)) && "top-8",
+                    (busy || paused || hoveringControlBar) && "opacity-100",
+                    isMiniPlayer && "top-0",
                 )}
-                style={{
-                    transform: showTopSection ? "translateY(0)" : "translateY(-20px)",
-                }}
             >
                 {children}
             </div>
@@ -39,8 +32,8 @@ export function VideoCoreTopSection(props: { children?: React.ReactNode, inline?
             <div
                 data-vc-element="control-bar-top-gradient"
                 className={cn(
-                    "pointer-events-none transform-gpu",
-                    "absolute top-0 left-0 right-0 w-full z-[5] transition-all duration-300 opacity-0",
+                    "pointer-events-none",
+                    "absolute top-0 left-0 right-0 w-full z-[5] transition-opacity duration-300 opacity-0",
                     "bg-gradient-to-b from-black/60 to-transparent",
                     "h-20",
                     (isMiniPlayer && paused) && "opacity-100",

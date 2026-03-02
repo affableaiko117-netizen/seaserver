@@ -50,6 +50,48 @@ type (
 
 //----------------------------------------------------------------------------------------------------------------------
 
+// SearchMangaWithMAL uses MAL's search API to find manga suggestions that match the title provided.
+func SearchMangaWithMAL(title string, slice int) ([]*SearchResultAnime, error) {
+	searchUrl := "https://myanimelist.net/search/prefix.json?type=manga&v=1&keyword=" + url.QueryEscape(title)
+
+	res, err := http.Get(searchUrl)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("request failed with status code: %d", res.StatusCode)
+	}
+
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var bodyMap SearchResult
+	err = json.Unmarshal(body, &bodyMap)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshaling error: %v", err)
+	}
+
+	if bodyMap.Categories == nil {
+		return nil, fmt.Errorf("missing 'categories' in response")
+	}
+
+	items := make([]*SearchResultAnime, 0)
+	for _, cat := range bodyMap.Categories {
+		if cat.Type == "manga" {
+			items = append(items, cat.Items...)
+		}
+	}
+
+	if len(items) > slice {
+		return items[:slice], nil
+	}
+	return items, nil
+}
+
 // SearchWithMAL uses MAL's search API to find suggestions that match the title provided.
 func SearchWithMAL(title string, slice int) ([]*SearchResultAnime, error) {
 

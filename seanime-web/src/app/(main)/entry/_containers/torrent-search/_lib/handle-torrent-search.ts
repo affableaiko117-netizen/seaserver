@@ -52,7 +52,7 @@ export function useHandleTorrentSearch(props: TorrentSearchHookProps) {
     // Update the selected provider only when the default provider changes
     React.useLayoutEffect(() => {
         setSelectedProviderExtensionId(defaultProviderExtension?.id || "none")
-    }, [defaultProviderExtension?.id])
+    }, [defaultProviderExtension])
 
     // Get the selected provider extension
     const selectedProviderExtension = React.useMemo(() => {
@@ -72,7 +72,7 @@ export function useHandleTorrentSearch(props: TorrentSearchHookProps) {
     // const [smartSearchEpisode, setSmartSearchEpisode] = React.useState<number>(downloadInfo?.episodesToDownload?.[0]?.episode?.episodeNumber || 1)
     const [smartSearchResolution, setSmartSearchResolution] = React.useState("")
     const [smartSearchBest, setSmartSearchBest] = React.useState(false)
-    const [smartSearchEpisode, debouncedSmartSearchEpisode, setSmartSearchEpisode] = useDebounceWithSet(downloadInfo?.episodesToDownload?.[0]?.episode?.episodeNumber ?? 1,
+    const [smartSearchEpisode, debouncedSmartSearchEpisode, setSmartSearchEpisode] = useDebounceWithSet(downloadInfo?.episodesToDownload?.[0]?.episode?.episodeNumber || 1,
         500)
 
     const warnings = {

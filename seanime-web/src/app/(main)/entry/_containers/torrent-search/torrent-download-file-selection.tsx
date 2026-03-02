@@ -13,9 +13,9 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Vaul, VaulContent } from "@/components/vaul"
 import { logger } from "@/lib/helpers/debug"
 import { upath } from "@/lib/helpers/upath"
-import { useRouter } from "@/lib/navigation"
 import { atom } from "jotai"
 import { useAtom, useAtomValue, useSetAtom } from "jotai/react"
+import { useRouter } from "next/navigation"
 import React from "react"
 import { BiDownload } from "react-icons/bi"
 import { FcFolder } from "react-icons/fc"
@@ -92,7 +92,7 @@ export function TorrentDownloadFileSelection({ entry }: { entry: Anime_Entry }) 
         setFileSelection(undefined)
         setTorrentDrawerIsOpen(undefined)
         router.push("/torrent-list")
-    })
+    }, entry.mediaId)
 
     // Convert file paths to file previews format
     const filePreviews = React.useMemo(() => {

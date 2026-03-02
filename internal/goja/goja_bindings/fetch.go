@@ -42,6 +42,7 @@ type Fetch struct {
 	fetchSem       chan struct{}
 	vmResponseCh   chan func()
 	closed         atomic.Bool
+	closeCh        chan struct{}
 	allowedDomains []string // empty = allow all domains
 	rules          []accessRule
 	anilistToken   string
@@ -85,6 +86,7 @@ func NewFetch(vm *goja.Runtime, allowedDomains []string) *Fetch {
 		vm:             vm,
 		fetchSem:       make(chan struct{}, maxConcurrentRequests),
 		vmResponseCh:   make(chan func(), maxConcurrentRequests),
+		closeCh:        make(chan struct{}),
 		allowedDomains: allowedDomains,
 	}
 	f.allowedDomains = lo.Uniq(append(f.allowedDomains, whitelistedDomains...))
@@ -151,8 +153,10 @@ func (f *Fetch) Close() {
 		if r := recover(); r != nil {
 		}
 	}()
-	f.closed.Store(true)
-	close(f.vmResponseCh)
+	if f.closed.CompareAndSwap(false, true) {
+		close(f.closeCh)
+		close(f.vmResponseCh)
+	}
 }
 
 type fetchOptions struct {
@@ -184,13 +188,23 @@ func BindFetch(vm *goja.Runtime, allowedDomains ...[]string) *Fetch {
 	_ = vm.Set("fetch", f.Fetch)
 
 	go func() {
-		for fn := range f.ResponseChannel() {
-			defer func() {
-				if r := recover(); r != nil {
-					log.Warn().Msgf("extension: response channel panic: %v", r)
+		for {
+			select {
+			case fn, ok := <-f.ResponseChannel():
+				if !ok {
+					return
 				}
-			}()
-			fn()
+				func() {
+					defer func() {
+						if r := recover(); r != nil {
+							log.Warn().Msgf("extension: response channel panic: %v", r)
+						}
+					}()
+					fn()
+				}()
+			case <-f.closeCh:
+				return
+			}
 		}
 	}()
 
@@ -397,7 +411,7 @@ func (f *Fetch) Fetch(call goja.FunctionCall) goja.Value {
 			}
 		}
 
-		log.Trace().Str("url", url).Str("method", options.Method).Msgf("extension: Network request")
+		log.Trace().Str("url", url).Str("method", options.Method).Msgf("extension > Network request")
 
 		var client *req.Client
 		if options.NoCloudFlareBypass {
@@ -473,6 +487,8 @@ func (f *Fetch) Fetch(call goja.FunctionCall) goja.Value {
 		result.body = rawBody
 		result.response = resp
 		result.request = request
+
+		log.Trace().Str("url", url).Int("status", resp.StatusCode).Int("bodyLen", len(rawBody)).Msgf("extension > Network response")
 
 		if len(rawBody) > 0 {
 			var data interface{}

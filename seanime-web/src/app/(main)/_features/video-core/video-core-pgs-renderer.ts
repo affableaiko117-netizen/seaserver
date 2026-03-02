@@ -24,8 +24,8 @@ export interface PgsEvent {
 const log = logger("PGS RENDERER")
 
 export class VideoCorePgsRenderer {
-    _canvas: HTMLCanvasElement | null = null
     private _videoElement: HTMLVideoElement
+    _canvas: HTMLCanvasElement | null = null
     private _worker: Worker | null = null
     private _animationFrameId: number | null = null
     private _debug: boolean = false

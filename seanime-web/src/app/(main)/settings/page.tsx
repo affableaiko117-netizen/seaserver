@@ -1,8 +1,9 @@
+"use client"
 import { useOpenInExplorer } from "@/api/hooks/explorer.hooks"
 import { useAnimeListTorrentProviderExtensions } from "@/api/hooks/extensions.hooks"
 import { useSaveSettings } from "@/api/hooks/settings.hooks"
 import { useGetTorrentstreamSettings } from "@/api/hooks/torrentstream.hooks"
-import { CustomLibraryBanner } from "@/app/(main)/_features/anime-library/_containers/custom-library-banner"
+import { CustomLibraryBanner } from "@/app/(main)/(library)/_containers/custom-library-banner"
 import { __issueReport_overlayOpenAtom } from "@/app/(main)/_features/issue-report/issue-report"
 import { useServerDisabledFeatures, useServerStatus, useSetServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { ExternalPlayerLinkSettings, MediaplayerSettings } from "@/app/(main)/settings/_components/mediaplayer-settings"
@@ -27,12 +28,12 @@ import { cn } from "@/components/ui/core/styling"
 import { Field, Form } from "@/components/ui/form"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useRouter, useSearchParams } from "@/lib/navigation"
 import { DEFAULT_TORRENT_CLIENT, DEFAULT_TORRENT_PROVIDER, settingsSchema, TORRENT_PROVIDER } from "@/lib/server/settings"
-import { __isElectronDesktop__ } from "@/types/constants"
+import { __isElectronDesktop__, __isTauriDesktop__ } from "@/types/constants"
 import { useSetAtom } from "jotai"
 import { useAtom } from "jotai/react"
 import capitalize from "lodash/capitalize"
+import { useRouter, useSearchParams } from "next/navigation"
 import React from "react"
 import { UseFormReturn } from "react-hook-form"
 import { BiDonateHeart } from "react-icons/bi"
@@ -46,7 +47,6 @@ import {
     LuCirclePlay,
     LuFileSearch,
     LuLibrary,
-    LuMonitor,
     LuMonitorPlay,
     LuPalette,
     LuTabletSmartphone,
@@ -58,15 +58,15 @@ import { SiBittorrent, SiQbittorrent, SiTransmission } from "react-icons/si"
 import { TbDatabaseExclamation } from "react-icons/tb"
 import { VscDebugAlt } from "react-icons/vsc"
 import { SettingsCard, SettingsNavCard, SettingsPageHeader } from "./_components/settings-card"
-import { DenshiSettings } from "./_containers/denshi-settings"
 import { DiscordRichPresenceSettings } from "./_containers/discord-rich-presence-settings"
 import { LocalSettings } from "./_containers/local-settings"
 import { NakamaSettings } from "./_containers/nakama-settings"
 
 const tabContentClass = cn(
-    "space-y-4 animate-in fade-in-0 slide-in-from-bottom-2 duration-300",
+    "space-y-4 animate-in fade-in-0 duration-300",
 )
 
+export const dynamic = "force-static"
 
 export default function Page() {
     const status = useServerStatus()
@@ -162,9 +162,13 @@ export default function Page() {
                                                 {status?.version} {status?.versionName}
                                             </p>
                                             <p className="text-[--muted] text-sm text-center w-full">
-                                                {capitalize(status?.os)}{__isElectronDesktop__ &&
+                                                {capitalize(status?.os)}{__isTauriDesktop__ &&
+                                                <span className="font-medium"> - Tauri</span>}{__isElectronDesktop__ &&
                                                 <span className="font-medium"> - Denshi</span>}
                                             </p>
+                                            {/* <p className="text-[--muted] text-sm text-center md:text-left">OS: {capitalize(status?.os)} {__isTauriDesktop__ &&
+                                             <span className="font-medium">- Tauri</span>}{__isElectronDesktop__ &&
+                                             <span className="font-medium">- Denshi</span>}</p> */}
                                         </div>
                                     </div>
                                 </Card>
@@ -261,12 +265,6 @@ export default function Page() {
                                 {/*</div>*/}
 
                                 <Card className="lg:p-2 contents lg:block border-0 bg-transparent lg:border lg:bg-gray-950/80">
-                                    {__isElectronDesktop__ && (
-                                        <TabsTrigger
-                                            value="denshi"
-                                            className="group"
-                                        ><LuMonitor className="text-xl mr-3 transition-transform duration-200" /> Denshi</TabsTrigger>
-                                    )}
                                     <TabsTrigger
                                         value="ui"
                                         className="group"
@@ -330,8 +328,6 @@ export default function Page() {
                                         autoSyncToLocalAccount: data.autoSyncToLocalAccount ?? false,
                                         autoSaveCurrentMediaOffline: data.autoSaveCurrentMediaOffline ?? false,
                                         useFallbackMetadataProvider: data.useFallbackMetadataProvider ?? false,
-                                        scannerUseLegacyMatching: data.scannerUseLegacyMatching ?? false,
-                                        scannerConfig: data.scannerConfig ?? "",
                                     },
                                     nakama: {
                                         enabled: data.nakamaEnabled ?? false,
@@ -418,7 +414,7 @@ export default function Page() {
                                 mediaPlayerHost: status?.settings?.mediaPlayer?.host,
                                 torrentProvider: status?.settings?.library?.torrentProvider || DEFAULT_TORRENT_PROVIDER, // (Backwards compatibility)
                                 autoSelectTorrentProvider: status?.settings?.library?.autoSelectTorrentProvider || DEFAULT_TORRENT_PROVIDER, // (Backwards
-                                // compatibility)
+                                                                                                                                             // compatibility)
                                 autoScan: status?.settings?.library?.autoScan,
                                 defaultPlayer: status?.settings?.mediaPlayer?.defaultPlayer,
                                 vlcPort: status?.settings?.mediaPlayer?.vlcPort,
@@ -497,8 +493,6 @@ export default function Page() {
                                 vcTranslateApiKey: status?.settings?.mediaPlayer?.vcTranslateApiKey ?? "",
                                 vcTranslateProvider: status?.settings?.mediaPlayer?.vcTranslateProvider ?? "",
                                 vcTranslateTargetLanguage: status?.settings?.mediaPlayer?.vcTranslateTargetLanguage ?? "",
-                                scannerUseLegacyMatching: status?.settings?.library?.scannerUseLegacyMatching ?? false,
-                                scannerConfig: status?.settings?.library?.scannerConfig ?? "",
                             }}
                             stackClass="space-y-0 relative"
                         >
@@ -532,7 +526,6 @@ export default function Page() {
                                                 onClick={handleOpenIssueRecorder}
                                                 leftIcon={<VscDebugAlt className="transition-transform duration-200 group-hover:scale-110" />}
                                                 className="transition-all duration-200 hover:scale-105 hover:shadow-md group"
-                                                data-open-issue-recorder-button
                                             >
                                                 Record an issue
                                             </Button>
@@ -717,7 +710,6 @@ export default function Page() {
                                                         <Field.Text
                                                             name="qbittorrentPassword"
                                                             label="Password"
-                                                            type="password"
                                                         />
                                                         <Field.Number
                                                             name="qbittorrentPort"
@@ -761,7 +753,6 @@ export default function Page() {
                                                         <Field.Text
                                                             name="transmissionPassword"
                                                             label="Password"
-                                                            type="password"
                                                         />
                                                         <Field.Number
                                                             name="transmissionPort"
@@ -876,20 +867,6 @@ export default function Page() {
                             <FilecacheSettings />
 
                         </TabsContent>
-
-                        {__isElectronDesktop__ && (
-                            <TabsContent value="denshi" className={tabContentClass}>
-
-                                <SettingsPageHeader
-                                    title="Denshi"
-                                    description="Desktop client settings"
-                                    icon={LuMonitor}
-                                />
-
-                                <DenshiSettings />
-
-                            </TabsContent>
-                        )}
 
 
                         {/*<TabsContent value="data" className="space-y-4">*/}
