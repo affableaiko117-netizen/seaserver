@@ -1,6 +1,6 @@
+import { OfflineTopMenu } from "@/app/(main)/(offline)/offline/_components/offline-top-menu"
 import { LayoutHeaderBackground } from "@/app/(main)/_features/layout/_components/layout-header-background"
 import { TopMenu } from "@/app/(main)/_features/navigation/top-menu"
-import { OfflineTopMenu } from "@/app/(main)/_features/offline/_components/offline-top-menu"
 import { ManualProgressTrackingButton } from "@/app/(main)/_features/progress-tracking/manual-progress-tracking"
 import { PlaybackManagerProgressTrackingButton } from "@/app/(main)/_features/progress-tracking/playback-manager-progress-tracking"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
@@ -9,10 +9,10 @@ import { __manga_chapterDownloadsDrawerIsOpenAtom } from "@/app/(main)/manga/_co
 import { AppSidebarTrigger } from "@/components/ui/app-layout"
 import { cn } from "@/components/ui/core/styling"
 import { VerticalMenu } from "@/components/ui/vertical-menu"
-import { usePathname } from "@/lib/navigation"
-import { useThemeSettings } from "@/lib/theme/theme-hooks"
+import { useThemeSettings } from "@/lib/theme/hooks"
 import { __isDesktop__ } from "@/types/constants"
 import { useSetAtom } from "jotai/react"
+import { usePathname } from "next/navigation"
 import React from "react"
 import { LuFolderDown } from "react-icons/lu"
 import { PluginSidebarTray } from "../plugin/tray/plugin-sidebar-tray"
@@ -39,22 +39,13 @@ export function TopNavbar(props: TopNavbarProps) {
                 className={cn(
                     "w-full h-[5rem] relative overflow-hidden flex items-center",
                     (ts.hideTopNavbar || __isDesktop__) && "lg:hidden",
-                    // __isDesktop__ && "absolute top-0 left-0 z-[-1]"
                 )}
             >
-                {/*{__isDesktop__ && (*/}
-                {/*    <div*/}
-                {/*        className="absolute inset-0 z-0"*/}
-                {/*        style={{ WebkitAppRegion: "drag" } as any}*/}
-                {/*    />*/}
-                {/*)}*/}
                 <div
                     data-top-navbar-content-container
                     className="relative z-10 px-4 w-full flex flex-row md:items-center overflow-x-auto overflow-y-hidden"
-                    // className="relative z-10 px-4 w-full flex flex-row md:items-center overflow-x-auto overflow-y-hidden pointer-events-auto"
-
                 >
-                    <div data-top-navbar-content className="flex items-center w-full gap-3 z-[90]" style={{ WebkitAppRegion: "no-drag" } as any}>
+                    <div data-top-navbar-content className="flex items-center w-full gap-3">
                         <AppSidebarTrigger />
                         {!isOffline ? <TopMenu /> : <OfflineTopMenu />}
                         <PlaybackManagerProgressTrackingButton />
@@ -94,7 +85,7 @@ export function SidebarNavbar(props: SidebarNavbarProps) {
     const openDownloadQueue = useSetAtom(__manga_chapterDownloadsDrawerIsOpenAtom)
     const isMangaPage = pathname.startsWith("/manga")
 
-    if (!ts.hideTopNavbar && !__isDesktop__) return null
+    if (!ts.hideTopNavbar && process.env.NEXT_PUBLIC_PLATFORM !== "desktop") return null
 
     return (
         <div data-sidebar-navbar className="flex flex-col gap-1">

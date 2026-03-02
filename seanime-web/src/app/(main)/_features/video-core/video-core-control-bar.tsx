@@ -1,25 +1,26 @@
-import { VIDEOCORE_DEBUG_ELEMENTS } from "@/app/(main)/_features/video-core/video-core"
-import { vc_hoveringControlBar } from "@/app/(main)/_features/video-core/video-core-atoms"
-import { vc_isMobile } from "@/app/(main)/_features/video-core/video-core-atoms"
-import { vc_isSwiping } from "@/app/(main)/_features/video-core/video-core-atoms"
-import { vc_duration } from "@/app/(main)/_features/video-core/video-core-atoms"
-import { vc_currentTime } from "@/app/(main)/_features/video-core/video-core-atoms"
-import { vc_isMuted } from "@/app/(main)/_features/video-core/video-core-atoms"
-import { vc_volume } from "@/app/(main)/_features/video-core/video-core-atoms"
-import { vc_isFullscreen } from "@/app/(main)/_features/video-core/video-core-atoms"
-import { vc_seeking } from "@/app/(main)/_features/video-core/video-core-atoms"
-import { vc_paused } from "@/app/(main)/_features/video-core/video-core-atoms"
-import { vc_miniPlayer } from "@/app/(main)/_features/video-core/video-core-atoms"
-import { vc_cursorBusy } from "@/app/(main)/_features/video-core/video-core-atoms"
-import { vc_containerElement } from "@/app/(main)/_features/video-core/video-core-atoms"
+import {
+    vc_containerElement,
+    vc_currentTime,
+    vc_cursorBusy,
+    vc_dispatchAction,
+    vc_duration,
+    vc_isFullscreen,
+    vc_isMobile,
+    vc_isMuted,
+    vc_isSwiping,
+    vc_miniPlayer,
+    vc_paused,
+    vc_pip,
+    vc_seeking,
+    vc_volume,
+    VIDEOCORE_DEBUG_ELEMENTS,
+} from "@/app/(main)/_features/video-core/video-core"
 import { vc_fullscreenManager } from "@/app/(main)/_features/video-core/video-core-fullscreen"
-import { vc_pip } from "@/app/(main)/_features/video-core/video-core-pip"
 import { vc_pipManager } from "@/app/(main)/_features/video-core/video-core-pip"
 import { vc_storedMutedAtom, vc_storedVolumeAtom } from "@/app/(main)/_features/video-core/video-core.atoms"
-import { vc_dispatchAction } from "@/app/(main)/_features/video-core/video-core.utils"
 import { vc_formatTime } from "@/app/(main)/_features/video-core/video-core.utils"
 import { cn } from "@/components/ui/core/styling"
-import { useAtomValue } from "jotai"
+import { atom, useAtomValue } from "jotai"
 import { useAtom, useSetAtom } from "jotai/react"
 import { atomWithStorage } from "jotai/utils"
 import { AnimatePresence, motion } from "motion/react"
@@ -31,6 +32,8 @@ import { TbPictureInPicture, TbPictureInPictureOff } from "react-icons/tb"
 
 const VIDEOCORE_CONTROL_BAR_MAIN_SECTION_HEIGHT = 48
 const VIDEOCORE_CONTROL_BAR_MAIN_SECTION_HEIGHT_MINI = 28
+
+export const vc_hoveringControlBar = atom(false)
 
 type VideoCoreControlBarType = "default" | "classic"
 const VIDEOCORE_CONTROL_BAR_TYPE: VideoCoreControlBarType = "default"
@@ -68,18 +71,18 @@ export function VideoCoreControlBar(props: {
             || (paused && cursorPosition === "outside") || (paused && cursorPosition === "approaching")
     )
 
-    const controlBarTranslateY = isMobile ? (
+    const controlBarBottomPx = isMobile ? (
         // On mobile, show controls when paused or interacting
-        (paused || cursorBusy || hoveringControlBar) ? 0 : 300
+        (paused || cursorBusy || hoveringControlBar) ? 0 : -300
     ) : (
         VIDEOCORE_CONTROL_BAR_TYPE === "classic" ? (cursorBusy || hoveringControlBar || paused) ? 0 : (
-            showOnlyTimeRange ? mainSectionHeight : (
-                cursorPosition === "hover" ? 0 : 300
+            showOnlyTimeRange ? -(mainSectionHeight) : (
+                cursorPosition === "hover" ? 0 : -300
             )
         ) : (
             (cursorBusy || hoveringControlBar) ? 0 : (
-                showOnlyTimeRange ? mainSectionHeight : (
-                    cursorPosition === "hover" ? 0 : 300
+                showOnlyTimeRange ? -(mainSectionHeight) : (
+                    cursorPosition === "hover" ? 0 : -300
                 )
             )
         )
@@ -139,7 +142,7 @@ export function VideoCoreControlBar(props: {
         if (!containerElement || isMobile) return
         const captionsOverlay = containerElement.querySelector("#video-core-captions-wrapper") as HTMLElement
         if (!captionsOverlay) return
-        if (controlBarTranslateY === 0 || showOnlyTimeRange) {
+        if (controlBarBottomPx === 0 || showOnlyTimeRange) {
             captionsOverlay.style.setProperty("--tw-translate-y", `-${showOnlyTimeRange ? 20 : 50}px`, "important")
         } else {
             captionsOverlay.style.setProperty("--tw-translate-y", "0%")
@@ -147,7 +150,7 @@ export function VideoCoreControlBar(props: {
         return () => {
             captionsOverlay.style.removeProperty("--tw-translate-y")
         }
-    }, [controlBarTranslateY, containerElement, isMobile])
+    }, [controlBarBottomPx, containerElement, isMobile])
 
     return (
         <>
@@ -179,12 +182,12 @@ export function VideoCoreControlBar(props: {
                 className={cn(
                     "absolute left-0 bottom-0 right-0 flex flex-col text-white",
                     "transition-all duration-300 opacity-0",
-                    "z-[10] h-28 transform-gpu",
+                    "z-[10] h-28",
                     !hideControlBar && "opacity-100",
                     VIDEOCORE_DEBUG_ELEMENTS && "bg-purple-500/20",
                 )}
                 style={{
-                    transform: `translateY(${controlBarTranslateY}px)`,
+                    bottom: `${controlBarBottomPx}px`,
                 }}
                 onPointerEnter={() => {
                     if (!isMobile) setHoveringControlBar(true)
@@ -270,7 +273,7 @@ export function VideoCoreMobileControlBar(props: {
 
     const showShadow = paused || cursorBusy
 
-    const bottomSectionTranslateY = (paused || cursorBusy) ? 0 : 300
+    const bottomSectionBottomPx = (paused || cursorBusy) ? 0 : -300
 
     return (
         <>
@@ -302,12 +305,12 @@ export function VideoCoreMobileControlBar(props: {
                 data-vc-element="mobile-control-bar-top-section"
                 className={cn(
                     "vc-mobile-control-bar-top-section",
-                    "absolute transition-all left-0 right-0 top-0 w-full z-[11] transform-gpu",
+                    "absolute transition-all left-0 right-0 top-0 w-full z-[11]",
                     "px-2 pt-3",
                     VIDEOCORE_DEBUG_ELEMENTS && "bg-purple-800/40",
                 )}
                 style={{
-                    transform: `translateY(${-bottomSectionTranslateY}px)`,
+                    top: bottomSectionBottomPx,
                 }}
             >
                 <div
@@ -327,13 +330,13 @@ export function VideoCoreMobileControlBar(props: {
                 data-vc-element="mobile-control-bar-bottom-section"
                 className={cn(
                     "vc-mobile-control-bar-bottom-section",
-                    "absolute transition-all left-0 right-0 bottom-0 w-full z-[11] transform-gpu",
+                    "absolute transition-all left-0 right-0 bottom-0 w-full z-[11]",
                     "px-2",
                     VIDEOCORE_DEBUG_ELEMENTS && "bg-purple-800/40",
                     isSwiping && "transition-none",
                 )}
                 style={{
-                    transform: isSwiping ? "translateY(0px)" : `translateY(${bottomSectionTranslateY}px)`,
+                    bottom: isSwiping ? 0 : bottomSectionBottomPx,
                 }}
             >
                 <div

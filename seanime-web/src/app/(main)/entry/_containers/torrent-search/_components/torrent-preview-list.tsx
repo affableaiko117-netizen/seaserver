@@ -77,20 +77,20 @@ export const TorrentPreviewList = React.memo((
                 onSortChange={handleSortChange}
                 onFilterChange={handleFilterChange}
             />
-            <ScrollAreaBox className="h-[calc(100dvh_-_26rem)] bg-gray-950/60">
+            <ScrollAreaBox className="h-[calc(100dvh_-_25rem)] bg-gray-950/60">
                 <TorrentList>
                     {sortedPreviews.filter(Boolean).map(item => {
                         if (!item.torrent) return null
                         // const isReleasedBeforeMedia = differenceInCalendarYears(mediaReleaseDate, item.torrent.date) > 2
                         return (
                             <TorrentListItem
-                                key={item.torrent.infoHash}
+                                key={item.torrent.link}
                                 torrent={item.torrent}
                                 media={entry.media}
                                 episode={item.episode}
                                 metadata={torrentMetadata?.[item.torrent.infoHash!]?.metadata}
                                 debridCached={((type === "download" || type === "debridstream-select" || type === "debridstream-select-file") && !!item.torrent.infoHash && !!debridInstantAvailability[item.torrent.infoHash])}
-                                isSelected={selectedTorrents.findIndex(n => n.infoHash === item.torrent!.infoHash) !== -1}
+                                isSelected={selectedTorrents.findIndex(n => n.link === item.torrent!.link) !== -1}
                                 onClick={() => onToggleTorrent(item.torrent!)}
                                 extensionName={item.torrent.provider && includedSpecialProviders?.includes(item.torrent.provider)
                                     ? extensions?.find(e => e.id === item.torrent?.provider)?.name

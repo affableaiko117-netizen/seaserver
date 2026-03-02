@@ -12,9 +12,9 @@ import (
 	"seanime/internal/util"
 	"seanime/internal/util/filecache"
 	"testing"
-	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -123,15 +123,15 @@ func createTestMedia(t *testing.T) *anilist.CompleteAnime {
 	return &anilist.CompleteAnime{
 		ID: 21,
 		Title: &anilist.CompleteAnime_Title{
-			Romaji:  new("One Piece"),
-			English: new("One Piece"),
+			Romaji:  lo.ToPtr("One Piece"),
+			English: lo.ToPtr("One Piece"),
 		},
-		Status: new(anilist.MediaStatusReleasing),
-		Format: new(anilist.MediaFormatTv),
+		Status: lo.ToPtr(anilist.MediaStatusReleasing),
+		Format: lo.ToPtr(anilist.MediaFormatTv),
 		StartDate: &anilist.CompleteAnime_StartDate{
-			Year: new(1999),
+			Year: lo.ToPtr(1999),
 		},
-		IsAdult: new(false),
+		IsAdult: lo.ToPtr(false),
 	}
 }
 
@@ -438,86 +438,29 @@ func TestShouldSearchBatch(t *testing.T) {
 		Logger: &logger,
 	})
 
-	now := time.Now().UTC()
-	threeWeeksAgo := now.AddDate(0, 0, -21)
-	exactlyTwoWeeksAgo := now.AddDate(0, 0, -14)
-	oneWeekAgo := now.AddDate(0, 0, -7)
-	yesterday := now.AddDate(0, 0, -1)
-	oldDate := now.AddDate(-5, 0, 0) // 5 years ago
-
 	tests := []struct {
 		name     string
 		media    *anilist.CompleteAnime
 		expected bool
 	}{
 		{
-			name: "Finished anime, ended more than 2 weeks ago",
+			name: "Recent finished anime (< 4 years)",
 			media: &anilist.CompleteAnime{
-				Status: new(anilist.MediaStatusFinished),
-				Format: new(anilist.MediaFormatTv),
-				EndDate: &anilist.CompleteAnime_EndDate{
-					Year:  new(threeWeeksAgo.Year()),
-					Month: new(int(threeWeeksAgo.Month())),
-					Day:   new(threeWeeksAgo.Day()),
-				},
-			},
-			expected: true,
-		},
-		{
-			name: "Finished anime, ended exactly 2 weeks ago",
-			media: &anilist.CompleteAnime{
-				Status: new(anilist.MediaStatusFinished),
-				Format: new(anilist.MediaFormatTv),
-				EndDate: &anilist.CompleteAnime_EndDate{
-					Year:  new(exactlyTwoWeeksAgo.Year()),
-					Month: new(int(exactlyTwoWeeksAgo.Month())),
-					Day:   new(exactlyTwoWeeksAgo.Day()),
-				},
-			},
-			expected: true,
-		},
-		{
-			name: "Finished anime, ended less than 2 weeks ago",
-			media: &anilist.CompleteAnime{
-				Status: new(anilist.MediaStatusFinished),
-				Format: new(anilist.MediaFormatTv),
-				EndDate: &anilist.CompleteAnime_EndDate{
-					Year:  new(oneWeekAgo.Year()),
-					Month: new(int(oneWeekAgo.Month())),
-					Day:   new(oneWeekAgo.Day()),
+				Status: lo.ToPtr(anilist.MediaStatusFinished),
+				Format: lo.ToPtr(anilist.MediaFormatTv),
+				StartDate: &anilist.CompleteAnime_StartDate{
+					Year: lo.ToPtr(2023),
 				},
 			},
 			expected: false,
 		},
 		{
-			name: "Finished anime, ended yesterday",
+			name: "Old finished anime (> 4 years)",
 			media: &anilist.CompleteAnime{
-				Status: new(anilist.MediaStatusFinished),
-				Format: new(anilist.MediaFormatTv),
-				EndDate: &anilist.CompleteAnime_EndDate{
-					Year:  new(yesterday.Year()),
-					Month: new(int(yesterday.Month())),
-					Day:   new(yesterday.Day()),
-				},
-			},
-			expected: false,
-		},
-		{
-			name: "Finished anime, no end date",
-			media: &anilist.CompleteAnime{
-				Status: new(anilist.MediaStatusFinished),
-				Format: new(anilist.MediaFormatTv),
-			},
-			expected: true,
-		},
-		{
-			name: "Finished anime, partial end date (no day)",
-			media: &anilist.CompleteAnime{
-				Status: new(anilist.MediaStatusFinished),
-				Format: new(anilist.MediaFormatTv),
-				EndDate: &anilist.CompleteAnime_EndDate{
-					Year:  new(threeWeeksAgo.Year()),
-					Month: new(int(threeWeeksAgo.Month())),
+				Status: lo.ToPtr(anilist.MediaStatusFinished),
+				Format: lo.ToPtr(anilist.MediaFormatTv),
+				StartDate: &anilist.CompleteAnime_StartDate{
+					Year: lo.ToPtr(2015),
 				},
 			},
 			expected: true,
@@ -525,41 +468,24 @@ func TestShouldSearchBatch(t *testing.T) {
 		{
 			name: "Currently airing anime",
 			media: &anilist.CompleteAnime{
-				Status: new(anilist.MediaStatusReleasing),
-				Format: new(anilist.MediaFormatTv),
-				EndDate: &anilist.CompleteAnime_EndDate{
-					Year:  new(oldDate.Year()),
-					Month: new(int(oldDate.Month())),
-					Day:   new(oldDate.Day()),
+				Status: lo.ToPtr(anilist.MediaStatusReleasing),
+				Format: lo.ToPtr(anilist.MediaFormatTv),
+				StartDate: &anilist.CompleteAnime_StartDate{
+					Year: lo.ToPtr(2024),
 				},
 			},
 			expected: false,
 		},
 		{
-			name: "Movie, finished",
+			name: "Movie",
 			media: &anilist.CompleteAnime{
-				Status: new(anilist.MediaStatusFinished),
-				Format: new(anilist.MediaFormatMovie),
-				EndDate: &anilist.CompleteAnime_EndDate{
-					Year:  new(oldDate.Year()),
-					Month: new(int(oldDate.Month())),
-					Day:   new(oldDate.Day()),
+				Status: lo.ToPtr(anilist.MediaStatusFinished),
+				Format: lo.ToPtr(anilist.MediaFormatMovie),
+				StartDate: &anilist.CompleteAnime_StartDate{
+					Year: lo.ToPtr(2025),
 				},
 			},
 			expected: false,
-		},
-		{
-			name: "Old finished anime",
-			media: &anilist.CompleteAnime{
-				Status: new(anilist.MediaStatusFinished),
-				Format: new(anilist.MediaFormatTv),
-				EndDate: &anilist.CompleteAnime_EndDate{
-					Year:  new(oldDate.Year()),
-					Month: new(int(oldDate.Month())),
-					Day:   new(oldDate.Day()),
-				},
-			},
-			expected: true,
 		},
 	}
 

@@ -246,7 +246,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	v1Library.GET("/scan-summaries", h.HandleGetScanSummaries)
 
 	v1Library.GET("/missing-episodes", h.HandleGetMissingEpisodes)
-	v1Library.GET("/upcoming-episodes", h.HandleGetUpcomingEpisodes)
 
 	v1Library.GET("/anime-entry/:id", h.HandleGetAnimeEntry)
 	v1Library.POST("/anime-entry/suggestions", h.HandleFetchAnimeEntrySuggestions)
@@ -273,6 +272,7 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	// Anime
 	//
 	v1.GET("/anime/episode-collection/:id", h.HandleGetAnimeEpisodeCollection)
+	v1.GET("/seasonal/timeline", h.HandleGetSeasonalTimeline)
 
 	//
 	// Torrent / Torrent Client
@@ -400,6 +400,9 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	v1Manga.POST("/manual-mapping", h.HandleMangaManualMapping)
 	v1Manga.POST("/get-mapping", h.HandleGetMangaMapping)
 	v1Manga.POST("/remove-mapping", h.HandleRemoveMangaMapping)
+	v1Manga.POST("/synthetic/search", h.HandleSearchSyntheticManga)
+	v1Manga.GET("/synthetic/recently-read", h.HandleGetRecentlyReadSyntheticManga)
+	v1Manga.GET("/reading-history", h.HandleGetMangaReadingHistory)
 
 	v1Manga.GET("/local-page/:path", h.HandleGetLocalMangaPage)
 
@@ -448,11 +451,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	v1.HEAD("/directstream/stream", echo.WrapHandler(h.HandleDirectstreamGetStream()))
 	v1.GET("/directstream/att/*", h.HandleDirectstreamGetAttachments)
 	v1.POST("/directstream/subs/convert-subs", h.HandleDirectstreamConvertSubs)
-
-	//
-	// VideoCore
-	//
-	v1.GET("/videocore/insight/character/:malId", h.HandleVideoCoreInSightGetCharacterDetails)
 
 	//
 	// Torrent stream
@@ -543,7 +541,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 
 	v1.POST("/report/issue", h.HandleSaveIssueReport)
 	v1.GET("/report/issue/download", h.HandleDownloadIssueReport)
-	v1.POST("/report/issue/decompress", h.HandleDecompressIssueReport)
 
 	//
 	// Nakama
@@ -582,6 +579,50 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	v1CustomSource := v1.Group("/custom-source")
 	v1CustomSource.POST("/provider/list/anime", h.HandleCustomSourceListAnime)
 	v1CustomSource.POST("/provider/list/manga", h.HandleCustomSourceListManga)
+
+	//
+	// Unmatched Torrents
+	//
+	v1Unmatched := v1.Group("/unmatched")
+	v1Unmatched.GET("/torrents", h.HandleGetUnmatchedTorrents)
+	v1Unmatched.POST("/torrent/contents", h.HandleGetUnmatchedTorrentContents)
+	v1Unmatched.POST("/match", h.HandleMatchUnmatchedTorrent)
+	v1Unmatched.POST("/torrent/delete", h.HandleDeleteUnmatchedTorrent)
+	v1Unmatched.POST("/destination", h.HandleGetUnmatchedDestination)
+	v1Unmatched.GET("/scanner/status", h.HandleGetUnmatchedScannerStatus)
+	v1Unmatched.POST("/scanner/clear", h.HandleClearCompletedTorrent)
+
+	//
+	// En Masse Downloader
+	//
+	v1EnMasse := v1.Group("/enmasse")
+	v1EnMasse.GET("/status", h.HandleEnMasseGetStatus)
+	v1EnMasse.POST("/start", h.HandleEnMasseStart)
+	v1EnMasse.POST("/stop", h.HandleEnMasseStop)
+
+	//
+	// Manga En Masse Downloader
+	//
+	v1MangaEnMasse := v1.Group("/enmasse/manga")
+	v1MangaEnMasse.GET("/status", h.HandleMangaEnMasseGetStatus)
+	v1MangaEnMasse.POST("/start", h.HandleMangaEnMasseStart)
+	v1MangaEnMasse.POST("/stop", h.HandleMangaEnMasseStop)
+
+	//
+	// Global En Masse Downloader (anime-offline-database)
+	//
+	v1GlobalEnMasse := v1.Group("/enmasse/global")
+	v1GlobalEnMasse.GET("/status", h.HandleGlobalEnMasseGetStatus)
+	v1GlobalEnMasse.POST("/start", h.HandleGlobalEnMasseStart)
+	v1GlobalEnMasse.POST("/stop", h.HandleGlobalEnMasseStop)
+
+	//
+	// Synthetic Anime
+	//
+	v1SyntheticAnime := v1.Group("/anime/synthetic")
+	v1SyntheticAnime.POST("/search", h.HandleSearchSyntheticAnime)
+	v1SyntheticAnime.GET("/:id", h.HandleGetSyntheticAnimeDetails)
+	v1SyntheticAnime.GET("/all", h.HandleGetAllSyntheticAnime)
 
 }
 

@@ -1,4 +1,5 @@
-import { atom } from "jotai"
+"use client"
+import { atom } from "jotai/index"
 import { atomWithStorage } from "jotai/utils"
 
 export const __manga_currentPageIndexAtom = atom(0)

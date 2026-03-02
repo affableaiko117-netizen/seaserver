@@ -69,19 +69,25 @@ func initializeProviderBase(
 		wsEventManager: wsEventManager,
 	}
 
+	var pool *goja_runtime.Pool
+
 	initFn := func() *goja.Runtime {
 		vm := goja.New()
 		vm.SetParserOptions(parser.WithDisableSourceMaps)
 		providerBase.store.Bind(vm, providerBase.scheduler)
-		// Bind the shared bindings
-		ShareBinds(vm, logger, ext, wsEventManager)
-		goja_bindings.BindFetch(vm)
+		// Bind the shared bindings with cleanup registration
+		ShareBindsWithCleanup(vm, logger, ext, wsEventManager, pool)
+		// Bind fetch and register cleanup to prevent goroutine leaks
+		fetch := goja_bindings.BindFetch(vm)
+		if pool != nil {
+			pool.AddCleanup(fetch.Close)
+		}
 		gojautil.BindMutable(vm)
 		BindUserConfig(vm, ext, logger)
 		return vm
 	}
 
-	pool, err := runtimeManager.GetOrCreatePrivatePool(ext.ID, initFn)
+	pool, err = runtimeManager.GetOrCreatePrivatePool(ext.ID, initFn)
 	if err != nil {
 		return nil, err
 	}

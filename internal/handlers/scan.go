@@ -19,10 +19,9 @@ import (
 func (h *Handler) HandleScanLocalFiles(c echo.Context) error {
 
 	type body struct {
-		Enhanced                   bool `json:"enhanced"`
-		EnhanceWithOfflineDatabase bool `json:"enhanceWithOfflineDatabase"`
-		SkipLockedFiles            bool `json:"skipLockedFiles"`
-		SkipIgnoredFiles           bool `json:"skipIgnoredFiles"`
+		Enhanced         bool `json:"enhanced"`
+		SkipLockedFiles  bool `json:"skipLockedFiles"`
+		SkipIgnoredFiles bool `json:"skipIgnoredFiles"`
 	}
 
 	var b body
@@ -66,30 +65,24 @@ func (h *Handler) HandleScanLocalFiles(c echo.Context) error {
 	}
 	defer scanLogger.Done()
 
-	ac, _ := h.App.GetAnimeCollection(false)
-
 	// Create a new scanner
 	sc := scanner.Scanner{
-		DirPath:                    libraryPath,
-		OtherDirPaths:              additionalLibraryPaths,
-		Enhanced:                   b.Enhanced,
-		EnhanceWithOfflineDatabase: b.EnhanceWithOfflineDatabase,
-		PlatformRef:                h.App.AnilistPlatformRef,
-		Logger:                     h.App.Logger,
-		WSEventManager:             h.App.WSEventManager,
-		ExistingLocalFiles:         existingLfs,
-		SkipLockedFiles:            b.SkipLockedFiles,
-		SkipIgnoredFiles:           b.SkipIgnoredFiles,
-		ScanSummaryLogger:          scanSummaryLogger,
-		ScanLogger:                 scanLogger,
-		MetadataProviderRef:        h.App.MetadataProviderRef,
-		MatchingAlgorithm:          h.App.Settings.GetLibrary().ScannerMatchingAlgorithm,
-		MatchingThreshold:          h.App.Settings.GetLibrary().ScannerMatchingThreshold,
-		UseLegacyMatching:          h.App.Settings.GetLibrary().ScannerUseLegacyMatching,
-		WithShelving:               true,
-		ExistingShelvedFiles:       existingShelvedLfs,
-		ConfigAsString:             h.App.Settings.GetLibrary().ScannerConfig,
-		AnimeCollection:            ac,
+		DirPath:              libraryPath,
+		OtherDirPaths:        additionalLibraryPaths,
+		Enhanced:             b.Enhanced,
+		PlatformRef:          h.App.AnilistPlatformRef,
+		Logger:               h.App.Logger,
+		WSEventManager:       h.App.WSEventManager,
+		ExistingLocalFiles:   existingLfs,
+		SkipLockedFiles:      b.SkipLockedFiles,
+		SkipIgnoredFiles:     b.SkipIgnoredFiles,
+		ScanSummaryLogger:    scanSummaryLogger,
+		ScanLogger:           scanLogger,
+		MetadataProviderRef:  h.App.MetadataProviderRef,
+		MatchingAlgorithm:    h.App.Settings.GetLibrary().ScannerMatchingAlgorithm,
+		MatchingThreshold:    h.App.Settings.GetLibrary().ScannerMatchingThreshold,
+		WithShelving:         true,
+		ExistingShelvedFiles: existingShelvedLfs,
 	}
 
 	// Scan the library
@@ -97,9 +90,9 @@ func (h *Handler) HandleScanLocalFiles(c echo.Context) error {
 	if err != nil {
 		if errors.Is(err, scanner.ErrNoLocalFiles) {
 			return h.RespondWithData(c, []interface{}{})
+		} else {
+			return h.RespondWithError(c, err)
 		}
-
-		return h.RespondWithError(c, err)
 	}
 
 	// Insert the local files
@@ -118,8 +111,6 @@ func (h *Handler) HandleScanLocalFiles(c echo.Context) error {
 	_ = db_bridge.InsertScanSummary(h.App.Database, scanSummaryLogger.GenerateSummary())
 
 	go h.App.AutoDownloader.CleanUpDownloadedItems()
-
-	go h.App.RefreshAnimeCollection()
 
 	return h.RespondWithData(c, lfs)
 

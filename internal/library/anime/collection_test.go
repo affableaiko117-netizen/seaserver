@@ -11,6 +11,7 @@ import (
 	"seanime/internal/util"
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,7 +23,6 @@ func TestNewLibraryCollection(t *testing.T) {
 	assert.NoError(t, err)
 
 	metadataProvider := metadata_provider.GetFakeProvider(t, database)
-	//wsEventManager := events.NewMockWSEventManager(logger)
 
 	anilistClient := anilist.TestGetMockAnilistClient()
 	anilistPlatform := anilist_platform.NewAnilistPlatform(util.NewRef(anilistClient), util.NewRef(extension.NewUnifiedBank()), logger, database)
@@ -50,8 +50,8 @@ func TestNewLibraryCollection(t *testing.T) {
 			}),
 		)...)
 		anilist.TestModifyAnimeCollectionEntry(animeCollection, mediaId, anilist.TestModifyAnimeCollectionEntryInput{
-			Status:   new(anilist.MediaListStatusCurrent),
-			Progress: new(4), // Mock progress
+			Status:   lo.ToPtr(anilist.MediaListStatusCurrent),
+			Progress: lo.ToPtr(4), // Mock progress
 		})
 
 		// One Piece
@@ -68,8 +68,8 @@ func TestNewLibraryCollection(t *testing.T) {
 			}),
 		)...)
 		anilist.TestModifyAnimeCollectionEntry(animeCollection, mediaId, anilist.TestModifyAnimeCollectionEntryInput{
-			Status:   new(anilist.MediaListStatusCurrent),
-			Progress: new(1060), // Mock progress
+			Status:   lo.ToPtr(anilist.MediaListStatusCurrent),
+			Progress: lo.ToPtr(1060), // Mock progress
 		})
 
 		// Add unmatched local files

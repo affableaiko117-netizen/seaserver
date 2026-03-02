@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 )
 
@@ -67,8 +68,8 @@ func TestStreamCollection(t *testing.T) {
 		}),
 	)...)
 	anilist.TestModifyAnimeCollectionEntry(animeCollection, mediaId, anilist.TestModifyAnimeCollectionEntryInput{
-		Status:   new(anilist.MediaListStatusCurrent),
-		Progress: new(4), // Mock progress
+		Status:   lo.ToPtr(anilist.MediaListStatusCurrent),
+		Progress: lo.ToPtr(4), // Mock progress
 	})
 
 	libraryCollection, err := anime.NewLibraryCollection(t.Context(), &anime.NewLibraryCollectionOptions{

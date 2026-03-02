@@ -7,9 +7,10 @@ import {
     Manga_EntryListData,
 } from "@/api/generated/types"
 import { getAtomicLibraryEntryAtom } from "@/app/(main)/_atoms/anime-library-collection.atoms"
+import { useDownloadingAnime } from "@/app/(main)/_atoms/downloading.atoms"
 import { usePlayNext } from "@/app/(main)/_atoms/playback.atoms"
-import { ToggleLockFilesButton } from "@/app/(main)/_features/anime-library/_containers/toggle-lock-files-button"
 import { AnimeEntryCardUnwatchedBadge } from "@/app/(main)/_features/anime/_containers/anime-entry-card-unwatched-badge"
+import { ToggleLockFilesButton } from "@/app/(main)/_features/anime/_containers/toggle-lock-files-button"
 import { SeaContextMenu } from "@/app/(main)/_features/context-menu/sea-context-menu"
 import { useLibraryExplorer } from "@/app/(main)/_features/library-explorer/library-explorer.atoms"
 import {
@@ -39,14 +40,14 @@ import { SeaLink } from "@/components/shared/sea-link"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ContextMenuGroup, ContextMenuItem, ContextMenuLabel, ContextMenuTrigger } from "@/components/ui/context-menu"
-import { usePathname, useRouter } from "@/lib/navigation"
 import { useAtom } from "jotai"
 import { useSetAtom } from "jotai/react"
 import capitalize from "lodash/capitalize"
+import { usePathname, useRouter } from "next/navigation"
 import React, { useState } from "react"
 import { BiAddToQueue, BiPlay } from "react-icons/bi"
-import { LuBookOpen } from "react-icons/lu"
-import { LuEye, LuFolderTree } from "react-icons/lu"
+import { IoLibrarySharp } from "react-icons/io5"
+import { LuDownload, LuEye, LuFolderTree } from "react-icons/lu"
 import { RiCalendarLine } from "react-icons/ri"
 import { PluginMediaCardContextMenuItems } from "../../plugin/actions/plugin-actions"
 
@@ -94,6 +95,9 @@ export function MediaEntryCard<T extends "anime" | "manga">(props: MediaEntryCar
     const serverStatus = useServerStatus()
     const { hasStreamingEnabled } = useHasTorrentOrDebridInclusion()
     const missingEpisodes = useMissingEpisodes()
+    const { isDownloading } = useDownloadingAnime()
+
+    const isCurrentlyDownloading = type === "anime" && isDownloading(media.id)
 
     const prevListDataRef = React.useRef(_listData)
     const prevLibraryDataRef = React.useRef(_libraryData)
@@ -175,9 +179,13 @@ export function MediaEntryCard<T extends "anime" | "manga">(props: MediaEntryCar
 
     const { setPlayNext } = usePlayNext()
     const handleWatchButtonClicked = React.useCallback(() => {
-        setPlayNext(mediaId, () => {
+        if ((!!listData?.progress && (listData?.status !== "COMPLETED"))) {
+            setPlayNext(mediaId, () => {
+                router.push(ANIME_LINK)
+            })
+        } else {
             router.push(ANIME_LINK)
-        })
+        }
     }, [listData?.progress, listData?.status, mediaId, ANIME_LINK, setPlayNext, router])
 
     const onPopupMouseEnter = React.useCallback(() => {
@@ -235,7 +243,6 @@ export function MediaEntryCard<T extends "anime" | "manga">(props: MediaEntryCar
             className={props.containerClassName}
             data-list-data={stringifiedListData}
             onMouseEnter={() => setIsHoveringCard(true)}
-            onMouseOver={() => setIsHoveringCard(true)}
             onMouseLeave={() => setIsHoveringCard(false)}
         >
 
@@ -297,7 +304,6 @@ export function MediaEntryCard<T extends "anime" | "manga">(props: MediaEntryCar
 
                             <MediaEntryCardHoverPopupTitleSection
                                 title={media.title?.userPreferred || ""}
-                                allTitles={media.title}
                                 year={(media as AL_BaseAnime).seasonYear ?? media.startDate?.year}
                                 season={media.season}
                                 format={media.format}
@@ -307,50 +313,45 @@ export function MediaEntryCard<T extends "anime" | "manga">(props: MediaEntryCar
                                 // onHoverLeave={() => setHoveringTitle(false)}
                             />
 
-                            <div className="py-1 flex items-center justify-center w-full gap-2">
-                                {type === "anime" && <Button
-                                    leftIcon={<BiPlay className="text-2xl" />}
-                                    intent="gray-subtle"
-                                    size="sm"
-                                    className="w-full"
-                                    tabIndex={-1}
-                                    onClick={handleWatchButtonClicked}
-                                >
-                                    {!!listData?.progress && (listData?.status === "CURRENT" || listData?.status === "PAUSED")
-                                        ? "Continue"
-                                        : "Watch"}
-                                </Button>}
-
-                                {type === "manga" && <SeaLink
-                                    href={!onClick ? MANGA_LINK : undefined}
-                                    onClick={onClick}
-                                    className="block w-full"
-                                >
-                                    <Button
-                                        leftIcon={<LuBookOpen />}
-                                        intent="gray-subtle"
-                                        size="sm"
-                                        className="w-full"
-                                        tabIndex={-1}
-                                    >
-                                        {!!listData?.progress && (listData?.status === "CURRENT" || listData?.status === "PAUSED")
-                                            ? "Continue"
-                                            : "Start Reading"}
-                                    </Button>
-                                </SeaLink>}
-                            </div>
-
                             {type === "anime" && (
                                 <AnimeEntryCardNextAiring nextAiring={(media as AL_BaseAnime).nextAiringEpisode} />
                             )}
 
-                            {(listData?.status && listData?.status !== "CURRENT") &&
-                                <p className="text-center text-xs text-[--muted] w-full">
-                                    {capitalize(listData?.status ?? "")}
-                                    {/*{listData?.status === "CURRENT" ? type === "anime" ? "Watching" : "Reading"*/}
-                                    {/*    : capitalize(listData?.status ?? "")}*/}
-                                </p>}
+                            {type === "anime" && <div className="py-1">
+                                <Button
+                                    leftIcon={<BiPlay className="text-2xl" />}
+                                    intent="gray-subtle"
+                                    size="sm"
+                                    className="w-full text-sm"
+                                    tabIndex={-1}
+                                    onClick={handleWatchButtonClicked}
+                                >
+                                    {!!listData?.progress && (listData?.status === "CURRENT" || listData?.status === "PAUSED")
+                                        ? "Continue watching"
+                                        : "Watch"}
+                                </Button>
+                            </div>}
 
+                            {type === "manga" && <SeaLink
+                                href={!onClick ? MANGA_LINK : undefined}
+                                onClick={onClick}
+                            >
+                                <Button
+                                    leftIcon={<IoLibrarySharp />}
+                                    intent="gray-subtle"
+                                    size="sm"
+                                    className="w-full text-sm mt-2"
+                                    tabIndex={-1}
+                                >
+                                    Read
+                                </Button>
+                            </SeaLink>}
+
+                            {(listData?.status) &&
+                                <p className="text-center text-sm text-[--muted]">
+                                    {listData?.status === "CURRENT" ? type === "anime" ? "Watching" : "Reading"
+                                        : capitalize(listData?.status ?? "")}
+                                </p>}
 
                             {/*{hoveringTitle && <div>*/}
                             {/*    <p*/}
@@ -437,6 +438,18 @@ export function MediaEntryCard<T extends "anime" | "manga">(props: MediaEntryCar
                             intent="gray-solid"
                             size="xl"
                         ><RiCalendarLine /></Badge>
+                    </div>
+                )}
+                {isCurrentlyDownloading && (
+                    <div
+                        data-media-entry-card-body-downloading-badge-container
+                        className="absolute z-[10] right-1 top-1"
+                    >
+                        <Badge
+                            className="font-semibold animate-pulse text-white bg-blue-600 !bg-opacity-90 rounded-[--radius-md] text-base"
+                            intent="primary-solid"
+                            size="lg"
+                        ><LuDownload className="mr-1" /> Downloading</Badge>
                     </div>
                 )}
 

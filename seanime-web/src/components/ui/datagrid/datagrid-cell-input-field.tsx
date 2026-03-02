@@ -1,3 +1,5 @@
+"use client"
+
 import { Cell, Row, Table } from "@tanstack/react-table"
 import { cva } from "class-variance-authority"
 import * as React from "react"

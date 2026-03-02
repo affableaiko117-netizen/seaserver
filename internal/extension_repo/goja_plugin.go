@@ -20,6 +20,7 @@ import (
 	"github.com/dop251/goja"
 	"github.com/dop251/goja/parser"
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 )
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -121,7 +122,7 @@ func NewGojaPlugin(
 	wsEventManager events.WSEventManagerInterface,
 	onCrash func(reason string),
 ) (*GojaPlugin, GojaExtension, error) {
-	logger := new(mLogger.With().Str("id", ext.ID).Logger())
+	logger := lo.ToPtr(mLogger.With().Str("id", ext.ID).Logger())
 	defer util.HandlePanicInModuleThen("extension_repo/NewGojaPlugin", func() {
 		logger.Error().Msg("extensions: Failed to create Goja plugin")
 	})
@@ -163,8 +164,13 @@ func NewGojaPlugin(
 	var err error
 	p.pool, err = runtimeManager.GetOrCreatePrivatePool(ext.ID, func() *goja.Runtime {
 		runtime := goja.New()
-		ShareBinds(runtime, logger, ext, wsEventManager)
-		goja_bindings.BindFetch(runtime, ext.Plugin.Permissions.GetNetworkAccessAllowedDomains())
+		// Bind shared bindings with cleanup registration
+		ShareBindsWithCleanup(runtime, logger, ext, wsEventManager, p.pool)
+		// Bind fetch and register cleanup to prevent goroutine leaks
+		fetch := goja_bindings.BindFetch(runtime, ext.Plugin.Permissions.GetNetworkAccessAllowedDomains())
+		if p.pool != nil {
+			p.pool.AddCleanup(fetch.Close)
+		}
 		BindUserConfig(runtime, ext, logger)
 		p.BindPluginAPIs(runtime, logger)
 		return runtime
@@ -179,9 +185,13 @@ func NewGojaPlugin(
 	// (must be interrupted when unloading)
 	uiVM := goja.New()
 	uiVM.SetParserOptions(parser.WithDisableSourceMaps)
-	// Bind shared APIs
-	ShareBinds(uiVM, logger, ext, wsEventManager)
-	goja_bindings.BindFetch(uiVM, ext.Plugin.Permissions.GetNetworkAccessAllowedDomains())
+	// Bind shared APIs with cleanup registration
+	ShareBindsWithCleanup(uiVM, logger, ext, wsEventManager, p.pool)
+	// Bind fetch and register cleanup to prevent goroutine leaks
+	uiFetch := goja_bindings.BindFetch(uiVM, ext.Plugin.Permissions.GetNetworkAccessAllowedDomains())
+	if p.pool != nil {
+		p.pool.AddCleanup(uiFetch.Close)
+	}
 	BindUserConfig(uiVM, ext, logger)
 	// Bind the store to the UI VM
 	p.BindPluginAPIs(uiVM, logger)

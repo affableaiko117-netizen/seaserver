@@ -3,7 +3,6 @@ import { useMangaReaderUtils } from "@/app/(main)/manga/_lib/handle-manga-utils"
 import { IconButton } from "@/components/ui/button"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { logger } from "@/lib/helpers/debug"
-import { HIDE_IMAGES } from "@/types/constants.ts"
 import React from "react"
 import { FaRedo } from "react-icons/fa"
 import { useUpdateEffect } from "react-use"
@@ -75,7 +74,7 @@ export function ChapterPage(props: ChapterPageProps) {
                 {isReady && <img
                     data-chapter-page-image
                     data-page-index={index}
-                    src={HIDE_IMAGES ? "/no-cover.png" : getChapterPageUrl(page.url, pageContainer?.isDownloaded, page.headers)}
+                    src={getChapterPageUrl(page.url, pageContainer?.isDownloaded, page.headers)}
                     alt={`Page ${index}`}
                     className={imageClass}
                     style={{ width: imageWidth, maxWidth: imageMaxWidth }}

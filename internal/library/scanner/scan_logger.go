@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -16,7 +15,6 @@ type ScanLogger struct {
 	logger  *zerolog.Logger
 	logFile *os.File
 	buffer  *bytes.Buffer
-	mu      sync.Mutex
 }
 
 // NewScanLogger creates a new ScanLogger with a log file named based on the current datetime.
@@ -42,12 +40,10 @@ func NewScanLogger(outputDir string) (*ScanLogger, error) {
 	// Create a buffer for storing log entries
 	buffer := new(bytes.Buffer)
 
-	mu := sync.Mutex{}
-
 	// Create an array writer to wrap the JSON encoder
-	logger := zerolog.New(ThreadSafeWriteSyncer{buffer, &mu}).With().Logger()
+	logger := zerolog.New(buffer).With().Logger()
 
-	return &ScanLogger{&logger, logFile, buffer, mu}, nil
+	return &ScanLogger{&logger, logFile, buffer}, nil
 }
 
 // NewConsoleScanLogger creates a new mock ScanLogger
@@ -60,7 +56,7 @@ func NewConsoleScanLogger() (*ScanLogger, error) {
 	// Create an array writer to wrap the JSON encoder
 	logger := zerolog.New(output).With().Logger()
 
-	return &ScanLogger{logger: &logger, logFile: nil, buffer: nil, mu: sync.Mutex{}}, nil
+	return &ScanLogger{logger: &logger, logFile: nil, buffer: nil}, nil
 }
 
 func (sl *ScanLogger) LogMediaContainer(level zerolog.Level) *zerolog.Event {
@@ -108,15 +104,4 @@ func (sl *ScanLogger) Close() {
 	if err != nil {
 		return
 	}
-}
-
-type ThreadSafeWriteSyncer struct {
-	w  *bytes.Buffer
-	mu *sync.Mutex
-}
-
-func (t ThreadSafeWriteSyncer) Write(p []byte) (n int, err error) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	return t.w.Write(p)
 }

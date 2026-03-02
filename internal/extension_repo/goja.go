@@ -9,6 +9,7 @@ import (
 	"seanime/internal/events"
 	"seanime/internal/extension"
 	goja_bindings "seanime/internal/goja/goja_bindings"
+	"seanime/internal/goja/goja_runtime"
 	"seanime/internal/library/anime"
 	"seanime/internal/plugin"
 	"sync"
@@ -61,6 +62,12 @@ func BindUserConfig(vm *goja.Runtime, ext *extension.Extension, logger *zerolog.
 // ShareBinds binds the shared bindings to the VM
 // This is called once per VM
 func ShareBinds(vm *goja.Runtime, logger *zerolog.Logger, ext *extension.Extension, wsEventManager events.WSEventManagerInterface) {
+	ShareBindsWithCleanup(vm, logger, ext, wsEventManager, nil)
+}
+
+// ShareBindsWithCleanup binds the shared bindings to the VM and registers cleanup functions
+// This is called once per VM. If pool is provided, cleanup functions will be registered.
+func ShareBindsWithCleanup(vm *goja.Runtime, logger *zerolog.Logger, ext *extension.Extension, wsEventManager events.WSEventManagerInterface, pool *goja_runtime.Pool) {
 	registry := new(gojarequire.Registry)
 	registry.Enable(vm)
 
@@ -74,7 +81,13 @@ func ShareBinds(vm *goja.Runtime, logger *zerolog.Logger, ext *extension.Extensi
 	}{
 		{"url", func(vm *goja.Runtime) error { gojaurl.Enable(vm); return nil }},
 		{"buffer", func(vm *goja.Runtime) error { gojabuffer.Enable(vm); return nil }},
-		{"ChromeDP", func(vm *goja.Runtime) error { goja_bindings.BindChromeDP(vm); return nil }},
+		{"ChromeDP", func(vm *goja.Runtime) error {
+			chrome := goja_bindings.BindChromeDP(vm)
+			if pool != nil {
+				pool.AddCleanup(chrome.Close)
+			}
+			return nil
+		}},
 		{"console", func(vm *goja.Runtime) error {
 			goja_bindings.BindConsoleWithWS(ext, vm, logger, wsEventManager)
 			return nil
@@ -83,7 +96,6 @@ func ShareBinds(vm *goja.Runtime, logger *zerolog.Logger, ext *extension.Extensi
 		{"document", func(vm *goja.Runtime) error { goja_bindings.BindDocument(vm); return nil }},
 		{"crypto", func(vm *goja.Runtime) error { goja_bindings.BindCrypto(vm); return nil }},
 		{"torrentUtils", func(vm *goja.Runtime) error { goja_bindings.BindTorrentUtils(vm); return nil }},
-		{"scannerUtils", func(vm *goja.Runtime) error { goja_bindings.BindScannerUtils(vm); return nil }},
 	}
 
 	for _, binding := range bindings {

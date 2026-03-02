@@ -1,17 +1,17 @@
 import { AL_BaseAnime } from "@/api/generated/types"
 import { useAnilistListAnime } from "@/api/hooks/anilist.hooks"
-import { useAnilistListManga } from "@/api/hooks/manga.hooks"
+import { useAnilistListManga, useSearchSyntheticManga } from "@/api/hooks/manga.hooks"
 import { useMediaPreviewModal } from "@/app/(main)/_features/media/_containers/media-preview-modal"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { SeaImage } from "@/components/shared/sea-image"
 import { CommandGroup, CommandItem } from "@/components/ui/command"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { useDebounce } from "@/hooks/use-debounce"
-import { useRouter } from "@/lib/navigation"
 import { atom } from "jotai"
 import { useAtom } from "jotai/react"
+import { useRouter } from "next/navigation"
 import React from "react"
-import { CommandHelperText, CommandItemMedia } from "./_components/command-utils"
+import { CommandHelperText, CommandItemMedia, CommandItemSyntheticManga } from "./_components/command-utils"
 import { useSeaCommandContext } from "./sea-command"
 
 const selectMediaActionAtom = atom<"anime" | "manga" | null>(null)
@@ -54,7 +54,7 @@ export function SeaCommandSearch() {
     const mangaSearchInput = args.slice(1).join(" ")
     const type = args[0] !== "manga" ? "anime" : "manga"
 
-    const debouncedQuery = useDebounce(type === "anime" ? animeSearchInput : mangaSearchInput, 500)
+    const debouncedQuery = useDebounce(type === "anime" ? animeSearchInput : mangaSearchInput, 300)
 
     const { data: animeData, isLoading: animeIsLoading, isFetching: animeIsFetching } = useAnilistListAnime({
         search: debouncedQuery,
@@ -72,8 +72,19 @@ export function SeaCommandSearch() {
         sort: ["SEARCH_MATCH"],
     }, debouncedQuery.length > 0 && type === "manga")
 
+    // Search synthetic manga when searching for manga - use shorter debounce for local DB search
+    const syntheticQuery = useDebounce(mangaSearchInput, 150)
+    const { data: syntheticMangaData, isLoading: syntheticIsLoading } = useSearchSyntheticManga(
+        syntheticQuery,
+        syntheticQuery.length >= 2 && type === "manga"
+    )
+
+    // Don't block on synthetic manga loading - it's a local DB query and should be fast
     const isLoading = type === "anime" ? animeIsLoading : mangaIsLoading
     const isFetching = type === "anime" ? animeIsFetching : mangaIsFetching
+    
+    // Check if we have any results (AniList or synthetic)
+    const hasSyntheticResults = type === "manga" && syntheticMangaData && syntheticMangaData.length > 0
 
     const media = React.useMemo(() => type === "anime" ? animeData?.Page?.media?.filter(Boolean) : mangaData?.Page?.media?.filter(Boolean),
         [animeData, mangaData, type])
@@ -112,7 +123,7 @@ export function SeaCommandSearch() {
                     {(debouncedQuery !== "" && (!media || media.length === 0) && (isLoading || isFetching)) && (
                         <LoadingSpinner />
                     )}
-                    {debouncedQuery !== "" && !isLoading && !isFetching && (!media || media.length === 0) && (
+                    {debouncedQuery !== "" && !isLoading && !isFetching && (!media || media.length === 0) && !hasSyntheticResults && (
                         <div className="py-14 px-6 text-center text-sm sm:px-14">
                             {<div
                                 className="h-[10rem] w-[10rem] mx-auto flex-none rounded-[--radius-md] object-cover object-center relative overflow-hidden"
@@ -154,6 +165,24 @@ export function SeaCommandSearch() {
                             }}
                         >
                             <CommandItemMedia media={item} type={type} />
+                        </CommandItem>
+                    ))}
+                </CommandGroup>
+            )}
+
+            {/* Synthetic Manga Results - show immediately as they load from local DB */}
+            {hasSyntheticResults && (
+                <CommandGroup heading="Synthetic Manga">
+                    {syntheticMangaData.map(manga => (
+                        <CommandItem
+                            key={`synthetic-${manga.syntheticId}`}
+                            onSelect={() => {
+                                select(() => {
+                                    router.push(`/manga/entry?id=${manga.syntheticId}`)
+                                })
+                            }}
+                        >
+                            <CommandItemSyntheticManga manga={manga} />
                         </CommandItem>
                     ))}
                 </CommandGroup>

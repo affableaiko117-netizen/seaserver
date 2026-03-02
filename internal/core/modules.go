@@ -9,6 +9,7 @@ import (
 	debrid_client "seanime/internal/debrid/client"
 	"seanime/internal/directstream"
 	discordrpc_presence "seanime/internal/discordrpc/presence"
+	"seanime/internal/enmasse"
 	"seanime/internal/events"
 	"seanime/internal/library/anime"
 	"seanime/internal/library/autodownloader"
@@ -34,6 +35,7 @@ import (
 	"seanime/internal/torrent_clients/transmission"
 	"seanime/internal/torrents/torrent"
 	"seanime/internal/torrentstream"
+	"seanime/internal/unmatched"
 	"seanime/internal/user"
 	"seanime/internal/videocore"
 
@@ -270,11 +272,6 @@ func (a *App) initModulesOnce() {
 		AutoDownloader:      a.AutoDownloader,
 		MetadataProviderRef: a.MetadataProviderRef,
 		LogsDir:             a.Config.Logs.Dir,
-		OnRefreshCollection: func() {
-			go func() {
-				_, _ = a.RefreshAnimeCollection()
-			}()
-		},
 	})
 
 	// This is run in a goroutine
@@ -323,6 +320,52 @@ func (a *App) initModulesOnce() {
 		PlatformRef: a.AnilistPlatformRef,
 		Logger:      a.Logger,
 		Database:    a.Database,
+	})
+
+	// +---------------------+
+	// | Unmatched Torrents  |
+	// +---------------------+
+
+	a.UnmatchedRepository = unmatched.NewRepository(a.Logger, a.Database)
+	a.UnmatchedScanner = unmatched.NewScanner(a.Logger, a.UnmatchedRepository)
+	a.UnmatchedScanner.Start()
+
+	// +---------------------+
+	// | En Masse Downloader |
+	// +---------------------+
+
+	a.EnMasseDownloader = enmasse.NewDownloader(&enmasse.NewDownloaderOptions{
+		Logger:                     a.Logger,
+		TorrentRepository:          a.TorrentRepository,
+		TorrentClientRepositoryRef: a.TorrentClientRepositoryRef,
+		WSEventManager:             a.WSEventManager,
+		PlatformRef:                a.AnilistPlatformRef,
+		UnmatchedRepository:        a.UnmatchedRepository,
+	})
+
+	// +---------------------------+
+	// | Manga En Masse Downloader |
+	// +---------------------------+
+
+	a.MangaEnMasseDownloader = enmasse.NewMangaDownloader(&enmasse.NewMangaDownloaderOptions{
+		Logger:          a.Logger,
+		MangaRepository: a.MangaRepository,
+		MangaDownloader: a.MangaDownloader,
+		WSEventManager:  a.WSEventManager,
+		PlatformRef:     a.AnilistPlatformRef,
+	})
+
+	// +-------------------------------+
+	// | Global En Masse Downloader   |
+	// +-------------------------------+
+
+	a.GlobalEnMasseDownloader = enmasse.NewGlobalDownloader(&enmasse.NewGlobalDownloaderOptions{
+		Logger:                     a.Logger,
+		TorrentRepository:          a.TorrentRepository,
+		TorrentClientRepositoryRef: a.TorrentClientRepositoryRef,
+		WSEventManager:             a.WSEventManager,
+		UnmatchedRepository:        a.UnmatchedRepository,
+		Database:                   a.Database,
 	})
 
 }
@@ -523,6 +566,9 @@ func (a *App) InitOrRefreshModules() {
 			Provider:            settings.Torrent.Default,
 			MetadataProviderRef: a.MetadataProviderRef,
 		})
+
+		// Update the Ref for late binding
+		a.TorrentClientRepositoryRef.Set(a.TorrentClientRepository)
 
 		a.TorrentClientRepository.InitActiveTorrentCount(settings.Torrent.ShowActiveTorrentCount, a.WSEventManager)
 

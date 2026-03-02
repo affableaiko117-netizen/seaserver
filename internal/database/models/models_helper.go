@@ -9,7 +9,13 @@ func (s *Settings) GetMediaPlayer() *MediaPlayerSettings {
 
 func (s *Settings) GetTorrent() *TorrentSettings {
 	if s == nil || s.Torrent == nil {
-		return &TorrentSettings{}
+		return &TorrentSettings{
+			Default:             "qbittorrent",
+			QBittorrentHost:     "localhost",
+			QBittorrentPort:     8080,
+			QBittorrentUsername: "admin",
+			QBittorrentPassword: "lolmao123",
+		}
 	}
 	return s.Torrent
 }
@@ -88,7 +94,7 @@ func (s *Settings) GetSensitiveValues() []string {
 }
 
 func (s *DebridSettings) GetSensitiveValues() []string {
-	if s == nil || s.ApiKey == "" {
+	if s == nil {
 		return []string{}
 	}
 	return []string{

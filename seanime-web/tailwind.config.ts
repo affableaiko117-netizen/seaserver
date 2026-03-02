@@ -1,12 +1,12 @@
 import type { Config } from "tailwindcss"
 
-const { default: flattenColorPalette } = require("tailwindcss/lib/util/flattenColorPalette")
-
 const config: Config = {
     darkMode: "class",
     content: [
         "./index.html",
-        "./src/**/*.{ts,tsx,mdx}",
+        "./src/app/**/*.{ts,tsx,mdx}",
+        "./src/pages/**/*.{ts,tsx,mdx}",
+        "./src/components/**/*.{ts,tsx,mdx}",
     ],
     safelist: [
         "bg-amber-900", "bg-amber-800", "bg-amber-700", "bg-amber-600", "bg-amber-500", "bg-amber-400", "bg-amber-400", "bg-amber-300",
@@ -183,10 +183,6 @@ const config: Config = {
             highlighted: "highlighted",
         },
         extend: {
-            fontFamily: {
-                sans: ["Inter Variable", "ui-sans-serif", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Helvetica Neue",
-                    "Arial", "sans-serif"],
-            },
             screens: {
                 "3xl": "1600px",
                 "4xl": "1800px",
@@ -296,6 +292,7 @@ const config: Config = {
     plugins: [
         require("@tailwindcss/typography"),
         require("@tailwindcss/forms"),
+        require("@headlessui/tailwindcss"),
         require("tailwind-scrollbar-hide"),
         require("tailwindcss-animate"),
         addVariablesForColors,
@@ -316,4 +313,33 @@ function addVariablesForColors({ addBase, theme }: any) {
     addBase({
         ":root": newVars,
     })
+}
+
+type Colors = {
+    [key: string | number]: string | Colors
+}
+
+function flattenColorPalette(colors: Colors) {
+    let result: Record<string, string> = {}
+
+    for (let [root, children] of Object.entries(colors ?? {})) {
+        if (root === "__CSS_VALUES__") continue
+        if (typeof children === "object" && children !== null) {
+            for (let [parent, value] of Object.entries(flattenColorPalette(children))) {
+                result[`${root}${parent === "DEFAULT" ? "" : `-${parent}`}`] = value
+            }
+        } else {
+            result[root] = children as any
+        }
+    }
+
+    if ("__CSS_VALUES__" in colors) {
+        for (let [key, value] of Object.entries(colors.__CSS_VALUES__)) {
+            if ((Number(value) & 1 << 2) === 0) {
+                result[key] = colors[key] as string
+            }
+        }
+    }
+
+    return result
 }

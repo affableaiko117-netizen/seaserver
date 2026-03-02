@@ -96,9 +96,6 @@ type LibrarySettings struct {
 	AutoSaveCurrentMediaOffline bool `gorm:"column:auto_save_current_media_offline" json:"autoSaveCurrentMediaOffline"`
 	// v3+
 	UseFallbackMetadataProvider bool `gorm:"column:use_fallback_metadata_provider" json:"useFallbackMetadataProvider"`
-	// v3.5+
-	ScannerUseLegacyMatching bool   `gorm:"column:scanner_use_legacy_matching" json:"scannerUseLegacyMatching"`
-	ScannerConfig            string `gorm:"column:scanner_config" json:"scannerConfig"`
 }
 
 func (o *LibrarySettings) GetLibraryPaths() (ret []string) {
@@ -377,8 +374,6 @@ type Theme struct {
 
 	// v3+
 	HomeItems []byte `gorm:"column:home_items;type:text" json:"homeItems"`
-	// v3.5+
-	EnableBlurringEffects bool `gorm:"column:enable_blurring_effects" json:"enableBlurringEffects"`
 }
 
 type HomeItem struct {
@@ -416,7 +411,8 @@ type ChapterDownloadQueueItem struct {
 	MediaID       int    `gorm:"column:media_id" json:"mediaId"`
 	ChapterID     string `gorm:"column:chapter_id" json:"chapterId"`
 	ChapterNumber string `gorm:"column:chapter_number" json:"chapterNumber"`
-	PageData      []byte `gorm:"column:page_data" json:"pageData"` // Contains map of page index to page details
+	MediaTitle    string `gorm:"column:media_title" json:"mediaTitle"` // Title for folder naming
+	PageData      []byte `gorm:"column:page_data" json:"pageData"`     // Contains map of page index to page details
 	Status        string `gorm:"column:status" json:"status"`
 }
 
@@ -501,12 +497,59 @@ type MangaMapping struct {
 	MangaID  string `gorm:"column:manga_id" json:"mangaId"` // ID from search result, used to fetch chapters
 }
 
+// SyntheticManga stores metadata for manga not found on AniList
+// These are assigned synthetic IDs (negative numbers) and displayed in the UI
+type SyntheticManga struct {
+	BaseModel
+	SyntheticID int    `gorm:"column:synthetic_id;uniqueIndex" json:"syntheticId"` // Negative ID to avoid collision with AniList
+	Title       string `gorm:"column:title" json:"title"`
+	CoverImage  string `gorm:"column:cover_image" json:"coverImage"`
+	Provider    string `gorm:"column:provider" json:"provider"`           // e.g., "weebcentral"
+	ProviderID  string `gorm:"column:provider_id" json:"providerId"`      // ID on the provider (e.g., WeebCentral manga ID)
+	Description string `gorm:"column:description;type:text" json:"description"`
+	Status      string `gorm:"column:status" json:"status"`               // e.g., "RELEASING", "FINISHED"
+	Chapters    int    `gorm:"column:chapters" json:"chapters"`           // Total chapter count if known
+}
+
 type MangaChapterContainer struct {
 	BaseModel
 	Provider  string `gorm:"column:provider" json:"provider"`
 	MediaID   int    `gorm:"column:media_id" json:"mediaId"`
 	ChapterID string `gorm:"column:chapter_id" json:"chapterId"`
 	Data      []byte `gorm:"column:data" json:"data"`
+}
+
+// MangaReadingHistory tracks when manga (including synthetic) was last read
+// Used to show "Continue Reading" section with most recently read manga first
+type MangaReadingHistory struct {
+	BaseModel
+	MediaID           int       `gorm:"column:media_id;uniqueIndex" json:"mediaId"` // Can be negative for synthetic manga
+	LastReadAt        time.Time `gorm:"column:last_read_at" json:"lastReadAt"`
+	LastChapterNumber string    `gorm:"column:last_chapter_number" json:"lastChapterNumber"`
+	IsSynthetic       bool      `gorm:"column:is_synthetic" json:"isSynthetic"`
+}
+
+// SyntheticAnime stores metadata for anime from anime-offline-database not found on AniList
+// These are assigned synthetic IDs (negative numbers) and displayed in the UI
+type SyntheticAnime struct {
+	BaseModel
+	SyntheticID  int    `gorm:"column:synthetic_id;uniqueIndex" json:"syntheticId"` // Negative ID to avoid collision with AniList
+	Title        string `gorm:"column:title" json:"title"`
+	TitleEnglish string `gorm:"column:title_english" json:"titleEnglish"`
+	CoverImage   string `gorm:"column:cover_image" json:"coverImage"`
+	Thumbnail    string `gorm:"column:thumbnail" json:"thumbnail"`
+	Type         string `gorm:"column:type" json:"type"`           // TV, MOVIE, OVA, ONA, SPECIAL
+	Episodes     int    `gorm:"column:episodes" json:"episodes"`
+	Status       string `gorm:"column:status" json:"status"`       // FINISHED, ONGOING, UPCOMING
+	Season       string `gorm:"column:season" json:"season"`       // SPRING, SUMMER, FALL, WINTER
+	SeasonYear   int    `gorm:"column:season_year" json:"seasonYear"`
+	Description  string `gorm:"column:description;type:text" json:"description"`
+	Synonyms     string `gorm:"column:synonyms;type:text" json:"synonyms"` // JSON array of synonyms
+	Tags         string `gorm:"column:tags;type:text" json:"tags"`         // JSON array of tags
+	Studios      string `gorm:"column:studios;type:text" json:"studios"`   // JSON array of studios
+	Sources      string `gorm:"column:sources;type:text" json:"sources"`   // JSON array of source URLs (MAL, AniDB, etc.)
+	AnilistID    int    `gorm:"column:anilist_id" json:"anilistId"`        // AniList ID if available from sources
+	MalID        int    `gorm:"column:mal_id" json:"malId"`                // MAL ID if available from sources
 }
 
 // +---------------------+

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"seanime/internal/api/anilist"
+	"seanime/internal/database/models"
 	"seanime/internal/extension"
 	"seanime/internal/manga"
 	manga_providers "seanime/internal/manga/providers"
@@ -117,6 +118,7 @@ func (h *Handler) HandleGetMangaEntry(c echo.Context) error {
 		FileCacher:      h.App.FileCacher,
 		PlatformRef:     h.App.AnilistPlatformRef,
 		MangaCollection: animeCollection,
+		Database:        h.App.Database,
 	})
 	if err != nil {
 		return h.RespondWithError(c, err)
@@ -143,6 +145,17 @@ func (h *Handler) HandleGetMangaEntryDetails(c echo.Context) error {
 		return h.RespondWithError(c, err)
 	}
 
+	// Handle synthetic manga (negative IDs)
+	if id < 0 {
+		syntheticManga, found := h.App.Database.GetSyntheticManga(id)
+		if !found {
+			return h.RespondWithError(c, errors.New("synthetic manga not found"))
+		}
+		// Return synthetic manga details in a compatible format
+		details := createMangaDetailsFromSynthetic(syntheticManga)
+		return h.RespondWithData(c, details)
+	}
+
 	if detailsMedia, found := mangaDetailsCache.Get(id); found {
 		return h.RespondWithData(c, detailsMedia)
 	}
@@ -155,6 +168,14 @@ func (h *Handler) HandleGetMangaEntryDetails(c echo.Context) error {
 	mangaDetailsCache.SetT(id, details, 1*time.Hour)
 
 	return h.RespondWithData(c, details)
+}
+
+// createMangaDetailsFromSynthetic creates MangaDetailsById_Media from synthetic manga
+// Note: MangaDetailsById_Media has limited fields, so we only populate what's available
+func createMangaDetailsFromSynthetic(sm *models.SyntheticManga) *anilist.MangaDetailsById_Media {
+	return &anilist.MangaDetailsById_Media{
+		ID: sm.SyntheticID,
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -246,24 +267,37 @@ func (h *Handler) HandleGetMangaEntryChapters(c echo.Context) error {
 	}
 
 	var titles []*string
-	baseManga, found := baseMangaCache.Get(b.MediaId)
-	if !found {
-		var err error
-		baseManga, err = h.App.AnilistPlatformRef.Get().GetManga(c.Request().Context(), b.MediaId)
-		if err != nil {
-			return h.RespondWithError(c, err)
+	var year int
+
+	// Handle synthetic manga (negative IDs)
+	if b.MediaId < 0 {
+		syntheticManga, found := h.App.Database.GetSyntheticManga(b.MediaId)
+		if !found {
+			return h.RespondWithError(c, errors.New("synthetic manga not found"))
 		}
-		titles = baseManga.GetAllTitles()
-		baseMangaCache.SetT(b.MediaId, baseManga, 24*time.Hour)
+		titles = []*string{&syntheticManga.Title}
+		year = 0
 	} else {
-		titles = baseManga.GetAllTitles()
+		baseManga, found := baseMangaCache.Get(b.MediaId)
+		if !found {
+			var err error
+			baseManga, err = h.App.AnilistPlatformRef.Get().GetManga(c.Request().Context(), b.MediaId)
+			if err != nil {
+				return h.RespondWithError(c, err)
+			}
+			titles = baseManga.GetAllTitles()
+			baseMangaCache.SetT(b.MediaId, baseManga, 24*time.Hour)
+		} else {
+			titles = baseManga.GetAllTitles()
+		}
+		year = baseManga.GetStartYearSafe()
 	}
 
 	container, err := h.App.MangaRepository.GetMangaChapterContainer(&manga.GetMangaChapterContainerOptions{
 		Provider: b.Provider,
 		MediaId:  b.MediaId,
 		Titles:   titles,
-		Year:     baseManga.GetStartYearSafe(),
+		Year:     year,
 	})
 	if err != nil {
 		return h.RespondWithError(c, err)
@@ -300,6 +334,11 @@ func (h *Handler) HandleGetMangaEntryPages(c echo.Context) error {
 	if err != nil {
 		return h.RespondWithError(c, err)
 	}
+
+	// Update reading history when pages are fetched (user is reading this chapter)
+	go func() {
+		_ = h.App.Database.UpdateMangaReadingHistory(b.MediaId, b.ChapterId)
+	}()
 
 	return h.RespondWithData(c, container)
 }
@@ -563,6 +602,74 @@ func (h *Handler) HandleRemoveMangaMapping(c echo.Context) error {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// HandleSearchSyntheticManga
+//
+//	@summary searches for synthetic manga by title.
+//	@desc Returns synthetic manga entries that match the search query.
+//	@route /api/v1/manga/synthetic/search [POST]
+//	@returns []*models.SyntheticManga
+func (h *Handler) HandleSearchSyntheticManga(c echo.Context) error {
+	type body struct {
+		Query string `json:"query"`
+		Limit int    `json:"limit"`
+	}
+
+	var b body
+	if err := c.Bind(&b); err != nil {
+		return h.RespondWithError(c, err)
+	}
+
+	if b.Query == "" {
+		return h.RespondWithData(c, []*models.SyntheticManga{})
+	}
+
+	results, err := h.App.Database.SearchSyntheticManga(b.Query, b.Limit)
+	if err != nil {
+		return h.RespondWithError(c, err)
+	}
+
+	return h.RespondWithData(c, results)
+}
+
+// HandleGetMangaReadingHistory
+//
+//	@summary returns the manga reading history sorted by most recent.
+//	@desc Returns all manga (including synthetic) that have been read, sorted by last read time.
+//	@route /api/v1/manga/reading-history [GET]
+//	@returns []*models.MangaReadingHistory
+func (h *Handler) HandleGetMangaReadingHistory(c echo.Context) error {
+	history, err := h.App.Database.GetMangaReadingHistory(50)
+	if err != nil {
+		return h.RespondWithError(c, err)
+	}
+	return h.RespondWithData(c, history)
+}
+
+// HandleGetRecentlyReadSyntheticManga
+//
+//	@summary returns recently read synthetic manga with full details.
+//	@desc Returns synthetic manga that have been read recently, with full metadata.
+//	@route /api/v1/manga/synthetic/recently-read [GET]
+//	@returns []*models.SyntheticManga
+func (h *Handler) HandleGetRecentlyReadSyntheticManga(c echo.Context) error {
+	// Get synthetic manga reading history
+	history, err := h.App.Database.GetSyntheticMangaReadingHistory(20)
+	if err != nil {
+		return h.RespondWithError(c, err)
+	}
+
+	// Fetch full synthetic manga details for each history entry
+	var results []*models.SyntheticManga
+	for _, entry := range history {
+		manga, found := h.App.Database.GetSyntheticManga(entry.MediaID)
+		if found && manga != nil {
+			results = append(results, manga)
+		}
+	}
+
+	return h.RespondWithData(c, results)
+}
 
 // HandleGetLocalMangaPage
 //

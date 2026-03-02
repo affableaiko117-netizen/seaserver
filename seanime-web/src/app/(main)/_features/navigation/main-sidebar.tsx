@@ -1,9 +1,11 @@
+"use client"
 import { useRefreshAnimeCollection } from "@/api/hooks/anilist.hooks"
 import { useLogout } from "@/api/hooks/auth.hooks"
 import { useGetExtensionUpdateData as useGetExtensionUpdateData, usePluginWithIssuesCount } from "@/api/hooks/extensions.hooks"
 import { isLoginModalOpenAtom } from "@/app/(main)/_atoms/server-status.atoms"
 import { useSyncIsActive } from "@/app/(main)/_atoms/sync.atoms"
 import { ElectronUpdateModal } from "@/app/(main)/_electron/electron-update-modal"
+import { __globalSearch_isOpenAtom } from "@/app/(main)/_features/global-search/global-search"
 import { SidebarNavbar } from "@/app/(main)/_features/layout/top-navbar"
 import { usePluginSidebarItems } from "@/app/(main)/_features/plugin/webview/plugin-sidebar"
 import { useSeaCommand } from "@/app/(main)/_features/sea-command/sea-command"
@@ -12,10 +14,12 @@ import { useAutoDownloaderQueueCount } from "@/app/(main)/_hooks/autodownloader-
 import { useWebsocketMessageListener } from "@/app/(main)/_hooks/handle-websockets"
 import { useMissingEpisodeCount } from "@/app/(main)/_hooks/missing-episodes-loader"
 import { useCurrentUser, useServerStatus, useSetServerStatus } from "@/app/(main)/_hooks/use-server-status"
+import { TauriUpdateModal } from "@/app/(main)/_tauri/tauri-update-modal"
 import { ConfirmationDialog, useConfirmationDialog } from "@/components/shared/confirmation-dialog"
 import { SeaLink } from "@/components/shared/sea-link"
 import { AppSidebar, useAppSidebarContext } from "@/components/ui/app-layout"
 import { Avatar } from "@/components/ui/avatar"
+
 import { Badge } from "@/components/ui/badge"
 import { Button, IconButton } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
@@ -25,19 +29,20 @@ import { HoverCard } from "@/components/ui/hover-card"
 import { Modal } from "@/components/ui/modal"
 import { VerticalMenu, VerticalMenuItem } from "@/components/ui/vertical-menu"
 import { openTab } from "@/lib/helpers/browser"
-import { usePathname, useRouter } from "@/lib/navigation"
 import { ANILIST_OAUTH_URL, ANILIST_PIN_URL } from "@/lib/server/config"
 import { TORRENT_CLIENT, TORRENT_PROVIDER } from "@/lib/server/settings"
 import { WSEvents } from "@/lib/server/ws-events"
-import { useThemeSettings } from "@/lib/theme/theme-hooks"
-import { __isDesktop__, __isElectronDesktop__ } from "@/types/constants"
-import { useAtom } from "jotai"
+import { useThemeSettings } from "@/lib/theme/hooks"
+import { __isDesktop__, __isElectronDesktop__, __isTauriDesktop__ } from "@/types/constants"
+import { useAtom, useSetAtom } from "jotai"
+import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
 import React from "react"
 import { BiChevronRight, BiExtension, BiLogIn, BiLogOut } from "react-icons/bi"
 import { FiLogIn, FiSearch } from "react-icons/fi"
 import { HiOutlineServerStack } from "react-icons/hi2"
 import { IoCloudOfflineOutline, IoHomeOutline } from "react-icons/io5"
-import { LuBookOpen, LuCalendar, LuCompass, LuRefreshCw, LuRss, LuSettings } from "react-icons/lu"
+import { LuBookOpen, LuCalendar, LuCompass, LuDownload, LuFolderSearch, LuGlobe, LuRefreshCw, LuRss, LuSettings, LuTv } from "react-icons/lu"
 import { MdOutlineConnectWithoutContact } from "react-icons/md"
 import { PiArrowCircleLeftDuotone, PiArrowCircleRightDuotone } from "react-icons/pi"
 import { RiListCheck3 } from "react-icons/ri"
@@ -126,6 +131,7 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
 
     // Commands
     const { setSeaCommandOpen } = useSeaCommand()
+    const setGlobalSearchIsOpen = useSetAtom(__globalSearch_isOpenAtom)
 
     // Data
     const missingEpisodeCount = useMissingEpisodeCount()
@@ -144,6 +150,30 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
     const { mutate: refreshAC, isPending: isRefreshingAC } = useRefreshAnimeCollection()
 
     // Items
+    const enmasseDownloaders = [
+        {
+            id: "enmasse-anime",
+            iconType: LuTv,
+            name: "Anime En Masse",
+            href: "/enmasse",
+            isCurrent: pathname === "/enmasse",
+        },
+        {
+            id: "enmasse-manga",
+            iconType: LuBookOpen,
+            name: "Manga En Masse",
+            href: "/enmasse-manga",
+            isCurrent: pathname === "/enmasse-manga",
+        },
+        {
+            id: "enmasse-global",
+            iconType: LuGlobe,
+            name: "Global Downloader",
+            href: "/enmasse-global",
+            isCurrent: pathname === "/enmasse-global",
+        },
+    ]
+
     const items = React.useMemo(() => [
         {
             id: "home",
@@ -152,7 +182,7 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
             href: "/",
             isCurrent: pathname === "/",
         },
-        // ...(import.meta.env.MODE === "development" ? [{
+        // ...(process.env.NODE_ENV === "development" ? [{
         //     id: "test",
         //     iconType: GrTest,
         //     name: "Test",
@@ -191,17 +221,6 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
             href: "/discover",
             isCurrent: pathname === "/discover",
         },
-        {
-            id: "search",
-            iconType: FiSearch,
-            name: "Search",
-            href: "/search",
-            isCurrent: pathname === "/search",
-            // onClick: () => {
-            //     ctx.setOpen(false)
-            //     setGlobalSearchIsOpen(true)
-            // },
-        },
         ...(
             serverStatus?.settings?.library?.torrentProvider !== TORRENT_PROVIDER.NONE
             && serverStatus?.settings?.torrent?.defaultTorrentClient !== TORRENT_CLIENT.NONE)
@@ -227,6 +246,20 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
             href: "/debrid",
             isCurrent: pathname === "/debrid",
         }] : [],
+        {
+            id: "unmatched",
+            iconType: LuFolderSearch,
+            name: "Unmatched Downloads",
+            href: "/unmatched",
+            isCurrent: pathname === "/unmatched",
+        },
+        {
+            id: "enmasse-control",
+            iconType: LuDownload,
+            name: "En Masse Downloaders",
+            isCurrent: pathname.startsWith("/enmasse"),
+            subContent: <SidebarSubMenu items={enmasseDownloaders} collapsed={isCollapsed} />,
+        },
         ...(!!serverStatus?.settings?.library?.libraryPath) ? [{
             id: "scan-summaries",
             iconType: TbReportSearch,
@@ -245,6 +278,15 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
                 intent="alert-solid"
             >{autoDownloaderQueueCount}</Badge> : undefined,
         }] : [],
+        {
+            id: "search",
+            iconType: FiSearch,
+            name: "Search",
+            onClick: () => {
+                ctx.setOpen(false)
+                setGlobalSearchIsOpen(true)
+            },
+        },
     ], [
         pathname,
         missingEpisodeCount,
@@ -373,9 +415,10 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
             <VerticalMenu
                 className="px-4"
                 collapsed={isCollapsed}
-                itemClass="relative"
+                itemClass="relative transition-all duration-300 ease-out"
+                itemContentClass="gap-3"
                 itemChevronClass="hidden"
-                itemIconClass="transition-transform group-data-[state=open]/verticalMenu_parentItem:rotate-90"
+                itemIconClass="transition-transform duration-300"
                 items={[
                     ...displayedPinnedItems,
                     ...displayedPluginItems,
@@ -390,7 +433,7 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
                         },
                     },
                 ]}
-                subContentClass={cn((ts.hideTopNavbar || __isDesktop__) && "border-transparent !border-b-0")}
+                subContentClass={cn((ts.hideTopNavbar || __isDesktop__) && "border-transparent !border-b-0", "overflow-visible")}
                 onLinkItemClick={() => ctx.setOpen(false)}
                 isSidebar
             />
@@ -434,8 +477,9 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
 function SidebarUpdates({ isCollapsed }: { isCollapsed: boolean }) {
     return (
         !__isDesktop__ ? <UpdateModal collapsed={isCollapsed} /> :
-            __isElectronDesktop__ ? <ElectronUpdateModal collapsed={isCollapsed} /> :
-                null
+            __isTauriDesktop__ ? <TauriUpdateModal collapsed={isCollapsed} /> :
+                __isElectronDesktop__ ? <ElectronUpdateModal collapsed={isCollapsed} /> :
+                    null
     )
 }
 
@@ -622,7 +666,7 @@ function SidebarUser({ isCollapsed, expandedSidebar, onLogout }: { isCollapsed: 
             >
                 <div className="mt-5 text-center space-y-4">
 
-                    <SeaLink
+                    <Link
                         href={ANILIST_PIN_URL}
                         target="_blank"
                     >
@@ -638,7 +682,7 @@ function SidebarUser({ isCollapsed, expandedSidebar, onLogout }: { isCollapsed: 
                             intent="white"
                             size="md"
                         >Get AniList token</Button>
-                    </SeaLink>
+                    </Link>
 
                     <Form
                         schema={defineSchema(({ z }) => z.object({
@@ -664,5 +708,42 @@ function SidebarUser({ isCollapsed, expandedSidebar, onLogout }: { isCollapsed: 
 
             <ConfirmationDialog {...confirmSignOut} />
         </>
+    )
+}
+
+type SidebarSubMenuItem = {
+    id: string
+    name: string
+    href: string
+    iconType: React.ElementType
+    isCurrent?: boolean
+}
+
+function SidebarSubMenu({ items, collapsed }: { items: SidebarSubMenuItem[], collapsed: boolean }) {
+    return (
+        <div
+            className={cn(
+                "flex flex-col gap-2",
+                "border border-[rgba(255,255,255,0.06)] rounded-2xl p-3",
+                "bg-[rgba(255,255,255,0.02)] backdrop-blur-lg",
+                collapsed && "items-center"
+            )}
+        >
+            {items.map(item => (
+                <SeaLink
+                    key={item.id}
+                    href={item.href}
+                    className={cn(
+                        "w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition",
+                        "bg-[rgba(255,255,255,0.02)]",
+                        "hover:bg-gradient-to-r hover:from-[rgba(0,230,255,0.15)] hover:via-transparent hover:to-transparent",
+                        item.isCurrent ? "text-[--foreground]" : "text-[--muted]"
+                    )}
+                >
+                    <item.iconType className="text-base" />
+                    {!collapsed && <span className="font-semibold tracking-wide">{item.name}</span>}
+                </SeaLink>
+            ))}
+        </div>
     )
 }

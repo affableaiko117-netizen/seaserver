@@ -2,23 +2,6 @@
 
 - [Seanime Denshi Guide](https://github.com/5rahim/seanime/blob/main/seanime-denshi/README.md)
 
-## Tech stack
-
-* Server: Built with [Go](https://go.dev/)
-    * API: [Echo](https://echo.labstack.com/)
-    * Plugin system: [Goja](https://github.com/dop251/goja) for Javascript runtimes
-    * Database: [SQLite](https://github.com/glebarez/sqlite) handled via [GORM](https://gorm.io/)
-    * File scanner: [Habari](https://github.com/5rahim/habari) for filename parsing
-    * Torrent streaming: [anacrolix/torrent](https://github.com/anacrolix/torrent) for Bittorrent client
-    * OS Integration: [Fyne](https://github.com/fyne-io/systray) for Windows system tray management
-    * MKV Parser: Fork of [matroska-go](https://github.com/luispater/matroska-go)
-* Frontend: Built with [React](https://reactjs.org/), [Vite](https://vitejs.dev/), and [Tanstack Router](https://tanstack.com/router)
-	* UI Library: Custom components built with [Tailwind](https://tailwindcss.com/) and [Radix UI](https://www.radix-ui.com/)
-	* Data Fetching: [React Query](https://tanstack.com/query/latest)
-	* State Management: [Jotai](https://jotai.org/) for global state
-	* Built-in Player: Custom-made (VideoCore)
-* Seanime Denshi: Built with a custom [Electron](https://www.electronjs.org/)/Chromium to support more codecs
-
 ## Prerequisites
 
 - Go 1.23+
@@ -67,7 +50,7 @@ Choose the appropriate command based on your target platform:
 
 The project is built with:
 - Backend: Go server with REST API endpoints
-- Frontend: React + Vite + Tanstack Router
+- Frontend: React/Next.js web interface
 
 For development, you should be familiar with both Go and React.
 
@@ -156,13 +139,13 @@ The project integrates with the AniList GraphQL API:
    If you modify the GraphQL schema, run these commands:
 
 ```bash
-go get github.com/gqlgo/gqlgenc@v0.33.1
+go get github.com/Yamashou/gqlgenc@v0.25.4
 ```
 ```bash
 cd internal/api/anilist
 ```
 ```bash
-go run github.com/gqlgo/gqlgenc
+go run github.com/Yamashou/gqlgenc
 ```
 ```bash
 cd ../../..

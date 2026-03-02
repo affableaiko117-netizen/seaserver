@@ -33,37 +33,16 @@ export class VideoCoreFullscreenManager extends EventTarget {
         this.initElectronFullscreenState()
     }
 
-    public get isFullscreen(): boolean {
-        // Check Electron native fullscreen first
-        if (this._isElectron() && this.isElectronNativeFullscreen) {
-            return true
-        }
-
-        // Check iOS video fullscreen
-        if (isApple() && this.videoElement) {
-            return !!(this.videoElement as any).webkitDisplayingFullscreen
-        }
-
-        return !!(
-            document.fullscreenElement ||
-            (document as any).webkitFullscreenElement ||
-            (document as any).mozFullScreenElement ||
-            (document as any).msFullscreenElement
-        )
-    }
-
     addEventListener<K extends keyof VideoCoreFullscreenManagerEventMap>(
         type: K,
         listener: (this: VideoCoreFullscreenManager, ev: VideoCoreFullscreenManagerEventMap[K]) => any,
         options?: boolean | AddEventListenerOptions,
     ): void
-
     addEventListener(
         type: string,
         listener: EventListenerOrEventListenerObject,
         options?: boolean | AddEventListenerOptions,
     ): void
-
     addEventListener(
         type: string,
         listener: EventListenerOrEventListenerObject,
@@ -77,7 +56,6 @@ export class VideoCoreFullscreenManager extends EventTarget {
         listener: (this: VideoCoreFullscreenManager, ev: VideoCoreFullscreenManagerEventMap[K]) => any,
         options?: boolean | EventListenerOptions,
     ): void
-
     removeEventListener(
         type: string,
         listener: EventListenerOrEventListenerObject,
@@ -111,6 +89,25 @@ export class VideoCoreFullscreenManager extends EventTarget {
         } else {
             await this.enterFullscreen()
         }
+    }
+
+    public get isFullscreen(): boolean {
+        // Check Electron native fullscreen first
+        if (this._isElectron() && this.isElectronNativeFullscreen) {
+            return true
+        }
+
+        // Check iOS video fullscreen
+        if (isApple() && this.videoElement) {
+            return !!(this.videoElement as any).webkitDisplayingFullscreen
+        }
+
+        return !!(
+            document.fullscreenElement ||
+            (document as any).webkitFullscreenElement ||
+            (document as any).mozFullScreenElement ||
+            (document as any).msFullscreenElement
+        )
     }
 
     async exitFullscreen() {

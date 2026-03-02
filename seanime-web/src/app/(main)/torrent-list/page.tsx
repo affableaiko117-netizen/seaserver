@@ -1,7 +1,8 @@
+"use client"
 import { TorrentClientAction_Variables } from "@/api/generated/endpoint.types"
 import { TorrentClient_Torrent } from "@/api/generated/types"
 import { useGetActiveTorrentList, useTorrentClientAction } from "@/api/hooks/torrent_client.hooks"
-import { CustomLibraryBanner } from "@/app/(main)/_features/anime-library/_containers/custom-library-banner"
+import { CustomLibraryBanner } from "@/app/(main)/(library)/_containers/custom-library-banner"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { SortDirection } from "@/app/(main)/entry/_containers/torrent-search/_components/torrent-common-helpers"
 import { ConfirmationDialog, useConfirmationDialog } from "@/components/shared/confirmation-dialog"
@@ -23,6 +24,7 @@ import { BiDownArrow, BiLinkExternal, BiPause, BiPlay, BiStop, BiTime, BiTrash, 
 import { LuListCheck } from "react-icons/lu"
 import { TbSortAscending, TbSortDescending } from "react-icons/tb"
 
+export const dynamic = "force-static"
 
 export default function Page() {
     const serverStatus = useServerStatus()

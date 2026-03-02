@@ -1,3 +1,5 @@
+"use client"
+
 import { flexRender } from "@tanstack/react-table"
 import { cva } from "class-variance-authority"
 import * as React from "react"

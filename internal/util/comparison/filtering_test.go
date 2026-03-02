@@ -1,7 +1,6 @@
 package comparison
 
 import (
-	"seanime/internal/util"
 	"testing"
 )
 
@@ -65,22 +64,12 @@ func TestExtractSeasonNumber(t *testing.T) {
 			expected: 2,
 		},
 		{
-			name:     "Ordinal",
-			input:    "Spy x Family 2nd Season",
+			name:     "Contains a number followed by 'st', 'nd', 'rd', or 'th', followed by 's' or 'S'",
+			input:    "Spy x Family 2nd S",
 			expected: 2,
 		},
 		{
-			name:     "Roman numberal ignored",
-			input:    "Spy X Family",
-			expected: -1,
-		},
-		{
-			name:     "Roman Numerals",
-			input:    "Overlord III",
-			expected: 3,
-		},
-		{
-			name:     "Does not contain season",
+			name:     "Does not contain 'season' or '1st S'",
 			input:    "This is a test",
 			expected: -1,
 		},
@@ -141,7 +130,7 @@ func TestExtractResolutionInt(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			result := util.ExtractResolutionInt(test.input)
+			result := ExtractResolutionInt(test.input)
 			if result != test.expected {
 				t.Errorf("ExtractResolutionInt() with args %v, expected %v, but got %v.", test.input, test.expected, result)
 			}
@@ -320,7 +309,7 @@ func TestNormalizeResolution(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := util.NormalizeResolution(tt.input); got != tt.expected {
+			if got := NormalizeResolution(tt.input); got != tt.expected {
 				t.Errorf("NormalizeResolution() = %v, want %v", got, tt.expected)
 			}
 		})

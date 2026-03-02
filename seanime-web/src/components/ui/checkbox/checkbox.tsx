@@ -1,3 +1,5 @@
+"use client"
+
 import * as CheckboxPrimitive from "@radix-ui/react-checkbox"
 import { cva, VariantProps } from "class-variance-authority"
 import * as React from "react"

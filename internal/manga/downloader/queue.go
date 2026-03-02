@@ -69,6 +69,7 @@ func (q *Queue) Add(id DownloadID, pages []*hibikemanga.ChapterPage, runNext boo
 		MediaID:       id.MediaId,
 		ChapterNumber: id.ChapterNumber,
 		ChapterID:     id.ChapterId,
+		MediaTitle:    id.MediaTitle,
 		PageData:      marshalled,
 		Status:        string(QueueStatusNotStarted),
 	})
@@ -91,7 +92,6 @@ func (q *Queue) Add(id DownloadID, pages []*hibikemanga.ChapterPage, runNext boo
 
 func (q *Queue) HasCompleted(queueInfo *QueueInfo) {
 	q.mu.Lock()
-	defer q.mu.Unlock()
 
 	if queueInfo.Status == QueueStatusErrored {
 		q.logger.Warn().Msgf("chapter downloader: Errored %s", queueInfo.DownloadID.ChapterId)
@@ -103,6 +103,7 @@ func (q *Queue) HasCompleted(queueInfo *QueueInfo) {
 		_, err := q.db.DequeueChapterDownloadQueueItem()
 		if err != nil {
 			q.logger.Error().Err(err).Msgf("Failed to dequeue chapter download queue item for id %v", queueInfo.DownloadID)
+			q.mu.Unlock()
 			return
 		}
 	}
@@ -112,26 +113,26 @@ func (q *Queue) HasCompleted(queueInfo *QueueInfo) {
 
 	// Reset current item
 	q.current = nil
+	shouldRunNext := q.active
+	q.mu.Unlock()
 
-	if q.active {
-		// Tells queue to run next if possible
-		q.runNext()
+	if shouldRunNext {
+		// Tells queue to run next if possible (in a goroutine to avoid blocking)
+		go q.runNext()
 	}
 }
 
 // Run activates the queue and invokes runNext
 func (q *Queue) Run() {
 	q.mu.Lock()
-	defer q.mu.Unlock()
-
 	if !q.active {
 		q.logger.Debug().Msg("chapter downloader: Starting queue")
 	}
-
 	q.active = true
+	q.mu.Unlock()
 
-	// Tells queue to run next if possible
-	q.runNext()
+	// Tells queue to run next if possible (in a goroutine to avoid blocking)
+	go q.runNext()
 }
 
 // Stop deactivates the queue
@@ -150,6 +151,7 @@ func (q *Queue) Stop() {
 //   - Checks if there is a current item, if so, it returns.
 //   - If nothing is running, it gets the next item (QueueInfo) from the database, sets it as current and sends it to the downloader.
 func (q *Queue) runNext() {
+	q.mu.Lock()
 
 	q.logger.Debug().Msg("chapter downloader: Processing next item in queue")
 
@@ -158,8 +160,15 @@ func (q *Queue) runNext() {
 		q.logger.Error().Msg("chapter downloader: Panic in 'runNext'")
 	})
 
+	if !q.active {
+		q.logger.Debug().Msg("chapter downloader: Queue is not active")
+		q.mu.Unlock()
+		return
+	}
+
 	if q.current != nil {
 		q.logger.Debug().Msg("chapter downloader: Current item is not nil")
+		q.mu.Unlock()
 		return
 	}
 
@@ -169,6 +178,7 @@ func (q *Queue) runNext() {
 	next, _ := q.db.GetNextChapterDownloadQueueItem()
 	if next == nil {
 		q.logger.Debug().Msg("chapter downloader: No next item in queue")
+		q.mu.Unlock()
 		return
 	}
 
@@ -177,6 +187,7 @@ func (q *Queue) runNext() {
 		MediaId:       next.MediaID,
 		ChapterId:     next.ChapterID,
 		ChapterNumber: next.ChapterNumber,
+		MediaTitle:    next.MediaTitle,
 	}
 
 	q.logger.Debug().Msgf("chapter downloader: Preparing next item in queue: %s", id.ChapterId)
@@ -197,16 +208,32 @@ func (q *Queue) runNext() {
 	if err != nil {
 		q.logger.Error().Err(err).Msgf("Failed to unmarshal pages for id %v", id)
 		_ = q.db.UpdateChapterDownloadQueueItemStatus(id.Provider, id.MediaId, id.ChapterId, string(QueueStatusNotStarted))
+		q.current = nil
+		q.mu.Unlock()
 		return
 	}
 
-	// TODO: This is a temporary fix to prevent the downloader from running too fast.
+	currentItem := q.current
+	q.mu.Unlock()
+
+	// Delay outside of the lock to prevent blocking other operations
 	time.Sleep(5 * time.Second)
+
+	// Check if queue is still active after the delay
+	q.mu.Lock()
+	if !q.active {
+		q.logger.Debug().Msg("chapter downloader: Queue became inactive during delay")
+		q.current = nil
+		_ = q.db.UpdateChapterDownloadQueueItemStatus(id.Provider, id.MediaId, id.ChapterId, string(QueueStatusNotStarted))
+		q.mu.Unlock()
+		return
+	}
+	q.mu.Unlock()
 
 	q.logger.Info().Msgf("chapter downloader: Running next item in queue: %s", id.ChapterId)
 
 	// Tell Downloader to run
-	q.runCh <- q.current
+	q.runCh <- currentItem
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

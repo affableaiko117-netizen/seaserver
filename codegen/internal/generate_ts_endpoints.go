@@ -436,7 +436,6 @@ func writeParamField(f *os.File, handler *RouteHandler, param *RouteHandlerParam
 	if !param.Required {
 		fieldSuffix = "?"
 	}
-	param.TypescriptType = strings.ReplaceAll(param.TypescriptType, "RawMessage", "Record<string, any>")
 	writeLine(f, fmt.Sprintf("\t%s%s: %s", param.JsonName, fieldSuffix, param.TypescriptType))
 }
 
@@ -462,5 +461,5 @@ func getEndpointKey(s string, groupName string) string {
 
 func writeLine(file *os.File, template string) {
 	template = strings.ReplaceAll(template, "\t", space)
-	file.WriteString(fmt.Sprintf(template + "\n"))
+	file.WriteString(template + "\n")
 }

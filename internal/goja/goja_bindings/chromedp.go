@@ -25,6 +25,7 @@ type ChromeDP struct {
 	vm         *goja.Runtime
 	chromeSem  chan struct{}
 	responseCh chan func()
+	closeCh    chan struct{}
 	browsers   map[string]*Browser
 	browserMu  sync.RWMutex
 	closeOnce  sync.Once
@@ -46,6 +47,7 @@ func NewChromeDP(vm *goja.Runtime) *ChromeDP {
 		vm:         vm,
 		chromeSem:  make(chan struct{}, 5), // limit concurrent browser instances
 		responseCh: make(chan func(), 10),
+		closeCh:    make(chan struct{}),
 		browsers:   make(map[string]*Browser),
 	}
 }
@@ -68,6 +70,7 @@ func (c *ChromeDP) Close() {
 	c.browserMu.Unlock()
 
 	c.closeOnce.Do(func() {
+		close(c.closeCh)
 		close(c.responseCh)
 	})
 }
@@ -104,24 +107,34 @@ func BindChromeDPWithScheduler(vm *goja.Runtime, scheduler *gojautil.Scheduler) 
 
 	// Start response handler
 	go func() {
-		for fn := range c.ResponseChannel() {
-			if scheduler != nil {
-				scheduler.ScheduleAsync(func() error {
-					defer func() {
-						if r := recover(); r != nil {
-							log.Warn().Msgf("extension: chromedp response channel panic: %v", r)
-						}
+		for {
+			select {
+			case fn, ok := <-c.ResponseChannel():
+				if !ok {
+					return
+				}
+				if scheduler != nil {
+					scheduler.ScheduleAsync(func() error {
+						defer func() {
+							if r := recover(); r != nil {
+								log.Warn().Msgf("extension: chromedp response channel panic: %v", r)
+							}
+						}()
+						fn()
+						return nil
+					})
+				} else {
+					func() {
+						defer func() {
+							if r := recover(); r != nil {
+								log.Warn().Msgf("extension: chromedp response channel panic: %v", r)
+							}
+						}()
+						fn()
 					}()
-					fn()
-					return nil
-				})
-			} else {
-				defer func() {
-					if r := recover(); r != nil {
-						log.Warn().Msgf("extension: chromedp response channel panic: %v", r)
-					}
-				}()
-				fn()
+				}
+			case <-c.closeCh:
+				return
 			}
 		}
 	}()

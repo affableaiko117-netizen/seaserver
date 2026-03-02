@@ -15,17 +15,23 @@ import (
 //	@returns bool
 func (h *Handler) HandlePlaybackPlayVideo(c echo.Context) error {
 	type body struct {
-		Path string `json:"path"`
+		Path     string `json:"path"`
+		ClientId string `json:"clientId"`
 	}
 	b := new(body)
 	if err := c.Bind(b); err != nil {
 		return h.RespondWithError(c, err)
 	}
 
+	// Set the client ID for session isolation
+	if b.ClientId != "" {
+		h.App.PlaybackManager.SetCurrentClientID(b.ClientId)
+	}
+
 	err := h.App.PlaybackManager.StartPlayingUsingMediaPlayer(&playbackmanager.StartPlayingOptions{
 		Payload:   b.Path,
 		UserAgent: c.Request().Header.Get("User-Agent"),
-		ClientId:  "",
+		ClientId:  b.ClientId,
 	})
 	if err != nil {
 		return h.RespondWithError(c, err)
@@ -203,6 +209,11 @@ func (h *Handler) HandlePlaybackStartManualTracking(c echo.Context) error {
 	b := new(body)
 	if err := c.Bind(b); err != nil {
 		return h.RespondWithError(c, err)
+	}
+
+	// Set the client ID for session isolation
+	if b.ClientId != "" {
+		h.App.PlaybackManager.SetCurrentClientID(b.ClientId)
 	}
 
 	err := h.App.PlaybackManager.StartManualProgressTracking(&playbackmanager.StartManualProgressTrackingOptions{

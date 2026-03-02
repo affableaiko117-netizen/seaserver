@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 )
 
 // CacheStore represents a single-process, file-based, key/value cache store.
@@ -122,7 +123,7 @@ func (c *Cacher) Set(bucket Bucket, key string, value interface{}) error {
 	}
 	store.mu.Lock()
 	defer store.mu.Unlock()
-	store.data[key] = &cacheItem{Value: value, Expiration: new(time.Now().Add(bucket.ttl))}
+	store.data[key] = &cacheItem{Value: value, Expiration: lo.ToPtr(time.Now().Add(bucket.ttl))}
 	return store.saveToFile()
 }
 
@@ -275,7 +276,7 @@ func (c *Cacher) SetPerm(bucket PermanentBucket, key string, value interface{}) 
 	}
 	store.mu.Lock()
 	defer store.mu.Unlock()
-	store.data[key] = &cacheItem{Value: value, Expiration: nil, UpdatedAt: new(time.Now())} // No expiration
+	store.data[key] = &cacheItem{Value: value, Expiration: nil, UpdatedAt: lo.ToPtr(time.Now())} // No expiration
 	return store.saveToFile()
 }
 

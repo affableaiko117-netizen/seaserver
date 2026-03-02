@@ -19,10 +19,10 @@ import { LoadingOverlay } from "@/components/ui/loading-spinner"
 import { Modal } from "@/components/ui/modal"
 import { Popover } from "@/components/ui/popover"
 import { Tooltip } from "@/components/ui/tooltip"
-import { useRouter } from "@/lib/navigation"
+import { useRouter } from "next/navigation"
 import React from "react"
 import { GrUpdate } from "react-icons/gr"
-import { LuBook, LuCode, LuEllipsisVertical, LuRefreshCcw, LuSearch, LuSettings2 } from "react-icons/lu"
+import { LuCode, LuEllipsisVertical, LuRefreshCcw, LuSearch, LuSettings2 } from "react-icons/lu"
 import { RiDeleteBinLine } from "react-icons/ri"
 import { TbCloudDownload } from "react-icons/tb"
 import { toast } from "sonner"
@@ -51,6 +51,8 @@ export function ExtensionCard(props: ExtensionCardProps) {
     const router = useRouter()
 
     const isBuiltin = extension.manifestURI === "builtin"
+
+    const { mutate: reloadExternalExtension, isPending: isReloadingExtension } = useReloadExternalExtension()
 
     return (
         <div
@@ -91,8 +93,7 @@ export function ExtensionCard(props: ExtensionCardProps) {
                         </>
                     )}
 
-
-                    <ExtensionSettings extension={extension} isInstalled={isInstalled} updateData={updateData} allowReload={allowReload}>
+                    <ExtensionSettings extension={extension} isInstalled={isInstalled} updateData={updateData}>
                         <div>
                             <Tooltip
                                 trigger={<IconButton
@@ -104,22 +105,7 @@ export function ExtensionCard(props: ExtensionCardProps) {
                         </div>
                     </ExtensionSettings>
                 </div>
-                <div className="flex flex-row gap-1 z-[2] flex-wrap justify-end">
-
-                    {!!extension.readme && (
-                        <div onClick={() => window.open(extension.readme, "_blank")}>
-                            <Tooltip
-                                side="left"
-                                trigger={<IconButton
-                                    size="sm"
-                                    intent="gray-basic"
-                                    icon={<LuBook />}
-                                />}
-                            >
-                                Documentation
-                            </Tooltip>
-                        </div>
-                    )}
+                <div className="flex flex-row gap-1 z-[2] flex-wrap">
                     {!isBuiltin && (
                         <ExtensionCodeModal extension={extension}>
                             <div>
@@ -129,28 +115,28 @@ export function ExtensionCard(props: ExtensionCardProps) {
                                         intent="gray-basic"
                                         icon={<LuCode />}
                                     />}
-                                    side="right"
+                                    side="left"
                                 >Code</Tooltip>
                             </div>
                         </ExtensionCodeModal>
                     )}
 
-                    {/* {(allowReload && !isBuiltin) && (
+                    {(allowReload && !isBuiltin) && (
                         <div>
                             <Tooltip
                                 side="right" trigger={<IconButton
-                     size="sm"
-                     intent="gray-basic"
-                     icon={<LuRefreshCcw />}
-                     onClick={() => {
-                     if (!extension.id) return toast.error("Extension has no ID")
-                     reloadExternalExtension({ id: extension.id })
-                     }}
-                     disabled={isReloadingExtension}
-                     />}
+                                size="sm"
+                                intent="gray-basic"
+                                icon={<LuRefreshCcw />}
+                                onClick={() => {
+                                    if (!extension.id) return toast.error("Extension has no ID")
+                                    reloadExternalExtension({ id: extension.id })
+                                }}
+                                disabled={isReloadingExtension}
+                            />}
                             >Reload</Tooltip>
                         </div>
-                     )} */}
+                    )}
                 </div>
             </div>
 
@@ -238,7 +224,6 @@ type ExtensionSettingsProps = {
     children?: React.ReactElement
     isInstalled: boolean
     updateData?: ExtensionRepo_UpdateData | undefined
-    allowReload?: boolean
 }
 
 export function ExtensionSettings(props: ExtensionSettingsProps) {
@@ -248,7 +233,6 @@ export function ExtensionSettings(props: ExtensionSettingsProps) {
         children,
         isInstalled,
         updateData,
-        allowReload,
         ...rest
     } = props
 
@@ -257,9 +241,6 @@ export function ExtensionSettings(props: ExtensionSettingsProps) {
     const { mutate: uninstall, isPending: isUninstalling } = useUninstallExternalExtension()
 
     const { mutate: fetchExtensionData, data: fetchedExtensionData, isPending: isFetchingData, reset } = useFetchExternalExtensionData(extension.id)
-
-    const { mutate: reloadExternalExtension, isPending: isReloadingExtension } = useReloadExternalExtension()
-
 
     const confirmUninstall = useConfirmationDialog({
         title: `Remove ${extension.name}`,
@@ -338,25 +319,6 @@ export function ExtensionSettings(props: ExtensionSettingsProps) {
                                 >
                                     Uninstall
                                 </Button>
-
-                                <div className="flex flex-1"></div>
-
-                                {(allowReload && !isBuiltin) && (
-                                    <div>
-                                        <Tooltip
-                                            side="right" trigger={<IconButton
-                                            size="sm"
-                                            intent="gray-basic"
-                                            icon={<LuRefreshCcw />}
-                                            onClick={() => {
-                                                if (!extension.id) return toast.error("Extension has no ID")
-                                                reloadExternalExtension({ id: extension.id })
-                                            }}
-                                            disabled={isReloadingExtension}
-                                        />}
-                                        >Reload</Tooltip>
-                                    </div>
-                                )}
                             </>
                         </div>
                     )}

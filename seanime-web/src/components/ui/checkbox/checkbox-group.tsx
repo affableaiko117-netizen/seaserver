@@ -1,3 +1,5 @@
+"use client"
+
 import * as React from "react"
 import { Checkbox, CheckboxProps } from "."
 import { BasicField, BasicFieldOptions, extractBasicFieldProps } from "../basic-field"

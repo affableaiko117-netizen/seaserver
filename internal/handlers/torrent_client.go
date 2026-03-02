@@ -3,12 +3,10 @@ package handlers
 import (
 	"errors"
 	"os"
-	"path/filepath"
 	"seanime/internal/api/anilist"
 	"seanime/internal/database/db_bridge"
 	hibiketorrent "seanime/internal/extension/hibike/torrent"
 	"seanime/internal/torrent_clients/torrent_client"
-	"seanime/internal/util"
 
 	"github.com/labstack/echo/v4"
 )
@@ -167,14 +165,14 @@ func (h *Handler) HandleTorrentClientGetFiles(c echo.Context) error {
 //
 //	@summary adds torrents to the torrent client.
 //	@desc It fetches the magnets from the provided URLs and adds them to the torrent client.
-//	@desc If smart select is enabled, it will try to select the best torrent based on the missing episodes.
+//	@desc All torrents are downloaded to /aeternae/Otaku/Unmatched/$TorrentName for manual matching.
 //	@route /api/v1/torrent-client/download [POST]
 //	@returns bool
 func (h *Handler) HandleTorrentClientDownload(c echo.Context) error {
 
 	type body struct {
 		Torrents    []hibiketorrent.AnimeTorrent `json:"torrents"`
-		Destination string                       `json:"destination"`
+		Destination string                       `json:"destination"` // Ignored - always uses unmatched path
 		SmartSelect struct {
 			Enabled               bool  `json:"enabled"`
 			MissingEpisodeNumbers []int `json:"missingEpisodeNumbers"`
@@ -191,23 +189,9 @@ func (h *Handler) HandleTorrentClientDownload(c echo.Context) error {
 		return h.RespondWithError(c, err)
 	}
 
-	if b.Destination == "" {
-		return h.RespondWithError(c, errors.New("destination not found"))
+	if len(b.Torrents) == 0 {
+		return h.RespondWithError(c, errors.New("no torrents provided"))
 	}
-
-	if !filepath.IsAbs(b.Destination) {
-		return h.RespondWithError(c, errors.New("destination path must be absolute"))
-	}
-
-	// Check that the destination path is a library path
-	//libraryPaths, err := h.App.Database.GetAllLibraryPathsFromSettings()
-	//if err != nil {
-	//	return h.RespondWithError(c, err)
-	//}
-	//isInLibrary := util.IsSubdirectoryOfAny(libraryPaths, b.Destination)
-	//if !isInLibrary {
-	//	return h.RespondWithError(c, errors.New("destination path is not a library path"))
-	//}
 
 	// try to start torrent client if it's not running
 	ok := h.App.TorrentClientRepository.Start()
@@ -215,89 +199,52 @@ func (h *Handler) HandleTorrentClientDownload(c echo.Context) error {
 		return h.RespondWithError(c, errors.New("could not contact torrent client, verify your settings or make sure it's running"))
 	}
 
-	var completeAnime *anilist.CompleteAnime
-	var err error
-	completeAnime, err = h.App.AnilistPlatformRef.Get().GetAnimeWithRelations(c.Request().Context(), b.Media.ID)
-	if err != nil {
-		completeAnime = b.Media.ToCompleteAnime()
-	}
+	// OVERRIDE: Always download to unmatched directory
+	// Each torrent goes to /aeternae/Otaku/Unmatched/$TorrentName
+	for _, t := range b.Torrents {
+		// Get the unmatched destination for this torrent
+		destination := h.App.UnmatchedRepository.GetUnmatchedDestination(t.Name)
 
-	if b.SmartSelect.Enabled {
-		if len(b.Torrents) > 1 {
-			return h.RespondWithError(c, errors.New("smart select is not supported for multiple torrents"))
+		// Get the torrent's provider extension
+		providerExtension, ok := h.App.TorrentRepository.GetAnimeProviderExtension(t.Provider)
+		if !ok {
+			return h.RespondWithError(c, errors.New("provider extension not found for torrent"))
 		}
 
-		// smart select
-		err = h.App.TorrentClientRepository.SmartSelect(&torrent_client.SmartSelectParams{
-			Torrent:          &b.Torrents[0],
-			EpisodeNumbers:   b.SmartSelect.MissingEpisodeNumbers,
-			Media:            completeAnime,
-			Destination:      b.Destination,
-			PlatformRef:      h.App.AnilistPlatformRef,
-			ShouldAddTorrent: true,
-		})
+		// Get the torrent magnet link
+		magnet, err := providerExtension.GetProvider().GetTorrentMagnetLink(&t)
 		if err != nil {
 			return h.RespondWithError(c, err)
 		}
-	}
 
-	if b.Deselect.Enabled {
-		err = h.App.TorrentClientRepository.DeselectAndDownload(&torrent_client.DeselectAndDownloadParams{
-			Torrent:          &b.Torrents[0],
-			FileIndices:      b.Deselect.Indices,
-			Destination:      b.Destination,
-			ShouldAddTorrent: true,
-		})
+		// Add torrent to client with unmatched destination
+		err = h.App.TorrentClientRepository.AddMagnets([]string{magnet}, destination)
 		if err != nil {
 			return h.RespondWithError(c, err)
 		}
-	} else {
 
-		// Get magnets
-		magnets := make([]string, 0)
-		for _, t := range b.Torrents {
-			// Get the torrent's provider extension
-			providerExtension, ok := h.App.TorrentRepository.GetAnimeProviderExtension(t.Provider)
-			if !ok {
-				return h.RespondWithError(c, errors.New("provider extension not found for torrent"))
-			}
-			// Get the torrent magnet link
-			magnet, err := providerExtension.GetProvider().GetTorrentMagnetLink(&t)
-			if err != nil {
-				return h.RespondWithError(c, err)
-			}
-
-			magnets = append(magnets, magnet)
-		}
-
-		// try to add torrents to client, on error return error
-		err = h.App.TorrentClientRepository.AddMagnets(magnets, b.Destination)
-		if err != nil {
-			return h.RespondWithError(c, err)
-		}
-	}
-
-	// Add the media to the collection (if it wasn't already)
-	go func() {
-		defer util.HandlePanicInModuleThen("handlers/HandleTorrentClientDownload", func() {})
+		// Save anime metadata if available
 		if b.Media != nil {
-			// Check if the media is already in the collection
-			animeCollection, err := h.App.GetAnimeCollection(false)
-			if err != nil {
-				return
+			titleRomaji := ""
+			titleNative := ""
+			if b.Media.Title != nil {
+				if b.Media.Title.Romaji != nil {
+					titleRomaji = *b.Media.Title.Romaji
+				}
+				if b.Media.Title.Native != nil {
+					titleNative = *b.Media.Title.Native
+				}
 			}
-			_, found := animeCollection.FindAnime(b.Media.ID)
-			if found {
-				return
+			if err := h.App.UnmatchedRepository.SaveTorrentMetadata(t.Name, b.Media.ID, titleRomaji, titleNative); err != nil {
+				h.App.Logger.Warn().Err(err).Str("torrent", t.Name).Msg("torrent client: Failed to save torrent metadata")
 			}
-			// Add the media to the collection
-			err = h.App.AnilistPlatformRef.Get().AddMediaToCollection(c.Request().Context(), []int{b.Media.ID})
-			if err != nil {
-				h.App.Logger.Error().Err(err).Msg("anilist: Failed to add media to collection")
-			}
-			_, _ = h.App.RefreshAnimeCollection()
 		}
-	}()
+
+		h.App.Logger.Info().Str("torrent", t.Name).Str("destination", destination).Msg("torrent client: Added torrent to unmatched directory")
+	}
+
+	// NOTE: We do NOT add the media to the collection automatically anymore
+	// The user must manually match the torrent after it finishes downloading
 
 	return h.RespondWithData(c, true)
 

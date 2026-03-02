@@ -13,9 +13,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Yamashou/gqlgenc/clientv2"
+	"github.com/Yamashou/gqlgenc/graphqljson"
 	"github.com/goccy/go-json"
-	"github.com/gqlgo/gqlgenc/clientv2"
-	"github.com/gqlgo/gqlgenc/graphqljson"
 	"github.com/rs/zerolog"
 )
 
@@ -315,9 +315,7 @@ func (ac *AnilistClientImpl) customDoFunc(ctx context.Context, req *http.Request
 		if err == nil {
 			ac.logger.Warn().Msgf("anilist: Rate limited, retrying in %d seconds", rlRetryAfter+1)
 			if time.Since(sentRateLimitWarningTime) > 10*time.Second {
-				if events.GlobalWSEventManager != nil {
-					events.GlobalWSEventManager.SendEvent(events.WarningToast, "anilist: Rate limited, retrying in "+strconv.Itoa(rlRetryAfter+1)+" seconds")
-				}
+				events.GlobalWSEventManager.SendEvent(events.WarningToast, "anilist: Rate limited, retrying in "+strconv.Itoa(rlRetryAfter+1)+" seconds")
 				sentRateLimitWarningTime = time.Now()
 			}
 			select {
@@ -367,7 +365,8 @@ func parseResponse(body []byte, httpCode int, result interface{}) error {
 
 	// some servers return a graphql error with a non OK http code, try anyway to parse the body
 	if err := unmarshal(body, result); err != nil {
-		if gqlErr, ok := errors.AsType[*clientv2.GqlErrorList](err); ok {
+		var gqlErr *clientv2.GqlErrorList
+		if errors.As(err, &gqlErr) {
 			errResponse.GqlErrors = &gqlErr.Errors
 		} else if !isKOCode {
 			return err

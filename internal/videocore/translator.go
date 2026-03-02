@@ -21,6 +21,7 @@ import (
 	"github.com/5rahim/go-astisub"
 	"github.com/goccy/go-json"
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 	"golang.org/x/time/rate"
 )
 
@@ -57,7 +58,7 @@ func NewTranslatorService(vc *VideoCore, apiKey string, provider string, targetL
 		cache:      result.NewBoundedCache[string, string](10000),
 		queue:      make(chan request, 1000),
 		close:      make(chan struct{}),
-		logSampler: new(vc.logger.Sample(&zerolog.BasicSampler{N: 500})),
+		logSampler: lo.ToPtr(vc.logger.Sample(&zerolog.BasicSampler{N: 500})),
 	}
 
 	go s.processQueue()

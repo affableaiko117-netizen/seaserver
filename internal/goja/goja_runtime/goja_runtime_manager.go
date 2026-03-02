@@ -20,11 +20,13 @@ type Manager struct {
 }
 
 type Pool struct {
-	sp      sync.Pool
-	factory func() *goja.Runtime
-	logger  *zerolog.Logger
-	size    int32
-	metrics metrics
+	sp         sync.Pool
+	factory    func() *goja.Runtime
+	logger     *zerolog.Logger
+	size       int32
+	metrics    metrics
+	cleanupsMu sync.Mutex
+	cleanups   []func() // cleanup functions to call when pool is deleted
 }
 
 // metrics holds counters for pool stats.
@@ -64,6 +66,9 @@ func (m *Manager) DeletePluginPool(extID string) {
 
 	// Get the pool first to interrupt all runtimes
 	if pool, ok := m.pluginPools.Get(extID); ok {
+		// Run cleanup functions first (closes Fetch/ChromeDP channels)
+		pool.runCleanups()
+
 		// Drain the pool and interrupt all runtimes
 		m.logger.Debug().Msgf("plugin: Interrupting all runtimes in pool for extension %s", extID)
 
@@ -226,4 +231,29 @@ func (p *Pool) Stats() map[string]int64 {
 		"reused":      p.metrics.reused.Load(),
 		"timeouts":    p.metrics.timeouts.Load(),
 	}
+}
+
+// AddCleanup registers a cleanup function to be called when the pool is deleted.
+// This is used to close Fetch/ChromeDP response channels to prevent goroutine leaks.
+func (p *Pool) AddCleanup(fn func()) {
+	p.cleanupsMu.Lock()
+	defer p.cleanupsMu.Unlock()
+	p.cleanups = append(p.cleanups, fn)
+}
+
+// runCleanups executes all registered cleanup functions.
+func (p *Pool) runCleanups() {
+	p.cleanupsMu.Lock()
+	defer p.cleanupsMu.Unlock()
+	for _, fn := range p.cleanups {
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					p.logger.Warn().Msgf("goja runtime: cleanup panic: %v", r)
+				}
+			}()
+			fn()
+		}()
+	}
+	p.cleanups = nil
 }

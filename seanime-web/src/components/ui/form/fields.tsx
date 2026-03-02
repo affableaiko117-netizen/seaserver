@@ -1,3 +1,5 @@
+"use client"
+
 import { DirectorySelector, DirectorySelectorProps } from "@/components/shared/directory-selector"
 import { MediaExclusionSelector, MediaExclusionSelectorProps } from "@/components/shared/media-exclusion-selector"
 import { IconButton } from "@/components/ui/button"
@@ -217,24 +219,24 @@ const ColorPickerField = React.memo(withControlledInput(forwardRef<HTMLInputElem
         }, [controller.field.value])
 
         return <TextInput
-            {...props}
-            ref={ref}
-            value={value}
-            onValueChange={setValue}
-            onBlur={handleColorChange}
-            rightAddon={<Popover
-                className="flex justify-center"
-                trigger={<div className="cursor-pointer size-7 rounded-[--radius-md]" style={{ backgroundColor: value }} />}
-            >
-                <HexColorPicker
-                    color={value}
-                    onChange={color => {
-                        setValue(color)
-                    }}
-                />
-            </Popover>}
-            className="w-full"
-        />
+                {...props}
+                ref={ref}
+                value={value}
+                onValueChange={setValue}
+                onBlur={handleColorChange}
+                rightAddon={<Popover
+                    className="flex justify-center"
+                    trigger={<div className="cursor-pointer size-7 rounded-[--radius-md]" style={{ backgroundColor: value }} />}
+                >
+                    <HexColorPicker
+                        color={value}
+                        onChange={color => {
+                            setValue(color)
+                        }}
+                    />
+                </Popover>}
+                className="w-full"
+            />
     },
 )))
 

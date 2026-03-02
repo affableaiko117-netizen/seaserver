@@ -16,6 +16,7 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
+	"github.com/samber/lo"
 )
 
 const (
@@ -179,12 +180,12 @@ func ExtractExtensionData(mediaId int) (extensionIdentifier int, localId int) {
 
 func formatSiteUrl(extId string, siteUrl *string) *string {
 	if siteUrl == nil {
-		return new("ext_custom_source_" + extId)
+		return lo.ToPtr("ext_custom_source_" + extId)
 	}
 	if strings.HasPrefix(*siteUrl, "https://anilist.co") {
 		return siteUrl
 	}
-	return new("ext_custom_source_" + extId + "|END|" + *siteUrl)
+	return lo.ToPtr("ext_custom_source_" + extId + "|END|" + *siteUrl)
 }
 
 func GetCustomSourceExtensionIdFromSiteUrl(siteUrl *string) (string, bool) {
@@ -203,30 +204,14 @@ func NormalizeMedia(extensionIdentifier int, extId string, obj interface{}) {
 	case *anilist.BaseAnime:
 		v.ID = GenerateMediaId(extensionIdentifier, v.ID)
 		v.SiteURL = formatSiteUrl(extId, v.SiteURL)
-		if v.Title != nil && v.Title.UserPreferred == nil && v.Title.English != nil {
+		if v.Title != nil && v.Title.UserPreferred == nil {
 			v.Title.UserPreferred = v.Title.English
-		}
-		if v.Title == nil {
-			v.Title = &anilist.BaseAnime_Title{
-				UserPreferred: new("???"),
-				English:       new("???"),
-				Romaji:        nil,
-				Native:        nil,
-			}
 		}
 	case *anilist.CompleteAnime:
 		v.ID = GenerateMediaId(extensionIdentifier, v.ID)
 		v.SiteURL = formatSiteUrl(extId, v.SiteURL)
-		if v.Title != nil && v.Title.UserPreferred == nil && v.Title.English != nil {
+		if v.Title != nil && v.Title.UserPreferred == nil {
 			v.Title.UserPreferred = v.Title.English
-		}
-		if v.Title == nil {
-			v.Title = &anilist.CompleteAnime_Title{
-				UserPreferred: new("???"),
-				English:       new("???"),
-				Romaji:        nil,
-				Native:        nil,
-			}
 		}
 		if v.Relations != nil {
 			for _, edge := range v.Relations.Edges {
@@ -244,14 +229,6 @@ func NormalizeMedia(extensionIdentifier int, extId string, obj interface{}) {
 		v.SiteURL = formatSiteUrl(extId, v.SiteURL)
 		if v.Title != nil && v.Title.UserPreferred == nil {
 			v.Title.UserPreferred = v.Title.English
-		}
-		if v.Title == nil {
-			v.Title = &anilist.BaseManga_Title{
-				UserPreferred: new("???"),
-				English:       new("???"),
-				Romaji:        nil,
-				Native:        nil,
-			}
 		}
 	case *anilist.AnimeDetailsById_Media:
 		v.ID = GenerateMediaId(extensionIdentifier, v.ID)
@@ -516,7 +493,7 @@ func (m *Manager) UpdateEntry(ctx context.Context, mediaID int, status *anilist.
 					entry.Status = status
 				}
 				if scoreRaw != nil {
-					entry.Score = new(float64(*scoreRaw))
+					entry.Score = lo.ToPtr(float64(*scoreRaw))
 				}
 				if progress != nil {
 					entry.Progress = progress
@@ -552,7 +529,7 @@ func (m *Manager) UpdateEntry(ctx context.Context, mediaID int, status *anilist.
 					entry.Status = status
 				}
 				if scoreRaw != nil {
-					entry.Score = new(float64(*scoreRaw))
+					entry.Score = lo.ToPtr(float64(*scoreRaw))
 				}
 				if progress != nil {
 					entry.Progress = progress
@@ -597,7 +574,7 @@ func (m *Manager) UpdateEntry(ctx context.Context, mediaID int, status *anilist.
 			Media:    media[0],
 		}
 		if scoreRaw != nil {
-			newEntry.Score = new(float64(*scoreRaw))
+			newEntry.Score = lo.ToPtr(float64(*scoreRaw))
 		}
 		if startedAt != nil {
 			newEntry.StartedAt = &anilist.AnimeCollection_MediaListCollection_Lists_Entries_StartedAt{
@@ -635,7 +612,7 @@ func (m *Manager) UpdateEntry(ctx context.Context, mediaID int, status *anilist.
 			Media:    mangaMedia[0],
 		}
 		if scoreRaw != nil {
-			newEntry.Score = new(float64(*scoreRaw))
+			newEntry.Score = lo.ToPtr(float64(*scoreRaw))
 		}
 		if startedAt != nil {
 			newEntry.StartedAt = &anilist.MangaCollection_MediaListCollection_Lists_Entries_StartedAt{
@@ -662,7 +639,7 @@ func (m *Manager) UpdateEntry(ctx context.Context, mediaID int, status *anilist.
 // UpdateEntryProgress handles updating progress for a custom source entry
 func (m *Manager) UpdateEntryProgress(ctx context.Context, mediaID int, progress int, totalCount *int) error {
 	status := anilist.MediaListStatusCurrent
-	if totalCount != nil && *totalCount > 0 && progress >= *totalCount {
+	if totalCount != nil && progress >= *totalCount {
 		status = anilist.MediaListStatusCompleted
 	}
 

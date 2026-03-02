@@ -25,9 +25,8 @@ import { ErrorBoundary } from "react-error-boundary"
 import { FaRedo } from "react-icons/fa"
 import { GiOpenBook } from "react-icons/gi"
 import { IoBookOutline, IoLibrary } from "react-icons/io5"
-import { LuDownload } from "react-icons/lu"
 import { LuSearch } from "react-icons/lu"
-import { MdOutlineOfflinePin } from "react-icons/md"
+import { MdOutlineDownloadForOffline, MdOutlineOfflinePin } from "react-icons/md"
 
 type ChapterListProps = {
     mediaId: string | null
@@ -98,7 +97,7 @@ export function ChapterList(props: ChapterListProps) {
     /**
      * Download chapter
      */
-    const { downloadChapters, isSendingDownloadRequest } = useHandleDownloadMangaChapter(mediaId)
+    const { downloadChapters, isSendingDownloadRequest } = useHandleDownloadMangaChapter(mediaId, entry.media?.title?.romaji ?? undefined)
     /**
      * Download data utils
      */
@@ -144,18 +143,16 @@ export function ChapterList(props: ChapterListProps) {
         ...(selectedExtension?.settings?.supportsMultiScanlator ? [{
             id: "scanlator",
             header: "Scanlator",
-            size: 30,
+            size: 40,
             accessorFn: (row: any) => row.scanlator,
             enableSorting: true,
-            cell: ({ getValue }: any) => <span className="text-sm text-[--muted]">{getValue()}</span>,
         }] : []),
         ...(selectedExtension?.settings?.supportsMultiLanguage ? [{
             id: "language",
             header: "Language",
-            size: 40,
+            size: 20,
             accessorFn: (row: any) => LANGUAGES_LIST[row.language]?.nativeName || row.language,
             enableSorting: true,
-            cell: ({ getValue }: any) => <span className="text-sm text-[--muted]">{getValue()}</span>,
         }] : []),
         {
             id: "number",
@@ -179,14 +176,13 @@ export function ChapterList(props: ChapterListProps) {
                             size="sm"
                             disabled={isSendingDownloadRequest}
                             onClick={() => downloadChapters([row.original])}
-                            icon={<LuDownload className="text-xl" />}
-                            className="opacity-50 hover:opacity-100"
+                            icon={<MdOutlineDownloadForOffline className="text-2xl" />}
                         />}
                         {isChapterQueued(row.original) && <p className="text-[--muted]">Queued</p>}
-                        {isChapterDownloaded(row.original) && <p className="text-[--green] px-1"><MdOutlineOfflinePin className="text-2xl" /></p>}
+                        {isChapterDownloaded(row.original) && <p className="text-[--muted] px-1"><MdOutlineOfflinePin className="text-2xl" /></p>}
                         <IconButton
                             intent="gray-subtle"
-                            size="md"
+                            size="sm"
                             onClick={() => setSelectedChapter({
                                 chapterId: row.original.id,
                                 chapterNumber: row.original.chapter,
@@ -230,7 +226,6 @@ export function ChapterList(props: ChapterListProps) {
         rowSelection,
         setRowSelection,
         resetRowSelection,
-        // setSelectedChapters,
     } = useMangaChapterListRowSelection()
 
     React.useEffect(() => {
@@ -432,7 +427,6 @@ export function ChapterList(props: ChapterListProps) {
                                             intent="white"
                                             rounded
                                             leftIcon={<IoBookOutline />}
-                                            disabled={!unreadChapters?.length || (!!entry.listData?.progress && parseInt(unreadChapters[0].chapter) !== entry.listData?.progress + 1)}
                                             onClick={() => {
                                                 setSelectedChapter({
                                                     chapterId: unreadChapters[0].id,
@@ -442,31 +436,12 @@ export function ChapterList(props: ChapterListProps) {
                                                 })
                                             }}
                                         >
-                                            {!!entry.listData?.progress ? "Continue reading" : "Start reading"}
+                                            Continue reading
                                         </Button>}
                                     </div>
                                 </div>
 
-                                {/* <ChapterListTable
-                                 chapters={chapters}
-                                 rowSelection={rowSelection}
-                                 setRowSelection={setRowSelection}
-                                 setSelectedChapters={setSelectedChapters}
-                                 onChapterClick={(chapter) => {
-                                 setSelectedChapter({
-                                 chapterId: chapter.id,
-                                 chapterNumber: chapter.chapter,
-                                 provider: chapter.provider,
-                                 mediaId: Number(mediaId),
-                                 })
-                                 }}
-                                 onDownloadChapter={(chapter) => downloadChapters([chapter])}
-                                 isChapterQueued={isChapterQueued}
-                                 isChapterDownloaded={isChapterDownloaded}
-                                 isChapterLocal={isChapterLocal}
-                                 /> */}
-
-                                <div data-chapter-list-bulk-actions-container className="space-y-4 rounded-2xl border bg-[--paper] p-4">
+                                <div data-chapter-list-bulk-actions-container className="space-y-4 border rounded-[--radius-md] bg-[--paper] p-4">
 
                                     <div data-chapter-list-bulk-actions-checkboxes-container className="flex flex-wrap items-center gap-4">
                                         <Checkbox
@@ -523,11 +498,6 @@ export function ChapterList(props: ChapterListProps) {
                                         onRowSelectionChange={setRowSelection}
                                         className=""
                                         tableClass="table-fixed lg:table-fixed"
-                                        tableBodyClass="border-0"
-                                        tdClass="border-[rgba(255,255,255,0.05)]"
-                                        // tableBodyClass="divide-0 space-y-2"
-                                        // trClass="p-3 border-0 bg-[--paper] rounded-lg"
-                                        // tdClass="p-3 border-0 rounded-lg"
                                     />
                                 </div>
                             </>

@@ -308,6 +308,20 @@ func (r *Repository) AddMagnets(magnets []string, dest string) error {
 			Tags:     r.qBittorrentClient.Tags,
 			Category: r.qBittorrentClient.Category,
 		})
+		// If 403 Forbidden, try to re-login and retry once
+		if err != nil && (strings.Contains(err.Error(), "403") || strings.Contains(err.Error(), "Forbidden")) {
+			r.logger.Warn().Str("error", err.Error()).Msg("torrent client: Got 403, attempting to re-login to qBittorrent")
+			if loginErr := r.qBittorrentClient.Login(); loginErr != nil {
+				r.logger.Error().Err(loginErr).Str("host", r.qBittorrentClient.Host).Int("port", r.qBittorrentClient.Port).Msg("torrent client: Failed to re-login to qBittorrent")
+			} else {
+				r.logger.Info().Msg("torrent client: Re-logged in to qBittorrent, retrying add")
+				err = r.qBittorrentClient.Torrent.AddURLs(magnets, &qbittorrent_model.AddTorrentsOptions{
+					Savepath: dest,
+					Tags:     r.qBittorrentClient.Tags,
+					Category: r.qBittorrentClient.Category,
+				})
+			}
+		}
 	case TransmissionClient:
 		for _, magnet := range magnets {
 			_, err = r.transmission.Client.TorrentAdd(context.Background(), transmissionrpc.TorrentAddPayload{

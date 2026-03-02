@@ -58,7 +58,7 @@ type Torrent struct {
 	MagnetUri         string  `json:"magnet_uri"`
 	MaxRatio          float64 `json:"max_ratio"`
 	MaxSeedingTime    int     `json:"max_seeding_time"`
-	RatioLimit        int     `json:"ratio_limit"`
+	RatioLimit        float64 `json:"ratio_limit"`
 	SavePath          string  `json:"save_path"`
 	SeedingTime       int     `json:"seeding_time"`
 	SeedingTimeLimit  int     `json:"seeding_time_limit"`

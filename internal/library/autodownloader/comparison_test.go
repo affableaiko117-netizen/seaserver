@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/5rahim/habari"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,8 +32,8 @@ func TestComparison(t *testing.T) {
 				Romaji:  &name1,
 				English: &name2,
 			},
-			Episodes: new(13),
-			Format:   new(anilist.MediaFormatTv),
+			Episodes: lo.ToPtr(13),
+			Format:   lo.ToPtr(anilist.MediaFormatTv),
 		},
 	}
 
@@ -155,9 +156,9 @@ func TestComparison2(t *testing.T) {
 				Romaji:  &name1,
 				English: &name2,
 			},
-			Episodes: new(12),
-			Status:   new(anilist.MediaStatusFinished),
-			Format:   new(anilist.MediaFormatTv),
+			Episodes: lo.ToPtr(12),
+			Status:   lo.ToPtr(anilist.MediaStatusFinished),
+			Format:   lo.ToPtr(anilist.MediaFormatTv),
 		},
 	}
 
@@ -252,9 +253,9 @@ func TestComparison3(t *testing.T) {
 				Romaji:  &name1,
 				English: &name2,
 			},
-			Status:   new(anilist.MediaStatusFinished),
-			Episodes: new(12),
-			Format:   new(anilist.MediaFormatTv),
+			Status:   lo.ToPtr(anilist.MediaStatusFinished),
+			Episodes: lo.ToPtr(12),
+			Format:   lo.ToPtr(anilist.MediaFormatTv),
 		},
 	}
 

@@ -6,10 +6,10 @@ import { TorrentSearchContainer } from "@/app/(main)/entry/_containers/torrent-s
 import { AppLayoutStack } from "@/components/ui/app-layout"
 import { cn } from "@/components/ui/core/styling"
 import { Vaul, VaulContent } from "@/components/vaul"
-import { usePathname, useRouter, useSearchParams } from "@/lib/navigation"
-import { useThemeSettings } from "@/lib/theme/theme-hooks"
+import { useThemeSettings } from "@/lib/theme/hooks"
 import { atom } from "jotai"
 import { useAtom } from "jotai/react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import React, { useEffect } from "react"
 
 export const __torrentSearch_selectionAtom = atom<TorrentSelectionType | undefined>(undefined)
@@ -77,8 +77,8 @@ export function TorrentSearchDrawer(props: { entry: Anime_Entry, isPlaylistDrawe
 
             <VaulContent
                 className={cn(
-                    "bg-gray-950 h-[90%] lg:h-[80%] bg-opacity-90 6xl:max-w-[1800px] firefox:bg-opacity-100 mx-4  6xl:mx-auto overflow-hidden",
-                    selectionType === "download" && "lg:h-[92.5%] xl:mx-[10rem] 2xl:mx-[17rem]",
+                    "bg-gray-950 h-[90%] lg:h-[80%] bg-opacity-90 6xl:max-w-[1900px] firefox:bg-opacity-100 mx-4 lg:mx-8 6xl:mx-auto overflow-hidden",
+                    selectionType === "download" && "lg:h-[92.5%] xl:mx-[10rem] 2xl:mx-[20rem]",
                     selectionType === undefined && "lg:h-[80%] xl:mx-[10rem] 2xl:mx-[20rem]",
                 )}
             >

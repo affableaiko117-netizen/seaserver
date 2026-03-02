@@ -9,7 +9,6 @@ import (
 	hibiketorrent "seanime/internal/extension/hibike/torrent"
 	"seanime/internal/library/anime"
 	"seanime/internal/platforms/platform"
-	torrent_analyzer "seanime/internal/torrents/analyzer"
 	itorrent "seanime/internal/torrents/torrent"
 	"seanime/internal/util"
 
@@ -46,9 +45,8 @@ type (
 	}
 
 	Result struct {
-		Torrent         *torrent.Torrent // For torrent client
-		File            *torrent.File    // For torrent client
-		AnalysisFile    *torrent_analyzer.File
+		Torrent         *torrent.Torrent            // For torrent client
+		File            *torrent.File               // For torrent client
 		DebridTorrent   *debrid.TorrentInfo         // For debrid
 		DebridFileID    string                      // For debrid
 		OriginalTorrent *hibiketorrent.AnimeTorrent // The original torrent object

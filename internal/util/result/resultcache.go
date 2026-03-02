@@ -13,6 +13,7 @@ type Cache[K interface{}, V any] struct {
 type cacheItem[K interface{}, V any] struct {
 	value      V
 	expiration time.Time
+	timer      *time.Timer
 }
 
 func NewCache[K interface{}, V any]() *Cache[K, V] {
@@ -21,19 +22,31 @@ func NewCache[K interface{}, V any]() *Cache[K, V] {
 
 func (c *Cache[K, V]) Set(key K, value V) {
 	ttl := constants.GcTime
-	c.store.Store(key, &cacheItem[K, V]{value, time.Now().Add(ttl)})
-	go func() {
-		<-time.After(ttl)
+	// Stop existing timer if key exists
+	if existing, ok := c.store.Load(key); ok {
+		if item, ok := existing.(*cacheItem[K, V]); ok && item.timer != nil {
+			item.timer.Stop()
+		}
+	}
+	item := &cacheItem[K, V]{value: value, expiration: time.Now().Add(ttl)}
+	item.timer = time.AfterFunc(ttl, func() {
 		c.Delete(key)
-	}()
+	})
+	c.store.Store(key, item)
 }
 
 func (c *Cache[K, V]) SetT(key K, value V, ttl time.Duration) {
-	c.store.Store(key, &cacheItem[K, V]{value, time.Now().Add(ttl)})
-	go func() {
-		<-time.After(ttl)
+	// Stop existing timer if key exists
+	if existing, ok := c.store.Load(key); ok {
+		if item, ok := existing.(*cacheItem[K, V]); ok && item.timer != nil {
+			item.timer.Stop()
+		}
+	}
+	item := &cacheItem[K, V]{value: value, expiration: time.Now().Add(ttl)}
+	item.timer = time.AfterFunc(ttl, func() {
 		c.Delete(key)
-	}()
+	})
+	c.store.Store(key, item)
 }
 
 func (c *Cache[K, V]) Get(key K) (V, bool) {
@@ -83,6 +96,11 @@ func (c *Cache[K, V]) GetOrSet(key K, createFunc func() (V, error)) (V, error) {
 }
 
 func (c *Cache[K, V]) Delete(key K) {
+	if existing, ok := c.store.Load(key); ok {
+		if item, ok := existing.(*cacheItem[K, V]); ok && item.timer != nil {
+			item.timer.Stop()
+		}
+	}
 	c.store.Delete(key)
 }
 

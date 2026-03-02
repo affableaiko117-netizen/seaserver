@@ -681,7 +681,7 @@ func (m *ManagerImpl) SynchronizeAnilist() error {
 
 				var score *int
 				if entry.GetScore() != nil {
-					score = new(int(*entry.GetScore()))
+					score = lo.ToPtr(int(*entry.GetScore()))
 				}
 
 				_ = m.anilistPlatformRef.Get().UpdateEntry(
@@ -744,7 +744,7 @@ func (m *ManagerImpl) SynchronizeAnilist() error {
 
 				var score *int
 				if entry.GetScore() != nil {
-					score = new(int(*entry.GetScore()))
+					score = lo.ToPtr(int(*entry.GetScore()))
 				}
 
 				_ = m.anilistPlatformRef.Get().UpdateEntry(
@@ -952,9 +952,9 @@ func (m *ManagerImpl) SynchronizeSimulatedCollectionToAnilist() error {
 
 				var score *int
 				if entry.GetScore() != nil {
-					score = new(int(*entry.GetScore()))
+					score = lo.ToPtr(int(*entry.GetScore()))
 				} else {
-					score = new(0)
+					score = lo.ToPtr(0)
 				}
 
 				_ = m.anilistPlatformRef.Get().UpdateEntry(
@@ -1017,9 +1017,9 @@ func (m *ManagerImpl) SynchronizeSimulatedCollectionToAnilist() error {
 
 				var score *int
 				if entry.GetScore() != nil {
-					score = new(int(*entry.GetScore()))
+					score = lo.ToPtr(int(*entry.GetScore()))
 				} else {
-					score = new(0)
+					score = lo.ToPtr(0)
 				}
 
 				_ = m.anilistPlatformRef.Get().UpdateEntry(

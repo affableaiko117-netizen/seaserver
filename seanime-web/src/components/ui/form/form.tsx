@@ -1,3 +1,5 @@
+"use client"
+
 import { zodResolver } from "@hookform/resolvers/zod"
 import { NoInfer } from "@tanstack/react-query"
 import * as React from "react"

@@ -642,7 +642,6 @@ export function PluginDiv({ items = [], style, onClick, className }: DivProps) {
             }, trayIcon.extensionId)
         }
     }
-
     return (
         <div
             className={cn("relative", className)}

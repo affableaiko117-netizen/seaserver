@@ -11,6 +11,7 @@ import (
 	"seanime/internal/util"
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -179,8 +180,8 @@ func TestNewEntryDownloadInfo2(t *testing.T) {
 
 	info, err := anime.NewEntryDownloadInfo(&anime.NewEntryDownloadInfoOptions{
 		LocalFiles:          nil,
-		Progress:            new(0),
-		Status:              new(anilist.MediaListStatusCurrent),
+		Progress:            lo.ToPtr(0),
+		Status:              lo.ToPtr(anilist.MediaListStatusCurrent),
 		Media:               anilistEntry.Media,
 		MetadataProviderRef: util.NewRef(metadataProvider),
 		AnimeMetadata:       animeMetadata,

@@ -1,14 +1,15 @@
 import { Anime_Entry } from "@/api/generated/types"
 import { useGetAnilistAnimeDetails } from "@/api/hooks/anilist.hooks"
 import { useGetAnimeEntry } from "@/api/hooks/anime_entries.hooks"
+import { useGetSyntheticAnimeDetails, SyntheticAnime } from "@/api/hooks/synthetic-anime.hooks"
 import { MediaEntryCharactersSection } from "@/app/(main)/_features/media/_components/media-entry-characters-section"
 import { MediaEntryPageLoadingDisplay } from "@/app/(main)/_features/media/_components/media-entry-page-loading-display"
 import { PluginWebviewSlot } from "@/app/(main)/_features/plugin/webview/plugin-webviews"
 import { useSeaCommandInject } from "@/app/(main)/_features/sea-command/use-inject"
-
-import { vc_isFullscreen } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_isFullscreen } from "@/app/(main)/_features/video-core/video-core"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { MetaSection } from "@/app/(main)/entry/_components/meta-section"
+import { SyntheticAnimeEntryPage } from "@/app/(main)/entry/_containers/synthetic-anime-entry-page"
 import { RelationsRecommendationsSection } from "@/app/(main)/entry/_components/relations-recommendations-section"
 import { DebridStreamPage } from "@/app/(main)/entry/_containers/debrid-stream/debrid-stream-page"
 import { EpisodeSection } from "@/app/(main)/entry/_containers/episode-list/episode-section"
@@ -18,11 +19,11 @@ import { OnlinestreamPage } from "@/app/(main)/onlinestream/_containers/onlinest
 import { PageWrapper } from "@/components/shared/page-wrapper"
 import { cn } from "@/components/ui/core/styling"
 import { StaticTabs } from "@/components/ui/tabs"
-import { usePathname, useRouter, useSearchParams } from "@/lib/navigation"
-import { useThemeSettings } from "@/lib/theme/theme-hooks"
+import { useThemeSettings } from "@/lib/theme/hooks"
 import { atom, useAtomValue } from "jotai"
 import { useAtom, useSetAtom } from "jotai/react"
 import { AnimatePresence } from "motion/react"
+import { useRouter, useSearchParams } from "next/navigation"
 import React from "react"
 import { FiGlobe } from "react-icons/fi"
 import { HiOutlineServerStack } from "react-icons/hi2"
@@ -72,8 +73,15 @@ export function AnimeEntryPage() {
     const searchParams = useSearchParams()
     const mediaId = searchParams.get("id")
     const tab = searchParams.get("tab")
-    const { data: animeEntry, isLoading: animeEntryLoading } = useGetAnimeEntry(mediaId)
-    const { data: animeDetails, isLoading: animeDetailsLoading } = useGetAnilistAnimeDetails(mediaId)
+    const isSynthetic = searchParams.get("synthetic") === "true"
+    
+    // Regular anime entry (only fetch if not synthetic)
+    const { data: animeEntry, isLoading: animeEntryLoading } = useGetAnimeEntry(isSynthetic ? null : mediaId)
+    const { data: animeDetails, isLoading: animeDetailsLoading } = useGetAnilistAnimeDetails(isSynthetic ? null : mediaId)
+    
+    // Synthetic anime entry (only fetch if synthetic)
+    const { data: syntheticAnime, isLoading: syntheticAnimeLoading } = useGetSyntheticAnimeDetails(isSynthetic ? mediaId : null)
+    
     const ts = useThemeSettings()
 
     const vc_fullscreen = useAtomValue(vc_isFullscreen)
@@ -160,15 +168,13 @@ export function AnimeEntryPage() {
 
     }, [animeEntry, animeEntryLoading, mediaId, searchParams, serverStatus, currentView, tab])
 
-    const pathname = usePathname()
-
     React.useEffect(() => {
-        if (!pathname.startsWith("/entry")) return
-
+        // Don't redirect if we're viewing a synthetic anime
+        if (isSynthetic) return
         if (!mediaId || (!animeEntryLoading && !animeEntry)) {
             router.push("/")
         }
-    }, [animeEntry, animeEntryLoading, pathname, mediaId])
+    }, [animeEntry, animeEntryLoading, isSynthetic])
 
     // Reset view when unmounting
     useUnmount(() => {
@@ -229,6 +235,13 @@ export function AnimeEntryPage() {
 
         return () => remove("anime-entry-navigation")
     }, [currentView, serverStatus])
+
+    // Handle synthetic anime
+    if (isSynthetic) {
+        if (syntheticAnimeLoading) return <MediaEntryPageLoadingDisplay />
+        if (!syntheticAnime) return null
+        return <SyntheticAnimeEntryPage syntheticAnime={syntheticAnime} />
+    }
 
     if (animeEntryLoading || animeDetailsLoading) return <MediaEntryPageLoadingDisplay />
     if (!animeEntry) return null
@@ -341,6 +354,11 @@ export function AnimeEntryPage() {
                                     hideBackButton
                                 />
                                 <PluginWebviewSlot slot="after-anime-entry-episode-list" />
+                                {/*<LegacyOnlinestreamPage*/}
+                                {/*    animeEntry={animeEntry}*/}
+                                {/*    animeEntryLoading={animeEntryLoading}*/}
+                                {/*    hideBackButton*/}
+                                {/*/>*/}
                                 <MediaEntryCharactersSection details={animeDetails} />
                                 <RelationsRecommendationsSection entry={animeEntry} details={animeDetails} />
                             </div>
