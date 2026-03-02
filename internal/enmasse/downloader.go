@@ -181,11 +181,10 @@ func (d *Downloader) Start(resume bool) error {
 	d.isRunning = true
 	d.isPaused = false
 
-	// Auto-resume if saved progress exists and resume not explicitly requested
+	// Only resume when explicitly requested; otherwise start fresh even if progress exists
 	autoResume := resume
-	if !resume && d.hasSavedProgress() {
-		autoResume = true
-		d.logger.Info().Msg("enmasse-anime: Saved progress found; auto-resuming")
+	if !autoResume && d.hasSavedProgress() {
+		d.logger.Info().Msg("enmasse-anime: Saved progress found but resume not enabled; starting from scratch")
 	}
 
 	if !autoResume {
@@ -410,6 +409,9 @@ func (d *Downloader) processAnime(ctx context.Context, animeItem *AnimeOfflineIt
 		return fmt.Errorf("no torrents found")
 	}
 
+	// Filter out single-episode torrents for series (allow for movies/OVAs)
+	searchData.Torrents = d.filterMultiEpisodeTorrents(baseAnime, searchData.Torrents)
+
 	// Select best torrent (first one after sorting by seeders/best release)
 	selectedTorrent := d.selectBestTorrent(searchData.Torrents)
 	if selectedTorrent == nil {
@@ -550,6 +552,42 @@ func (d *Downloader) selectBestTorrent(torrents []*hibiketorrent.AnimeTorrent) *
 	}
 
 	return best
+}
+
+// filterMultiEpisodeTorrents removes single-episode torrents when the media is a series.
+// Movies and OVAs are exempt and retain all torrents.
+func (d *Downloader) filterMultiEpisodeTorrents(media *anilist.BaseAnime, torrents []*hibiketorrent.AnimeTorrent) []*hibiketorrent.AnimeTorrent {
+	// If media is nil or is a movie/OVA, return as-is
+	if media == nil || media.IsMovie() || (media.Format != nil && *media.Format == anilist.MediaFormatOva) {
+		return torrents
+	}
+
+	filtered := make([]*hibiketorrent.AnimeTorrent, 0, len(torrents))
+
+	for _, t := range torrents {
+		if t == nil {
+			continue
+		}
+
+		// Keep batches and torrents without a reliable episode number
+		if t.IsBatch || t.EpisodeNumber <= 0 {
+			filtered = append(filtered, t)
+			continue
+		}
+
+		// Keep torrents that clearly include multiple episodes
+		if t.EpisodeNumber > 1 {
+			filtered = append(filtered, t)
+			continue
+		}
+
+		// At this point, EpisodeNumber == 1 and media is not movie/OVA -> skip
+		d.logger.Debug().
+			Str("torrent", t.Name).
+			Msg("enmasse-anime: Skipping single-episode torrent for series")
+	}
+
+	return filtered
 }
 
 func (d *Downloader) loadAnimeList() ([]*AnimeOfflineItem, error) {
