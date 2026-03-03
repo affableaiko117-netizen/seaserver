@@ -26,6 +26,26 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// filterOutSeasonEpisodePattern skips torrents that look like single-episode season/episode (e.g., S01E02)
+// when the media only has one episode. Allows ranges (e.g., S01E01-E12).
+func (d *Downloader) filterOutSeasonEpisodePattern(torrents []*hibiketorrent.AnimeTorrent) []*hibiketorrent.AnimeTorrent {
+	seasonEpisodeRe := regexp.MustCompile(`(?i)S\d{2}E\d{2,8}`)
+	rangeRe := regexp.MustCompile(`(?i)S\d{2}E\d{2,8}\s*-?E\d{2,8}`)
+	filtered := make([]*hibiketorrent.AnimeTorrent, 0, len(torrents))
+	for _, t := range torrents {
+		if t == nil {
+			continue
+		}
+		matches := seasonEpisodeRe.FindAllString(t.Name, -1)
+		if len(matches) == 1 && !rangeRe.MatchString(t.Name) {
+			d.logger.Debug().Str("torrent", t.Name).Msg("enmasse-anime: Skipping season/episode formatted torrent for single-episode media")
+			continue
+		}
+		filtered = append(filtered, t)
+	}
+	return filtered
+}
+
 const (
 	GlobalAnimeOfflineDatabasePath = "/aeternae/Soul/Otaku Media/Databases/anime-offline-database-minified.json"
 	AnimeProgressFilePath   = "/aeternae/Soul/Otaku Media/Databases/enmasse-anime-progress.json"
@@ -426,6 +446,11 @@ func (d *Downloader) processAnime(ctx context.Context, animeItem *AnimeOfflineIt
 	// Prefer torrents that meet or exceed expected episode count (TV/OVA)
 	expectedEpisodes := animeItem.Episodes
 	searchData.Torrents = d.filterByEpisodeMinimum(baseAnime, expectedEpisodes, searchData.Torrents)
+
+	// For one-episode media, drop season/episode formatted torrents (e.g., S01E02)
+	if expectedEpisodes <= 1 {
+		searchData.Torrents = d.filterOutSeasonEpisodePattern(searchData.Torrents)
+	}
 
 	// Select best torrent (first one after sorting by seeders/best release) with season preference
 	selectedTorrent := d.selectBestTorrent(searchData.Torrents, animeItem)

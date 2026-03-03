@@ -729,7 +729,7 @@ function SidebarSubMenu({ items, collapsed }: { items: SidebarSubMenuItem[], col
                     className={cn(
                         "w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition group",
                         "bg-[rgba(255,255,255,0.02)]",
-                        "hover:bg-gradient-to-r hover:from-[rgba(0,230,255,0.15)] hover:via-transparent hover:to-transparent",
+                        "hover:bg-gradient-to-r hover:from-[rgba(255, 0, 0, 0.15)] hover:via-transparent hover:to-transparent",
                         item.isCurrent ? "text-[--foreground]" : "text-[--muted]",
                         collapsed && "justify-center px-0 py-0 w-12 h-12 rounded-lg"
                     )}
@@ -738,7 +738,7 @@ function SidebarSubMenu({ items, collapsed }: { items: SidebarSubMenuItem[], col
                         className={cn(
                             "inline-flex items-center justify-center rounded-lg border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)]",
                             "h-8 w-8", collapsed && "h-9 w-9",
-                            item.isCurrent ? "border-[rgba(0,230,255,0.35)] bg-[rgba(0,230,255,0.08)]" : "",
+                            item.isCurrent ? "border-[rgba(222, 45, 45, 0.35)] bg-[rgba(255, 0, 0, 0.08)]" : "",
                             "transition-colors"
                         )}
                     >

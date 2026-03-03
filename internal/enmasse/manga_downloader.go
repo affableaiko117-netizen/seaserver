@@ -228,11 +228,32 @@ func (d *MangaDownloader) run(ctx context.Context, resume bool) {
 			for _, title := range progress.ProcessedTitles {
 				processedTitles[title] = true
 			}
+
+			// Rewind a few entries to reprocess possible missed chapters
+			const rewindCount = 3
+			processedOrder := make([]string, 0, len(progress.ProcessedTitles))
+			for _, mangaItem := range mangaList {
+				if processedTitles[mangaItem.Title] {
+					processedOrder = append(processedOrder, mangaItem.Title)
+				}
+			}
+			if len(processedOrder) > 0 {
+				toRewind := rewindCount
+				if toRewind > len(processedOrder) {
+					toRewind = len(processedOrder)
+				}
+				for _, title := range processedOrder[len(processedOrder)-toRewind:] {
+					delete(processedTitles, title)
+				}
+				if toRewind > 0 {
+					d.logger.Info().Int("rewound", toRewind).Msg("enmasse-manga: Rewinding processed titles for resume")
+				}
+			}
 			d.mu.Lock()
 			d.downloadedManga = progress.DownloadedManga
 			d.failedManga = progress.FailedManga
 			d.skippedManga = progress.SkippedManga
-			d.processedCount = len(progress.ProcessedTitles)
+			d.processedCount = len(processedTitles)
 			d.mu.Unlock()
 			d.logger.Info().Int("skipping", len(processedTitles)).Msg("enmasse-manga: Resuming from saved progress")
 		}
