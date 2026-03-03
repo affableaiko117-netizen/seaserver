@@ -637,12 +637,12 @@ func (d *Downloader) selectBestTorrent(torrents []*hibiketorrent.AnimeTorrent, a
 }
 
 // torrentMeetsEpisodeMinimum rechecks episode count for the chosen torrent.
-// Movies/OVA with single episode are exempt.
+// Movies with single episode are exempt.
 func (d *Downloader) torrentMeetsEpisodeMinimum(media *anilist.BaseAnime, expectedEpisodes int, t *hibiketorrent.AnimeTorrent) bool {
 	if t == nil || expectedEpisodes <= 0 {
 		return true
 	}
-	if media == nil || media.IsMovie() || (media.Format != nil && *media.Format == anilist.MediaFormatOva && expectedEpisodes == 1) {
+	if media == nil || media.IsMovie() {
 		return true
 	}
 
@@ -669,10 +669,10 @@ func (d *Downloader) torrentMeetsEpisodeMinimum(media *anilist.BaseAnime, expect
 }
 
 // filterMultiEpisodeTorrents removes single-episode torrents when the media is a series.
-// Movies and OVAs are exempt and retain all torrents.
+// Movies are exempt and retain all torrents.
 func (d *Downloader) filterMultiEpisodeTorrents(media *anilist.BaseAnime, torrents []*hibiketorrent.AnimeTorrent) []*hibiketorrent.AnimeTorrent {
-	// If media is nil or is a movie/OVA, return as-is
-	if media == nil || media.IsMovie() || (media.Format != nil && *media.Format == anilist.MediaFormatOva) {
+	// If media is nil or is a movie, return as-is
+	if media == nil || media.IsMovie() {
 		return torrents
 	}
 
@@ -722,7 +722,7 @@ func (d *Downloader) filterByEpisodeMinimum(media *anilist.BaseAnime, expectedEp
 	if expectedEpisodes <= 0 {
 		return torrents
 	}
-	if media == nil || media.IsMovie() || (media.Format != nil && *media.Format == anilist.MediaFormatOva && expectedEpisodes == 1) {
+	if media == nil || media.IsMovie() {
 		return torrents
 	}
 
