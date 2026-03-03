@@ -189,7 +189,10 @@ export const LibraryCollectionEntryItem = React.memo(({ entry, streamingMediaIds
             withAudienceScore={false}
             type="anime"
             containerClassName={type === "carousel" ? "basis-[200px] md:basis-[250px] mx-2 mt-8 mb-0" : undefined}
-            showLibraryBadge={!!streamingMediaIds?.length && !streamingMediaIds.includes(entry.mediaId) && entry.listData?.status === "CURRENT"}
+            // Show the local/downloaded badge whenever the entry has library data (local files present).
+            // The previous logic only showed it when the media wasn't in the streaming list and status was CURRENT,
+            // which hid the badge for fully downloaded shows (e.g., Chi) even though all episodes exist locally.
+            showLibraryBadge={!!entry.libraryData}
         />
     )
 })

@@ -14,7 +14,9 @@ import (
 	"sync"
 	"time"
 
+	"seanime/internal/api/animap"
 	"seanime/internal/database/db"
+	"seanime/internal/util/result"
 
 	"github.com/samber/lo"
 
@@ -29,6 +31,7 @@ type Repository struct {
 	logger   *zerolog.Logger
 	database *db.Database
 
+	metadataCache  *animap.Cache
 	cacheMu        sync.Mutex
 	cachedTorrents []*UnmatchedTorrent
 	cacheExpiry    time.Time
@@ -36,8 +39,9 @@ type Repository struct {
 
 func NewRepository(logger *zerolog.Logger, database *db.Database) *Repository {
 	return &Repository{
-		logger:   logger,
-		database: database,
+		logger:        logger,
+		database:      database,
+		metadataCache: &animap.Cache{Cache: result.NewCache[string, *animap.Anime]()},
 	}
 }
 
@@ -57,29 +61,29 @@ func (r *Repository) getAnimeBasePath() string {
 
 // UnmatchedTorrent represents a downloaded torrent that hasn't been matched to an anime yet
 type UnmatchedTorrent struct {
-	Name       string              `json:"name"`
-	Path       string              `json:"path"`
-	Size       int64               `json:"size"`
-	FileCount  int                 `json:"fileCount"`
-	Files      []*UnmatchedFile    `json:"files"`
-	Seasons    []*UnmatchedSeason  `json:"seasons,omitempty"`
+	Name      string             `json:"name"`
+	Path      string             `json:"path"`
+	Size      int64              `json:"size"`
+	FileCount int                `json:"fileCount"`
+	Files     []*UnmatchedFile   `json:"files"`
+	Seasons   []*UnmatchedSeason `json:"seasons,omitempty"`
 	// Anime metadata (from AniList, stored when torrent is added)
-	AnimeID         int    `json:"animeId,omitempty"`
-	AnimeTitleRomaji string `json:"animeTitleRomaji,omitempty"`
-	AnimeTitleNative string `json:"animeTitleNative,omitempty"`
-	AnimeFormat      string `json:"animeFormat,omitempty"`
-	AnimeStartYear   int    `json:"animeStartYear,omitempty"`
-	AnimeExpectedEpisodes int `json:"animeExpectedEpisodes,omitempty"`
+	AnimeID               int    `json:"animeId,omitempty"`
+	AnimeTitleRomaji      string `json:"animeTitleRomaji,omitempty"`
+	AnimeTitleNative      string `json:"animeTitleNative,omitempty"`
+	AnimeFormat           string `json:"animeFormat,omitempty"`
+	AnimeStartYear        int    `json:"animeStartYear,omitempty"`
+	AnimeExpectedEpisodes int    `json:"animeExpectedEpisodes,omitempty"`
 }
 
 // TorrentMetadata stores anime info for an unmatched torrent
 type TorrentMetadata struct {
-	AnimeID         int    `json:"animeId"`
-	AnimeTitleRomaji string `json:"animeTitleRomaji"`
-	AnimeTitleNative string `json:"animeTitleNative"`
-	AnimeFormat      string `json:"animeFormat,omitempty"`
-	AnimeStartYear   int    `json:"animeStartYear,omitempty"`
-	AnimeExpectedEpisodes int `json:"animeExpectedEpisodes,omitempty"`
+	AnimeID               int    `json:"animeId"`
+	AnimeTitleRomaji      string `json:"animeTitleRomaji"`
+	AnimeTitleNative      string `json:"animeTitleNative"`
+	AnimeFormat           string `json:"animeFormat,omitempty"`
+	AnimeStartYear        int    `json:"animeStartYear,omitempty"`
+	AnimeExpectedEpisodes int    `json:"animeExpectedEpisodes,omitempty"`
 }
 
 // UnmatchedSeason represents a season folder within a torrent
@@ -104,7 +108,7 @@ type UnmatchedFile struct {
 // MatchRequest represents a request to match files to an anime
 type MatchRequest struct {
 	TorrentName     string   `json:"torrentName"`
-	SelectedFiles   []string `json:"selectedFiles"`   // Relative paths of selected files
+	SelectedFiles   []string `json:"selectedFiles"` // Relative paths of selected files
 	AnimeID         int      `json:"animeId"`
 	AnimeTitleJP    string   `json:"animeTitleJp"`    // Japanese title from AniList
 	AnimeTitleClean string   `json:"animeTitleClean"` // Cleaned title for folder name
@@ -317,6 +321,16 @@ func (r *Repository) scanTorrentDirectory(name, path string) (*UnmatchedTorrent,
 		torrent.AnimeFormat = metadata.AnimeFormat
 		torrent.AnimeStartYear = metadata.AnimeStartYear
 		torrent.AnimeExpectedEpisodes = metadata.AnimeExpectedEpisodes
+
+		// Best-effort: fetch episode titles from Animap using AniList ID to name files
+		if metadata.AnimeID > 0 {
+			if animeMeta, err := r.fetchAnimeMetadata(metadata.AnimeID); err == nil && animeMeta != nil {
+				torrent.AnimeTitleRomaji = firstNonEmpty(torrent.AnimeTitleRomaji, animeMeta.Title, animeMeta.Titles["romaji"], animeMeta.Titles["english"], animeMeta.Titles["native"])
+				if animeMeta.Episodes != nil && torrent.AnimeExpectedEpisodes == 0 {
+					torrent.AnimeExpectedEpisodes = len(animeMeta.Episodes)
+				}
+			}
+		}
 	}
 
 	seasonMap := make(map[string]*UnmatchedSeason)
@@ -403,6 +417,53 @@ func (r *Repository) scanTorrentDirectory(name, path string) (*UnmatchedTorrent,
 	})
 
 	return torrent, nil
+}
+
+// fetchAnimeMetadata gets Animap metadata for an AniList ID with simple caching.
+func (r *Repository) fetchAnimeMetadata(anilistID int) (*animap.Anime, error) {
+	cacheKey := fmt.Sprintf("anilist:%d", anilistID)
+
+	if cached, ok := r.metadataCache.Get(cacheKey); ok {
+		return cached, nil
+	}
+
+	media, err := animap.FetchAnimapMedia("anilist", anilistID)
+	if err != nil {
+		return nil, err
+	}
+
+	r.metadataCache.Set(cacheKey, media)
+	return media, nil
+}
+
+// getEpisodeTitle returns the English episode title when available, falling back to AniDB titles.
+func (r *Repository) getEpisodeTitle(anilistID int, episodeNum int) string {
+	if anilistID <= 0 || episodeNum <= 0 {
+		return ""
+	}
+
+	media, err := r.fetchAnimeMetadata(anilistID)
+	if err != nil || media == nil || media.Episodes == nil {
+		return ""
+	}
+
+	epKey := strconv.Itoa(episodeNum)
+	ep, ok := media.Episodes[epKey]
+	if !ok || ep == nil {
+		return ""
+	}
+
+	return firstNonEmpty(ep.TvdbTitle, ep.AnidbTitle)
+}
+
+// firstNonEmpty returns the first non-empty string from the provided list.
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if strings.TrimSpace(v) != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 // MatchAndMoveFiles matches selected files to an anime and moves them to the anime directory
@@ -509,7 +570,13 @@ func (r *Repository) MatchAndMoveFiles(req *MatchRequest) (*MatchResult, error) 
 			}
 		}
 
-		newName := fmt.Sprintf("%s - Episode %02d%s", cleanTitle, episodeNum, ext)
+		episodeTitle := r.getEpisodeTitle(torrent.AnimeID, episodeNum)
+		var newName string
+		if episodeTitle == "" {
+			newName = fmt.Sprintf("%s - Episode %03d%s", cleanTitle, episodeNum, ext)
+		} else {
+			newName = fmt.Sprintf("%s - Episode %03d - %s%s", cleanTitle, episodeNum, episodeTitle, ext)
+		}
 		destPath := filepath.Join(destination, newName)
 
 		// Move the file
@@ -767,7 +834,7 @@ func (r *Repository) scanSingleFile(name, path string) (*UnmatchedTorrent, error
 
 func extractSeasonNumber(name string) int {
 	name = strings.ToLower(name)
-	
+
 	// Match patterns like "Season 1", "S01", "Season01", "S1"
 	patterns := []string{
 		`season\s*(\d+)`,
@@ -790,7 +857,7 @@ func extractSeasonNumber(name string) int {
 
 func extractEpisodeNumber(name string) int {
 	name = strings.ToLower(name)
-	
+
 	// Match patterns like "Episode 1", "E01", "Ep01", "- 01", " 01 "
 	patterns := []string{
 		`episode\s*(\d+)`,
@@ -818,11 +885,11 @@ func sanitizeDirectoryName(input string) string {
 	// Remove characters that are not allowed in directory names
 	disallowedChars := regexp.MustCompile(`[<>:"/\\|?*\x00-\x1F]`)
 	sanitized := disallowedChars.ReplaceAllString(input, " ")
-	
+
 	// Remove leading/trailing spaces and dots
 	sanitized = strings.TrimSpace(sanitized)
 	sanitized = strings.Trim(sanitized, ".")
-	
+
 	// Collapse multiple spaces
 	multiSpace := regexp.MustCompile(`\s+`)
 	sanitized = multiSpace.ReplaceAllString(sanitized, " ")
