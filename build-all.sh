@@ -94,7 +94,7 @@ cp -r seanime-web/out web
  
 step "3.1" "Go backend build"
 substep "Running go build -o seanime_exe ."
-go build -o seanime_exe .
+GO111MODULE=on go build -o seanime_exe .
 [[ -x seanime_exe ]] && success "Backend built: ./seanime_exe"
  
 END_TIME=$(date +%s)
