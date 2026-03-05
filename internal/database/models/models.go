@@ -373,7 +373,8 @@ type Theme struct {
 	UnpinnedMenuItems StringSlice `gorm:"column:unpinned_menu_items;type:text" json:"unpinnedMenuItems"`
 
 	// v3+
-	HomeItems []byte `gorm:"column:home_items;type:text" json:"homeItems"`
+	HomeItems     []byte `gorm:"column:home_items;type:text" json:"homeItems"`
+	MangaHomeItems []byte `gorm:"column:manga_home_items;type:text" json:"mangaHomeItems"`
 }
 
 type HomeItem struct {

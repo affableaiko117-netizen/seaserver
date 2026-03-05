@@ -289,13 +289,33 @@ export function useGetHomeItems() {
 
 export function useUpdateHomeItems() {
     const qc = useQueryClient()
-    return useServerMutation<null, UpdateHomeItems_Variables>({
+    return useServerMutation<void, UpdateHomeItems_Variables>({
         endpoint: API_ENDPOINTS.STATUS.UpdateHomeItems.endpoint,
         method: API_ENDPOINTS.STATUS.UpdateHomeItems.methods[0],
         mutationKey: [API_ENDPOINTS.STATUS.UpdateHomeItems.key],
         onSuccess: async () => {
             await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.STATUS.GetHomeItems.key] })
-            toast.success("Home screen updated")
+        },
+    })
+}
+
+export function useGetMangaHomeItems() {
+    return useServerQuery<Array<Models_HomeItem>>({
+        endpoint: API_ENDPOINTS.STATUS.GetMangaHomeItems.endpoint,
+        method: API_ENDPOINTS.STATUS.GetMangaHomeItems.methods[0],
+        queryKey: [API_ENDPOINTS.STATUS.GetMangaHomeItems.key],
+        enabled: true,
+    })
+}
+
+export function useUpdateMangaHomeItems() {
+    const qc = useQueryClient()
+    return useServerMutation<void, UpdateHomeItems_Variables>({
+        endpoint: API_ENDPOINTS.STATUS.UpdateMangaHomeItems.endpoint,
+        method: API_ENDPOINTS.STATUS.UpdateMangaHomeItems.methods[0],
+        mutationKey: [API_ENDPOINTS.STATUS.UpdateMangaHomeItems.key],
+        onSuccess: async () => {
+            await qc.invalidateQueries({ queryKey: [API_ENDPOINTS.STATUS.GetMangaHomeItems.key] })
         },
     })
 }

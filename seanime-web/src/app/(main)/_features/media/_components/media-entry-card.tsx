@@ -56,6 +56,7 @@ type MediaEntryCardBaseProps = {
     withAudienceScore?: boolean
     containerClassName?: string
     showListDataButton?: boolean
+    onHoverImage?: (imageUrl: string | null) => void
 }
 
 type MediaEntryCardProps<T extends "anime" | "manga"> = {
@@ -89,6 +90,7 @@ export function MediaEntryCard<T extends "anime" | "manga">(props: MediaEntryCar
         hideAnilistEntryEditButton = false,
         onClick,
         hideReleasingBadge = false,
+        onHoverImage,
     } = props
 
     const router = useRouter()
@@ -242,8 +244,14 @@ export function MediaEntryCard<T extends "anime" | "manga">(props: MediaEntryCar
             data-media-type={type}
             className={props.containerClassName}
             data-list-data={stringifiedListData}
-            onMouseEnter={() => setIsHoveringCard(true)}
-            onMouseLeave={() => setIsHoveringCard(false)}
+            onMouseEnter={() => {
+                setIsHoveringCard(true)
+                onHoverImage?.(media.bannerImage || media.coverImage?.extraLarge || null)
+            }}
+            onMouseLeave={() => {
+                setIsHoveringCard(false)
+                onHoverImage?.(null)
+            }}
         >
 
             <MediaEntryCardOverlay overlay={overlay} />

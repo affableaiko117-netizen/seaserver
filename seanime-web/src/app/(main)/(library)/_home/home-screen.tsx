@@ -30,6 +30,7 @@ import { Carousel, CarouselContent, CarouselDotButtons } from "@/components/ui/c
 import { cn } from "@/components/ui/core/styling"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ThemeLibraryScreenBannerType, useThemeSettings } from "@/lib/theme/hooks"
+import { useDebounce } from "use-debounce"
 import { addDays } from "date-fns/addDays"
 import { atom, useAtomValue, useSetAtom } from "jotai"
 import { useAtom } from "jotai/react"
@@ -84,9 +85,19 @@ export function HomeScreen() {
         isNakamaLibrary,
     } = useHandleLibraryCollection()
 
-    const {
-        mangaCollection,
-    } = useHandleMangaCollection()
+    const mangaCollectionProps = useHandleMangaCollection()
+
+    // Hero background image state (hover-driven)
+    const [hoverImage, setHoverImage] = React.useState<string | null>(null)
+    const [activeHero] = useDebounce(hoverImage, 50)
+    const [scrolled, setScrolled] = React.useState(false)
+
+    React.useEffect(() => {
+        const handler = () => setScrolled(window.scrollY > 60)
+        handler()
+        window.addEventListener("scroll", handler)
+        return () => window.removeEventListener("scroll", handler)
+    }, [])
 
     const ts = useThemeSettings()
 
@@ -255,7 +266,31 @@ export function HomeScreen() {
     }
 
     return (
-        <div data-home-screen className="contents">
+        <div data-home-screen className="relative">
+            {/* Dynamic blurred background hero */}
+            <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+                <div
+                    className={cn(
+                        "absolute inset-0 transition-opacity duration-500",
+                        activeHero ? "opacity-100" : "opacity-0",
+                    )}
+                    style={{
+                        backgroundImage: activeHero ? `url(${activeHero})` : undefined,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                        filter: "blur(22px) saturate(120%)",
+                        transform: "scale(1.05)",
+                    }}
+                />
+                <div
+                    className={cn(
+                        "absolute inset-0 bg-gradient-to-b from-black/60 via-black/70 to-black/80 transition-opacity duration-400",
+                        scrolled ? "opacity-75" : "opacity-55",
+                    )}
+                />
+            </div>
+
+            <div className="relative z-[1]">
 
             {/*Discover Page Header*/}
             {homeItems[0]?.type === "discover-header" && <React.Fragment>
@@ -274,7 +309,7 @@ export function HomeScreen() {
             {/*Manga Library Header*/}
             {(ts.libraryScreenBannerType === ThemeLibraryScreenBannerType.Dynamic && homeItems[0]?.type === "manga-library") && (
                 <>
-                    <MangaLibraryHeader manga={mangaCollection?.lists?.flatMap(l => l.entries)?.flatMap(e => e?.media)?.filter(Boolean) || []} />
+                    <MangaLibraryHeader manga={mangaCollectionProps.mangaCollection?.lists?.flatMap((l: any) => l.entries)?.flatMap((e: any) => e?.media)?.filter(Boolean) || []} />
                 </>
             )}
 
@@ -385,6 +420,7 @@ export function HomeScreen() {
                                         isStreamingOnly,
                                         isNakamaLibrary,
                                     }}
+                                    onHoverImage={setHoverImage}
                                 />
                             </React.Fragment>
                         )
@@ -431,6 +467,7 @@ export function HomeScreen() {
             />
             <BulkActionModal />
         </div>
+        </div>
     )
 }
 
@@ -438,10 +475,11 @@ export type HomeScreenItemProps = {
     item: Models_HomeItem
     libraryCollectionProps: HandleLibraryCollectionProps
     index: number
+    onHoverImage?: (imageUrl: string | null) => void
 }
 
 export function HomeScreenItem(props: HomeScreenItemProps) {
-    const { item: _item, index } = props
+    const { item: _item, index, onHoverImage } = props
     const {
         libraryGenres,
         libraryCollectionList,
@@ -540,6 +578,7 @@ export function HomeScreenItem(props: HomeScreenItemProps) {
                 <AnimeCarousel
                     libraryCollectionProps={props.libraryCollectionProps}
                     item={item}
+                    onHoverImage={props.onHoverImage}
                 />
             </>
         )
@@ -548,7 +587,7 @@ export function HomeScreenItem(props: HomeScreenItemProps) {
     if (item.type === "manga-carousel") {
         return (
             <>
-                <MangaCarousel libraryCollectionProps={props.libraryCollectionProps} item={item} />
+                <MangaCarousel libraryCollectionProps={props.libraryCollectionProps} item={item} onHoverImage={props.onHoverImage} />
             </>
         )
     }
@@ -900,8 +939,8 @@ function GlobalAnimeScheduleCalendar(props: { libraryCollectionProps: HandleLibr
     </PageWrapper>
 }
 
-function AnimeCarousel(props: { libraryCollectionProps: HandleLibraryCollectionProps, item: Models_HomeItem }) {
-    const { libraryCollectionProps, item } = props
+function AnimeCarousel(props: { libraryCollectionProps: HandleLibraryCollectionProps, item: Models_HomeItem, onHoverImage?: (imageUrl: string | null) => void }) {
+    const { libraryCollectionProps, item, onHoverImage } = props
     const {} = libraryCollectionProps
     const ref = React.useRef(null)
 
@@ -943,6 +982,7 @@ function AnimeCarousel(props: { libraryCollectionProps: HandleLibraryCollectionP
                                 key={media.id}
                                 media={media}
                                 showLibraryBadge
+                                onHoverImage={onHoverImage}
                                 containerClassName="basis-[200px] md:basis-[250px] mx-2 mt-8 mb-0"
                                 showTrailer
                                 type="anime"
@@ -1027,8 +1067,8 @@ function MyLists(props: { item: Models_HomeItem }) {
     )
 }
 
-function MangaCarousel(props: { libraryCollectionProps: HandleLibraryCollectionProps, item: Models_HomeItem }) {
-    const { libraryCollectionProps, item } = props
+function MangaCarousel(props: { libraryCollectionProps: HandleLibraryCollectionProps, item: Models_HomeItem, onHoverImage?: (imageUrl: string | null) => void }) {
+    const { libraryCollectionProps, item, onHoverImage } = props
     const {} = libraryCollectionProps
     const ref = React.useRef(null)
 
@@ -1072,6 +1112,7 @@ function MangaCarousel(props: { libraryCollectionProps: HandleLibraryCollectionP
                                 media={media}
                                 containerClassName="basis-[200px] md:basis-[250px] mx-2 mt-8 mb-0"
                                 type="manga"
+                                onHoverImage={onHoverImage}
                             />
                         )
                     }) : <>
