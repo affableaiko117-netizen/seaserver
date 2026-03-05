@@ -469,6 +469,8 @@ export const HOME_ITEM_IDS = [
     "manga-carousel",
     "manga-continue-reading",
     "manga-library",
+    "centered-title",
+    "my-lists",
 ] as const
 
 // export type HomeItemID = (keyof typeof HOME_ITEMS)
