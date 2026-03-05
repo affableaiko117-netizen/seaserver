@@ -128,6 +128,8 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	v1.GET("/status", h.HandleGetStatus)
 	v1.GET("/status/home-items", h.HandleGetHomeItems)
 	v1.POST("/status/home-items", h.HandleUpdateHomeItems)
+	v1.GET("/status/manga-home-items", h.HandleGetMangaHomeItems)
+	v1.POST("/status/manga-home-items", h.HandleUpdateMangaHomeItems)
 
 	v1.GET("/log/*", h.HandleGetLogContent)
 	v1.GET("/logs/filenames", h.HandleGetLogFilenames)

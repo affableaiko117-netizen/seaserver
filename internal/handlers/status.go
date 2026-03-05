@@ -619,7 +619,7 @@ func (h *Handler) HandleForceGC(c echo.Context) error {
 
 // HandleGetHomeItems
 //
-//	@summary returns the home items.
+//	@summary returns the anime home items.
 //	@route /api/v1/status/home-items [GET]
 //	@returns []models.HomeItem
 func (h *Handler) HandleGetHomeItems(c echo.Context) error {
@@ -637,7 +637,7 @@ func (h *Handler) HandleGetHomeItems(c echo.Context) error {
 
 // HandleUpdateHomeItems
 //
-//	@summary updates the home items.
+//	@summary updates the anime home items.
 //	@route /api/v1/status/home-items [POST]
 //	@returns nil
 func (h *Handler) HandleUpdateHomeItems(c echo.Context) error {
@@ -661,7 +661,58 @@ func (h *Handler) HandleUpdateHomeItems(c echo.Context) error {
 		return h.RespondWithError(c, err)
 	}
 
-	// update the settings
+	_, err = h.App.Database.UpsertTheme(theme)
+	if err != nil {
+		return h.RespondWithError(c, err)
+	}
+
+	return nil
+}
+
+// HandleGetMangaHomeItems
+//
+//	@summary returns the manga home items.
+//	@route /api/v1/status/manga-home-items [GET]
+//	@returns []models.HomeItem
+func (h *Handler) HandleGetMangaHomeItems(c echo.Context) error {
+
+	theme, err := h.App.Database.GetTheme()
+	if err != nil {
+		return h.RespondWithError(c, err)
+	}
+
+	var items []*models.HomeItem
+	_ = json.Unmarshal(theme.MangaHomeItems, &items)
+
+	return h.RespondWithData(c, items)
+}
+
+// HandleUpdateMangaHomeItems
+//
+//	@summary updates the manga home items.
+//	@route /api/v1/status/manga-home-items [POST]
+//	@returns nil
+func (h *Handler) HandleUpdateMangaHomeItems(c echo.Context) error {
+
+	type body struct {
+		Items []*models.HomeItem `json:"items"`
+	}
+
+	var b body
+	if err := c.Bind(&b); err != nil {
+		return h.RespondWithError(c, err)
+	}
+
+	theme, err := h.App.Database.GetTheme()
+	if err != nil {
+		return h.RespondWithError(c, err)
+	}
+
+	theme.MangaHomeItems, err = json.Marshal(b.Items)
+	if err != nil {
+		return h.RespondWithError(c, err)
+	}
+
 	_, err = h.App.Database.UpsertTheme(theme)
 	if err != nil {
 		return h.RespondWithError(c, err)

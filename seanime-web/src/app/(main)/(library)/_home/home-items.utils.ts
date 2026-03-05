@@ -18,6 +18,46 @@ export const DEFAULT_HOME_ITEMS: Models_HomeItem[] = [
     },
 ]
 
+export const ANIME_HOME_ITEM_IDS = [
+    "centered-title",
+    "anime-continue-watching",
+    "anime-continue-watching-header",
+    "anime-library",
+    "my-lists",
+    "local-anime-library",
+    "library-upcoming-episodes",
+    "aired-recently",
+    "missed-sequels",
+    "anime-schedule-calendar",
+    "local-anime-library-stats",
+    "discover-header",
+    "anime-carousel",
+] as const
+
+export const MANGA_HOME_ITEM_IDS = [
+    "centered-title",
+    "manga-continue-reading",
+    "manga-continue-reading-header",
+    "manga-library",
+    "my-lists",
+    "local-manga-library",
+    "local-manga-library-stats",
+    "manga-upcoming-chapters",
+    "manga-aired-recently",
+    "manga-missed-sequels",
+    "manga-schedule-calendar",
+    "manga-discover-header",
+    "manga-carousel",
+] as const
+
+export function isAnimeHomeItem(type: string): type is typeof ANIME_HOME_ITEM_IDS[number] {
+    return (ANIME_HOME_ITEM_IDS as readonly string[]).includes(type)
+}
+
+export function isMangaHomeItem(type: string): type is typeof MANGA_HOME_ITEM_IDS[number] {
+    return (MANGA_HOME_ITEM_IDS as readonly string[]).includes(type)
+}
+
 export function isAnimeLibraryItemsOnly(items: Nullish<Models_HomeItem[]>) {
     if (!items) return true
 
@@ -471,7 +511,7 @@ export const HOME_ITEMS = {
     "local-manga-library": {
         name: "Local Manga Library",
         kind: ["row"],
-        schemaVersion: 1,
+        schemaVersion: 2,
         description: "Coming soon: complete grid of manga in your local library.",
         options: [
             {
@@ -481,6 +521,16 @@ export const HOME_ITEMS = {
                 options: [
                     { label: "Grid", value: "grid" },
                     { label: "Carousel", value: "carousel" },
+                ],
+            },
+            {
+                label: "Source",
+                name: "source",
+                type: "select",
+                options: [
+                    { label: "Synthetic", value: "synthetic" },
+                    { label: "AniList", value: "anilist" },
+                    { label: "Both", value: "both" },
                 ],
             },
         ],
@@ -524,20 +574,8 @@ export const HOME_ITEMS = {
 } as Record<string, HomeItemSchema>
 
 export const HOME_ITEM_IDS = [
-    "anime-carousel",
-    "manga-carousel",
-    "manga-continue-reading",
-    "manga-continue-reading-header",
-    "manga-library",
-    "local-manga-library",
-    "local-manga-library-stats",
-    "manga-upcoming-chapters",
-    "manga-aired-recently",
-    "manga-missed-sequels",
-    "manga-schedule-calendar",
-    "manga-discover-header",
-    "centered-title",
-    "my-lists",
+    ...ANIME_HOME_ITEM_IDS,
+    ...MANGA_HOME_ITEM_IDS,
 ] as const
 
 // export type HomeItemID = (keyof typeof HOME_ITEMS)

@@ -5,6 +5,7 @@ import (
 	"seanime/internal/database/models"
 	"seanime/internal/util"
 	"strings"
+	"time"
 
 	"github.com/Masterminds/semver/v3"
 )
@@ -32,6 +33,15 @@ func (a *App) runMigrations() {
 	if a.previousVersion != constants.Version {
 
 		hasUpdated := util.VersionIsOlderThan(a.previousVersion, constants.Version)
+
+		//-----------------------------------------------------------------------------------------
+
+		// DEVNOTE: add manga_home_items column for split home settings
+		// Safe to run multiple times; IF NOT EXISTS guards repeated migrations.
+		a.Logger.Debug().Msg("app: Ensuring manga_home_items column exists on themes")
+		_ = a.Database.Gorm().Exec(`ALTER TABLE themes ADD COLUMN IF NOT EXISTS manga_home_items TEXT`).Error
+		// small delay to avoid concurrent schema checks in sqlite
+		time.Sleep(10 * time.Millisecond)
 
 		//-----------------------------------------------------------------------------------------
 		// DEVNOTE: 1.2.0 uses an incorrect manga cache format for MangaSee pages

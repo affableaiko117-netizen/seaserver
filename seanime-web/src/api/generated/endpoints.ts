@@ -2062,6 +2062,16 @@ export const API_ENDPOINTS = {
             methods: ["POST"],
             endpoint: "/api/v1/status/home-items",
         },
+        GetMangaHomeItems: {
+            key: "STATUS-get-manga-home-items",
+            methods: ["GET"],
+            endpoint: "/api/v1/status/manga-home-items",
+        },
+        UpdateMangaHomeItems: {
+            key: "STATUS-update-manga-home-items",
+            methods: ["POST"],
+            endpoint: "/api/v1/status/manga-home-items",
+        },
     },
     THEME: {
         GetTheme: {

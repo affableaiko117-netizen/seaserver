@@ -4,7 +4,7 @@ import { useSaveDebridSettings } from "@/api/hooks/debrid.hooks"
 import { useSaveSettings } from "@/api/hooks/settings.hooks"
 import { useGetHomeItems, useUpdateHomeItems } from "@/api/hooks/status.hooks"
 import { useSaveTorrentstreamSettings } from "@/api/hooks/torrentstream.hooks"
-import { DEFAULT_HOME_ITEMS, HOME_ITEM_IDS, HOME_ITEMS } from "@/app/(main)/(library)/_home/home-items.utils"
+import { ANIME_HOME_ITEM_IDS, DEFAULT_HOME_ITEMS, HOME_ITEMS } from "@/app/(main)/(library)/_home/home-items.utils"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { uuidv4 } from "@/app/websocket-provider"
 import { Button, IconButton } from "@/components/ui/button"
@@ -54,9 +54,6 @@ const HOME_ITEM_ICONS = {
     "local-anime-library-stats": BiStats,
     "discover-header": LuCompass,
     "anime-carousel": TbCarouselHorizontal,
-    "manga-carousel": TbCarouselHorizontal,
-    "manga-continue-reading": LuBookOpen,
-    "manga-library": LuBookOpen,
     "centered-title": LuHeading,
     "missed-sequels": LuMilestone,
     "my-lists": LuListTodo,
@@ -71,8 +68,8 @@ export function HomeSettingsModal({ emptyLibrary, isNakamaLibrary }: { emptyLibr
     const { mutate: updateHomeItems, isPending: isUpdatingHomeItems } = useUpdateHomeItems()
 
     const [currentItems, setCurrentItems] = React.useState<Models_HomeItem[]>(_homeItems || DEFAULT_HOME_ITEMS)
-    const availableItems = HOME_ITEM_IDS.filter(type => {
-        if (type === "anime-carousel" || type === "manga-carousel" || type === "centered-title" || type === "my-lists") {
+    const availableItems = ANIME_HOME_ITEM_IDS.filter(type => {
+        if (type === "anime-carousel" || type === "centered-title" || type === "my-lists") {
             return true
         }
         return !currentItems.some(item => item.type === type)
@@ -128,7 +125,7 @@ export function HomeSettingsModal({ emptyLibrary, isNakamaLibrary }: { emptyLibr
     }, [currentItems, updateHomeItems])
 
     function normalizeHomeItems(items: Models_HomeItem[]) {
-        let newItems = items.filter(item => !!HOME_ITEMS[item.type])
+        let newItems = items.filter(item => !!HOME_ITEMS[item.type] && ANIME_HOME_ITEM_IDS.includes(item.type as any))
         newItems = newItems.map(item => ({
             ...item,
             schemaVersion: HOME_ITEMS[item.type].schemaVersion,
