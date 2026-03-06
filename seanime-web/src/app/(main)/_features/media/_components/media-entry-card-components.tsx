@@ -99,7 +99,7 @@ export const MediaEntryCardHoverPopup = React.memo((props: MediaEntryCardHoverPo
             className={cn(
                 "group/media-entry-card-popup",
                 !ts.enableMediaCardBlurredBackground ? "bg-[--media-card-popup-background]" : "bg-gray-950/90 backdrop-blur-sm",
-                "absolute z-[15] opacity-0 scale-100 border border-[rgb(255_255_255_/_5%)] duration-150",
+                "absolute z-[50] opacity-0 scale-100 border border-[rgb(255_255_255_/_5%)] duration-150",
                 "group-hover/media-entry-card:opacity-100 group-hover/media-entry-card:scale-100",
                 "group-focus-visible/media-entry-card:opacity-100 group-focus-visible/media-entry-card:scale-100",
                 "focus-visible:opacity-100 focus-visible:scale-100",
