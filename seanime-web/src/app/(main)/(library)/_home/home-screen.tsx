@@ -664,7 +664,7 @@ export function HomeScreenItem(props: HomeScreenItemProps) {
     if (item.type === "manga-library") {
         return (
             <>
-                <MangaLibrary libraryCollectionProps={props.libraryCollectionProps} item={item} index={index} />
+                <MangaLibrary libraryCollectionProps={props.libraryCollectionProps} item={item} index={index} onHoverImage={props.onHoverImage} />
             </>
         )
     }
@@ -721,7 +721,7 @@ export function HomeScreenItem(props: HomeScreenItemProps) {
     </div>
 }
 
-function ComingSoonPlaceholder({ title }: { title: string }) {
+export function ComingSoonPlaceholder({ title }: { title: string }) {
     return (
         <PageWrapper className="px-4 py-10 text-center text-[--muted]">
             <div className="space-y-2">
@@ -750,8 +750,8 @@ function LocalAnimeLibrary(props: { libraryCollectionProps: HandleLibraryCollect
 
 }
 
-function MangaLibrary(props: { libraryCollectionProps: HandleLibraryCollectionProps, item: Models_HomeItem, index: number }) {
-    const { libraryCollectionProps, item, index } = props
+export function MangaLibrary(props: { libraryCollectionProps: HandleLibraryCollectionProps, item: Models_HomeItem, index: number, onHoverImage?: (imageUrl: string | null) => void }) {
+    const { libraryCollectionProps, item, index, onHoverImage } = props
     const {} = libraryCollectionProps
     const ts = useThemeSettings()
 
@@ -780,6 +780,7 @@ function MangaLibrary(props: { libraryCollectionProps: HandleLibraryCollectionPr
                 showStatuses={item.options?.statuses}
                 type={item.options?.layout || "grid"}
                 withTitle={index === 0}
+                onHoverImage={onHoverImage}
             />
         </>
     </>
@@ -939,7 +940,7 @@ function GlobalAnimeScheduleCalendar(props: { libraryCollectionProps: HandleLibr
     </PageWrapper>
 }
 
-function AnimeCarousel(props: { libraryCollectionProps: HandleLibraryCollectionProps, item: Models_HomeItem, onHoverImage?: (imageUrl: string | null) => void }) {
+export function AnimeCarousel(props: { libraryCollectionProps: HandleLibraryCollectionProps, item: Models_HomeItem, onHoverImage?: (imageUrl: string | null) => void }) {
     const { libraryCollectionProps, item, onHoverImage } = props
     const {} = libraryCollectionProps
     const ref = React.useRef(null)
@@ -1067,7 +1068,7 @@ function MyLists(props: { item: Models_HomeItem }) {
     )
 }
 
-function MangaCarousel(props: { libraryCollectionProps: HandleLibraryCollectionProps, item: Models_HomeItem, onHoverImage?: (imageUrl: string | null) => void }) {
+export function MangaCarousel(props: { libraryCollectionProps: HandleLibraryCollectionProps, item: Models_HomeItem, onHoverImage?: (imageUrl: string | null) => void }) {
     const { libraryCollectionProps, item, onHoverImage } = props
     const {} = libraryCollectionProps
     const ref = React.useRef(null)

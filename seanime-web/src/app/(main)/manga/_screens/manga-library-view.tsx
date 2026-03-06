@@ -41,6 +41,7 @@ type MangaLibraryViewProps = {
     showStatuses?: AL_MediaListStatus[]
     type?: "carousel" | "grid"
     withTitle?: boolean
+    onHoverImage?: (imageUrl: string | null) => void
 }
 
 export function MangaLibraryView(props: MangaLibraryViewProps) {
@@ -54,7 +55,7 @@ export function MangaLibraryView(props: MangaLibraryViewProps) {
         showStatuses,
         type = "grid",
         withTitle = true,
-        ...rest
+        onHoverImage,
     } = props
 
     const [params, setParams] = useAtom(__mangaLibrary_paramsAtom)
@@ -98,6 +99,7 @@ export function MangaLibraryView(props: MangaLibraryViewProps) {
                             showStatuses={showStatuses}
                             type={type}
                             withTitle={withTitle}
+                            onHoverImage={onHoverImage}
                         />
                         : <FilteredCollectionLists
                             key="filtered-collection"
@@ -105,6 +107,7 @@ export function MangaLibraryView(props: MangaLibraryViewProps) {
                             genres={genres}
                             showStatuses={showStatuses}
                             type={type}
+                            onHoverImage={onHoverImage}
                         />
                     }
                 </AnimatePresence>
@@ -115,13 +118,14 @@ export function MangaLibraryView(props: MangaLibraryViewProps) {
     )
 }
 
-export function CollectionLists({ collectionList, genres, storedProviders, showStatuses, type, withTitle }: {
+export function CollectionLists({ collectionList, genres, storedProviders, showStatuses, type, withTitle, onHoverImage }: {
     collectionList: Manga_Collection | undefined
     genres: string[]
     storedProviders: Record<string, string>
     showStatuses?: AL_MediaListStatus[]
     type?: "carousel" | "grid"
     withTitle?: boolean
+    onHoverImage?: (imageUrl: string | null) => void
 }) {
 
     const lists = collectionList?.lists?.filter(list => {
@@ -152,6 +156,7 @@ export function CollectionLists({ collectionList, genres, storedProviders, showS
                             showStatuses={showStatuses}
                             type={type}
                             withTitle={withTitle}
+                            onHoverImage={onHoverImage}
                         />
 
                         {(collection.type === "CURRENT" && !!genres?.length) && <GenreSelector genres={genres} className="!my-0" />}
@@ -163,11 +168,12 @@ export function CollectionLists({ collectionList, genres, storedProviders, showS
 
 }
 
-export function FilteredCollectionLists({ collectionList, genres, showStatuses, type }: {
+export function FilteredCollectionLists({ collectionList, genres, showStatuses, type, onHoverImage }: {
     collectionList: Manga_Collection | undefined
     genres: string[]
     showStatuses?: AL_MediaListStatus[]
     type?: "carousel" | "grid"
+    onHoverImage?: (imageUrl: string | null) => void
 }) {
 
     const entries = React.useMemo(() => {
@@ -206,6 +212,7 @@ export function FilteredCollectionLists({ collectionList, genres, showStatuses, 
                             showListDataButton
                             withAudienceScore={false}
                             type="manga"
+                            onHoverImage={onHoverImage}
                         />
                     </div>
                 })}
@@ -230,6 +237,7 @@ export function FilteredCollectionLists({ collectionList, genres, showStatuses, 
                             withAudienceScore={false}
                             type="manga"
                             containerClassName={type === "carousel" ? "basis-[200px] md:basis-[250px] mx-2 mt-8 mb-0" : undefined}
+                            onHoverImage={onHoverImage}
                         />
                     })}
                 </CarouselContent>
@@ -256,12 +264,13 @@ type UnifiedMangaItem = {
     }
 }
 
-const CollectionListItem = memo(({ list, storedProviders, showStatuses, type, withTitle }: {
+const CollectionListItem = memo(({ list, storedProviders, showStatuses, type, withTitle, onHoverImage }: {
     list: Manga_CollectionList,
     storedProviders: Record<string, string>,
     showStatuses?: AL_MediaListStatus[],
     type?: "carousel" | "grid",
-    withTitle?: boolean
+    withTitle?: boolean,
+    onHoverImage?: (imageUrl: string | null) => void
 }) => {
 
     const ts = useThemeSettings()
@@ -483,6 +492,7 @@ const CollectionListItem = memo(({ list, storedProviders, showStatuses, type, wi
                                         showListDataButton
                                         withAudienceScore={false}
                                         type="manga"
+                                        onHoverImage={onHoverImage}
                                     />
                                 </div>
                             )
@@ -551,6 +561,7 @@ const CollectionListItem = memo(({ list, storedProviders, showStatuses, type, wi
                                             showListDataButton
                                             withAudienceScore={false}
                                             type="manga"
+                                            onHoverImage={onHoverImage}
                                         />
                                     </div>
                                 )
@@ -601,6 +612,7 @@ const CollectionListItem = memo(({ list, storedProviders, showStatuses, type, wi
                                 showListDataButton
                                 withAudienceScore={false}
                                 type="manga"
+                                onHoverImage={onHoverImage}
                             />
                         </div>
                     })}
@@ -630,6 +642,7 @@ const CollectionListItem = memo(({ list, storedProviders, showStatuses, type, wi
                                     showListDataButton
                                     withAudienceScore={false}
                                     type="manga"
+                                    onHoverImage={onHoverImage}
                                 />
                             </div>
                         })}

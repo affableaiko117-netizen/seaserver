@@ -43,7 +43,7 @@ import { toast } from "sonner"
 
 export const __home_settingsModalOpen = atom(false)
 
-const HOME_ITEM_ICONS = {
+export const HOME_ITEM_ICONS = {
     "anime-continue-watching": LuCirclePlay,
     "anime-continue-watching-header": LuCirclePlay,
     "anime-library": MdOutlineVideoLibrary,
@@ -57,6 +57,18 @@ const HOME_ITEM_ICONS = {
     "centered-title": LuHeading,
     "missed-sequels": LuMilestone,
     "my-lists": LuListTodo,
+    // Manga icons
+    "manga-continue-reading": LuBookOpen,
+    "manga-continue-reading-header": LuBookOpen,
+    "manga-library": LuBookOpen,
+    "local-manga-library": IoLibraryOutline,
+    "local-manga-library-stats": BiStats,
+    "manga-upcoming-chapters": LuClock,
+    "manga-aired-recently": LuCalendarClock,
+    "manga-missed-sequels": LuMilestone,
+    "manga-schedule-calendar": LuCalendar,
+    "manga-discover-header": LuCompass,
+    "manga-carousel": TbCarouselHorizontal,
 } as const
 
 export function HomeSettingsModal({ emptyLibrary, isNakamaLibrary }: { emptyLibrary?: boolean, isNakamaLibrary: boolean }) {
