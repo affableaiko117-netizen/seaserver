@@ -252,7 +252,7 @@ export function UnmatchedMatchModal({ torrent, onClose, onSuccess }: UnmatchedMa
         }
 
         // Sort files first
-        const sortedFiles = [...torrentContents.files].sort((a, b) => 
+        const sortedFiles = [...torrentContents.files].sort((a, b) =>
             a.relativePath.localeCompare(b.relativePath, undefined, { numeric: true })
         )
 
@@ -282,8 +282,35 @@ export function UnmatchedMatchModal({ torrent, onClose, onSuccess }: UnmatchedMa
             }
         }
 
+        // Sort children of every folder alphabetically, folders first
+        const sortTree = (node: TreeNode) => {
+            if (!node.children.length) return
+            node.children.sort((a, b) => {
+                if (a.isFolder !== b.isFolder) return a.isFolder ? -1 : 1
+                return a.name.localeCompare(b.name, undefined, { numeric: true })
+            })
+            node.children.forEach(sortTree)
+        }
+        sortTree(root)
+
         return root
     }, [torrentContents])
+
+    // Expand/collapse helpers for navigation
+    const expandAll = useCallback(() => {
+        if (!fileTree) return
+        const collectFolders = (node: TreeNode, acc: Set<string>) => {
+            if (node.path) acc.add(node.path)
+            node.children.forEach(child => child.isFolder && collectFolders(child, acc))
+        }
+        const acc = new Set<string>()
+        collectFolders(fileTree, acc)
+        setExpandedSeasons(acc)
+    }, [fileTree])
+
+    const collapseAll = useCallback(() => {
+        setExpandedSeasons(new Set())
+    }, [])
 
     // Get all file paths under a folder path
     const getFilesUnderPath = useCallback((path: string): string[] => {

@@ -64,6 +64,11 @@ func NewScanner(logger *zerolog.Logger, repository *Repository) *Scanner {
 	}
 }
 
+// TriggerScan starts a scan asynchronously. Best-effort and safe to call anytime.
+func (s *Scanner) TriggerScan() {
+	go s.scanForCompletedDownloads()
+}
+
 func (s *Scanner) Start() {
 	s.mu.Lock()
 	if s.isRunning {

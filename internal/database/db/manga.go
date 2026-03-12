@@ -236,3 +236,25 @@ func (db *Database) GetMangaReadingHistoryEntry(mediaId int) (*models.MangaReadi
 	}
 	return &res, nil
 }
+
+// UpdateChapterContainerMediaID updates all chapter containers from old media ID to new media ID
+func (db *Database) UpdateChapterContainerMediaID(oldMediaID, newMediaID int) error {
+	err := db.gormdb.Model(&models.MangaChapterContainer{}).
+		Where("media_id = ?", oldMediaID).
+		Update("media_id", newMediaID).Error
+	
+	if err != nil {
+		db.Logger.Error().Err(err).
+			Int("oldMediaID", oldMediaID).
+			Int("newMediaID", newMediaID).
+			Msg("db: Failed to update chapter container media IDs")
+		return err
+	}
+	
+	db.Logger.Info().
+		Int("oldMediaID", oldMediaID).
+		Int("newMediaID", newMediaID).
+		Msg("db: Updated chapter container media IDs")
+	
+	return nil
+}

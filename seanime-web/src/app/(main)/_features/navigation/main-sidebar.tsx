@@ -42,7 +42,7 @@ import { BiChevronRight, BiExtension, BiLogIn, BiLogOut } from "react-icons/bi"
 import { FiLogIn, FiSearch } from "react-icons/fi"
 import { HiOutlineServerStack } from "react-icons/hi2"
 import { IoCloudOfflineOutline, IoHomeOutline } from "react-icons/io5"
-import { LuBook, LuBookOpen, LuCalendar, LuCompass, LuDownload, LuFolderSearch, LuGlobe, LuRefreshCw, LuRss, LuSettings, LuTv } from "react-icons/lu"
+import { LuBook, LuBookOpen, LuCalendar, LuClipboardCheck, LuCompass, LuDownload, LuFolderSearch, LuGlobe, LuRefreshCw, LuRss, LuSettings, LuTv } from "react-icons/lu"
 import { MdOutlineConnectWithoutContact } from "react-icons/md"
 import { PiArrowCircleLeftDuotone, PiArrowCircleRightDuotone } from "react-icons/pi"
 import { RiListCheck3 } from "react-icons/ri"
@@ -246,6 +246,13 @@ function SidebarNavigation({ isCollapsed, containerRef }: { isCollapsed: boolean
             href: "/unmatched",
             isCurrent: pathname === "/unmatched",
         },
+        ...(serverStatus?.settings?.library?.enableManga) ? [{
+            id: "manga-validation",
+            iconType: LuClipboardCheck,
+            name: "Manga Validation",
+            href: "/manga-validation",
+            isCurrent: pathname === "/manga-validation",
+        }] : [],
         {
             id: "enmasse",
             iconType: LuDownload,

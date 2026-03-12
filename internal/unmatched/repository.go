@@ -138,61 +138,51 @@ func (r *Repository) GetUnmatchedTorrents() ([]*UnmatchedTorrent, error) {
 	}
 
 	var torrents []*UnmatchedTorrent
-	err := filepath.WalkDir(UnmatchedBasePath, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return nil
-		}
-		if path == UnmatchedBasePath {
-			return nil
-		}
 
-		// Allow single-file downloads placed directly in the Unmatched folder.
-		if !d.IsDir() {
-			if filepath.Dir(path) != UnmatchedBasePath {
-				return nil
+	entries, err := os.ReadDir(UnmatchedBasePath)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, entry := range entries {
+		name := entry.Name()
+		fullPath := filepath.Join(UnmatchedBasePath, name)
+
+		// Single files in the root
+		if !entry.IsDir() {
+			if isTempFileName(name) {
+				continue
 			}
-			if isTempFileName(d.Name()) {
-				return nil
+			if !isVideoFile(name) {
+				continue
 			}
-			if !isVideoFile(d.Name()) {
-				return nil
-			}
-			fileTorrent, scanErr := r.scanSingleFile(d.Name(), path)
+			fileTorrent, scanErr := r.scanSingleFile(name, fullPath)
 			if scanErr != nil {
-				r.logger.Warn().Err(scanErr).Str("path", path).Msg("unmatched: Failed to scan unmatched file")
-				return nil
+				r.logger.Warn().Err(scanErr).Str("path", fullPath).Msg("unmatched: Failed to scan unmatched file")
+				continue
 			}
 			if fileTorrent.FileCount > 0 {
 				torrents = append(torrents, fileTorrent)
 			}
-			return nil
+			continue
 		}
 
-		// If this directory looks like a completed torrent root, scan it and do not descend into it.
-		if hasTempFiles(path) {
-			return nil
+		// Directories: treat each top-level folder as a torrent root
+		if hasTempFiles(fullPath) {
+			continue
 		}
-		if !hasVideoFiles(path) {
-			return nil
-		}
-
-		rel, relErr := filepath.Rel(UnmatchedBasePath, path)
-		if relErr != nil {
-			rel = d.Name()
+		if !hasVideoFiles(fullPath) {
+			continue
 		}
 
-		torrent, scanErr := r.scanTorrentDirectory(rel, path)
+		torrent, scanErr := r.scanTorrentDirectory(name, fullPath)
 		if scanErr != nil {
-			r.logger.Warn().Err(scanErr).Str("path", path).Msg("unmatched: Failed to scan torrent directory")
-			return nil
+			r.logger.Warn().Err(scanErr).Str("path", fullPath).Msg("unmatched: Failed to scan torrent directory")
+			continue
 		}
 		if torrent.FileCount > 0 {
 			torrents = append(torrents, torrent)
 		}
-		return filepath.SkipDir
-	})
-	if err != nil {
-		return nil, err
 	}
 
 	r.setCachedTorrents(torrents)
@@ -223,6 +213,11 @@ func (r *Repository) invalidateCache() {
 	defer r.cacheMu.Unlock()
 	r.cachedTorrents = nil
 	r.cacheExpiry = time.Time{}
+}
+
+// InvalidateCache clears the cached unmatched torrents so a fresh scan is used.
+func (r *Repository) InvalidateCache() {
+	r.invalidateCache()
 }
 
 // hasTempFiles checks if a directory contains any qBittorrent temp files (still downloading)

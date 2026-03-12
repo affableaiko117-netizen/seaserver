@@ -587,6 +587,13 @@ func (h *Handler) HandleAnimeEntryManualMatch(c echo.Context) error {
 		return h.RespondWithError(c, err)
 	}
 
+	// Refresh anime collection in background so unmatched lists are rebuilt
+	go func() {
+		if _, err := h.App.RefreshAnimeCollection(); err != nil {
+			h.App.Logger.Warn().Err(err).Msg("manual-match: failed to refresh anime collection after match")
+		}
+	}()
+
 	return h.RespondWithData(c, retLfs)
 }
 

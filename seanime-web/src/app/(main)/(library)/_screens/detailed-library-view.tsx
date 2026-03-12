@@ -87,6 +87,18 @@ export function DetailedLibraryView(props: LibraryViewProps) {
 
     if (!hasEntries) return null
 
+    // Home grid layout: show everything in a single grid, ignoring status buckets
+    if (isHomeItem && type === "grid") {
+        return (
+            <PageWrapper className="px-4 space-y-8" data-detailed-library-view-container>
+                <div className="flex justify-end">
+                    <SearchInput />
+                </div>
+                <MergedLibraryCollectionList entries={libraryEntries} streamingMediaIds={streamingMediaIds} type="grid" />
+            </PageWrapper>
+        )
+    }
+
     return (
         <PageWrapper className="px-4 space-y-8 relative z-[4]" data-detailed-library-view-container>
 

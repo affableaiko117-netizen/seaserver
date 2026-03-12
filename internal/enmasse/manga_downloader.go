@@ -64,13 +64,28 @@ type (
 		// Rate limiting semaphores
 		mangaSemaphore    chan struct{}  // Controls concurrent manga processing
 		chapterSemaphore  chan struct{}  // Controls concurrent chapter downloads
+		// Match tracking
+		matchRecords      []*MangaMatchRecord
 	}
 
 	MangaDownloaderProgress struct {
-		ProcessedTitles  []string `json:"processed_titles"`
-		DownloadedManga  []string `json:"downloaded_manga"`
-		FailedManga      []string `json:"failed_manga"`
-		SkippedManga     []string `json:"skipped_manga"`
+		ProcessedTitles  []string             `json:"processed_titles"`
+		DownloadedManga  []string             `json:"downloaded_manga"`
+		FailedManga      []string             `json:"failed_manga"`
+		SkippedManga     []string             `json:"skipped_manga"`
+		MatchRecords     []*MangaMatchRecord  `json:"match_records"`
+	}
+
+	MangaMatchRecord struct {
+		OriginalTitle    string                `json:"originalTitle"`
+		ProviderID       string                `json:"providerId"`
+		MatchedID        int                   `json:"matchedId"`        // AniList ID or synthetic ID (negative)
+		MatchedTitle     string                `json:"matchedTitle"`
+		IsSynthetic      bool                  `json:"isSynthetic"`
+		ConfidenceScore  float64               `json:"confidenceScore"`  // 0.0-1.0
+		SearchResults    []*anilist.BaseManga  `json:"searchResults"`    // Top search results for review
+		Status           string                `json:"status"`           // "downloaded", "failed", "skipped"
+		Timestamp        time.Time             `json:"timestamp"`
 	}
 
 	HakunekoMangaItem struct {
@@ -90,6 +105,7 @@ type (
 		SkippedManga     []string `json:"skippedManga"`
 		Status           string   `json:"status"`
 		HasSavedProgress bool     `json:"hasSavedProgress"`
+		MatchRecordCount int      `json:"matchRecordCount"`
 	}
 
 	NewMangaDownloaderOptions struct {
@@ -113,6 +129,7 @@ func NewMangaDownloader(opts *NewMangaDownloaderOptions) *MangaDownloader {
 		skippedManga:     make([]string, 0, MaxLogEntries),
 		mangaSemaphore:   make(chan struct{}, MaxConcurrentManga),
 		chapterSemaphore: make(chan struct{}, MaxConcurrentChapters),
+		matchRecords:     make([]*MangaMatchRecord, 0),
 	}
 }
 
@@ -130,6 +147,7 @@ func (d *MangaDownloader) GetStatus() *MangaDownloaderStatus {
 		SkippedManga:     d.skippedManga,
 		Status:           d.status,
 		HasSavedProgress: d.hasSavedProgress(),
+		MatchRecordCount: len(d.matchRecords),
 	}
 
 	if d.currentManga != nil {
@@ -367,6 +385,13 @@ func (d *MangaDownloader) loadProgress() *MangaDownloaderProgress {
 		return nil
 	}
 
+	// Restore match records
+	d.mu.Lock()
+	if progress.MatchRecords != nil {
+		d.matchRecords = progress.MatchRecords
+	}
+	d.mu.Unlock()
+
 	return &progress
 }
 
@@ -377,6 +402,7 @@ func (d *MangaDownloader) saveCurrentProgress(processedTitles map[string]bool) {
 		DownloadedManga:  d.downloadedManga,
 		FailedManga:      d.failedManga,
 		SkippedManga:     d.skippedManga,
+		MatchRecords:     d.matchRecords,
 	}
 	d.mu.Unlock()
 
@@ -508,8 +534,10 @@ func (d *MangaDownloader) processManga(ctx context.Context, mangaItem *HakunekoM
 	// This is optional - if not found, we'll create a synthetic manga entry
 	var mediaId int
 	var mediaTitle string
+	var searchResults []*anilist.BaseManga
+	var confidenceScore float64
 
-	anilistManga, err := d.searchAniListManga(ctx, mangaItem.Title)
+	searchResult, err := d.searchAniListMangaWithResults(ctx, mangaItem.Title)
 	if err != nil {
 		// AniList not found - create or get synthetic manga entry
 		syntheticManga, synErr := d.getOrCreateSyntheticManga(ctx, mangaProvider, mangaItem, mangaId, len(chapters))
@@ -520,6 +548,8 @@ func (d *MangaDownloader) processManga(ctx context.Context, mangaItem *HakunekoM
 			// Fallback to pseudo ID
 			mediaId = d.generatePseudoMediaId(mangaItem.Title)
 			mediaTitle = mangaItem.Title
+			// Record as synthetic with no search results
+			d.recordMatch(mangaItem.Title, mangaId, mediaId, mediaTitle, true, 0.0, nil, "downloaded")
 		} else {
 			mediaId = syntheticManga.SyntheticID
 			mediaTitle = syntheticManga.Title
@@ -527,8 +557,14 @@ func (d *MangaDownloader) processManga(ctx context.Context, mangaItem *HakunekoM
 				Str("title", mangaItem.Title).
 				Int("syntheticId", mediaId).
 				Msg("enmasse-manga: Using synthetic manga entry")
+			// Record as synthetic with no search results
+			d.recordMatch(mangaItem.Title, mangaId, mediaId, mediaTitle, true, 0.0, nil, "downloaded")
 		}
 	} else {
+		anilistManga := searchResult.bestMatch
+		searchResults = searchResult.searchResults
+		confidenceScore = searchResult.bestScore
+		
 		mediaId = anilistManga.ID
 		if anilistManga.Title != nil && anilistManga.Title.Romaji != nil {
 			mediaTitle = *anilistManga.Title.Romaji
@@ -540,7 +576,11 @@ func (d *MangaDownloader) processManga(ctx context.Context, mangaItem *HakunekoM
 			Str("title", mangaItem.Title).
 			Int("anilistId", mediaId).
 			Str("anilistTitle", mediaTitle).
+			Float64("confidence", confidenceScore).
 			Msg("enmasse-manga: Found manga on AniList")
+
+		// Record the match with search results
+		d.recordMatch(mangaItem.Title, mangaId, mediaId, mediaTitle, false, confidenceScore, searchResults, "downloaded")
 
 		// Optionally add to planning list
 		_ = d.addToAniListPlanningList(ctx, anilistManga)
@@ -828,7 +868,21 @@ func isNumeric(s string) bool {
 	return true
 }
 
+type anilistSearchResult struct {
+	bestMatch     *anilist.BaseManga
+	bestScore     float64
+	searchResults []*anilist.BaseManga
+}
+
 func (d *MangaDownloader) searchAniListManga(ctx context.Context, title string) (*anilist.BaseManga, error) {
+	result, err := d.searchAniListMangaWithResults(ctx, title)
+	if err != nil {
+		return nil, err
+	}
+	return result.bestMatch, nil
+}
+
+func (d *MangaDownloader) searchAniListMangaWithResults(ctx context.Context, title string) (*anilistSearchResult, error) {
 	platform := d.platformRef.Get()
 	if platform == nil {
 		return nil, fmt.Errorf("platform not available")
@@ -948,7 +1002,12 @@ func (d *MangaDownloader) searchAniListManga(ctx context.Context, title string) 
 		Int("mediaId", bestMatch.ID).
 		Msg("enmasse-manga: Found match on AniList")
 
-	return bestMatch, nil
+	// Return all search results for match tracking
+	return &anilistSearchResult{
+		bestMatch:     bestMatch,
+		bestScore:     bestScore,
+		searchResults: searchResult.Page.Media,
+	}, nil
 }
 
 func (d *MangaDownloader) addToAniListPlanningList(ctx context.Context, mangaMedia *anilist.BaseManga) error {
