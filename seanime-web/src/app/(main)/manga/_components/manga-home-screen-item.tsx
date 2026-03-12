@@ -95,25 +95,11 @@ export function MangaHomeScreenItem(props: MangaHomeScreenItemProps) {
     }
 
     if (item.type === "local-manga-library") {
-        return (
-            <PageWrapper className="space-y-3 px-4 py-6">
-                <h2 className="text-xl font-semibold text-white">Local Manga Library</h2>
-                <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-4 text-sm text-gray-300">
-                    Local manga library is not available in this build. Remove this item from settings or use cloud/Anilist manga sources.
-                </div>
-            </PageWrapper>
-        )
+        return <ComingSoonPlaceholder title="Local Manga Library" />
     }
 
     if (item.type === "local-manga-library-stats") {
-        return (
-            <PageWrapper className="space-y-3 px-4 py-6">
-                <h2 className="text-xl font-semibold text-white">Local Manga Library Stats</h2>
-                <div className="rounded-xl border border-gray-800 bg-gray-900/50 p-4 text-sm text-gray-300">
-                    Statistics for a local manga library aren’t supported here. Remove this item from settings to hide this section.
-                </div>
-            </PageWrapper>
-        )
+        return <ComingSoonPlaceholder title="Local Manga Library Stats" />
     }
 
     if (item.type === "manga-upcoming-chapters") {

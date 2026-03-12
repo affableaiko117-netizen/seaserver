@@ -71,6 +71,10 @@ func (h *Handler) HandleMatchUnmatchedTorrent(c echo.Context) error {
 		if _, err := h.App.GetAnimeCollection(true); err != nil {
 			h.App.Logger.Warn().Err(err).Msg("unmatched: failed to refresh anime collection after match")
 		}
+
+		// Invalidate unmatched cache and trigger a rescan so UI drops matched entries
+		h.App.UnmatchedRepository.InvalidateCache()
+		h.App.UnmatchedScanner.TriggerScan()
 	}()
 
 	return h.RespondWithData(c, result)

@@ -1,24 +1,29 @@
 "use client"
 
+import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { Models_HomeItem } from "@/api/generated/types"
+import { useSaveSettings } from "@/api/hooks/settings.hooks"
 import { useGetMangaHomeItems, useUpdateMangaHomeItems } from "@/api/hooks/status.hooks"
 import { HOME_ITEMS, MANGA_HOME_ITEM_IDS } from "@/app/(main)/(library)/_home/home-items.utils"
 import { HOME_ITEM_ICONS } from "@/app/(main)/(library)/_home/home-settings-modal"
-import { __home_settingsModalOpen } from "@/app/(main)/(library)/_home/home-settings-modal"
+import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { uuidv4 } from "@/app/websocket-provider"
 import { Button, IconButton } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Modal } from "@/components/ui/modal"
 import { NumberInput } from "@/components/ui/number-input"
+import { RadioGroup } from "@/components/ui/radio-group"
 import { Select } from "@/components/ui/select"
 import { TextInput } from "@/components/ui/text-input"
+import { Tooltip } from "@/components/ui/tooltip"
 import { DndContext, DragEndEvent } from "@dnd-kit/core"
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers"
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { useQueryClient } from "@tanstack/react-query"
-import { useAtom } from "jotai"
+import { atom } from "jotai"
+import { useAtom } from "jotai/react"
 import { atomWithStorage } from "jotai/utils"
 import React from "react"
 import { BiCog, BiPlus, BiStats, BiTrash } from "react-icons/bi"
@@ -39,9 +44,9 @@ import {
 import { MdOutlineVideoLibrary } from "react-icons/md"
 import { TbCarouselHorizontal } from "react-icons/tb"
 import { toast } from "sonner"
-import { Tooltip } from "@/components/ui/tooltip"
 
-// highlight state per manga page
+export const __manga_home_settingsModalOpen = atom(false)
+
 export const __manga_home_settings_button_discovered = atomWithStorage("sea-v3-manga-home-settings-discovered", false)
 
 export const DEFAULT_MANGA_HOME_ITEMS: Models_HomeItem[] = [
@@ -56,12 +61,15 @@ export const DEFAULT_MANGA_HOME_ITEMS: Models_HomeItem[] = [
     },
 ]
 
-function MangaSortableItem({ item, onRemove, onEditOptions, isUpdating }: { 
-    item: Models_HomeItem; 
-    onRemove: (id: string) => void; 
-    onEditOptions: (id: string) => void; 
-    isUpdating: boolean 
-}) {
+interface MangaSortableItemProps {
+    item: Models_HomeItem
+    onRemove: (id: string) => void
+    onEditOptions: (id: string) => void
+    isUpdating: boolean
+    index: number
+}
+
+function MangaSortableItem({ item, onRemove, onEditOptions, isUpdating, index }: MangaSortableItemProps) {
     const {
         attributes,
         listeners,
@@ -88,9 +96,10 @@ function MangaSortableItem({ item, onRemove, onEditOptions, isUpdating }: {
             {...listeners}
             className={cn(
                 "flex items-center gap-3 p-3 bg-gray-800/50 rounded-xl border border-gray-700 hover:border-gray-600 transition-colors cursor-move",
-                homeItemConfig.kind.length === 1 && homeItemConfig.kind[0] === "header" && "opacity-50",
+                homeItemConfig.kind.length === 1 && homeItemConfig.kind[0] === "header" && index !== 0 && "opacity-50",
             )}
         >
+
             <div className="p-2 bg-gray-700/50 rounded-lg">
                 <Icon className="size-5 text-gray-300" />
             </div>
@@ -358,7 +367,7 @@ function OptionField({ option, value, onChange }: OptionFieldProps) {
 }
 
 export function MangaHomeSettingsButton() {
-    const [isModalOpen, setIsModalOpen] = useAtom(__home_settingsModalOpen)
+    const [isModalOpen, setIsModalOpen] = useAtom(__manga_home_settingsModalOpen)
     const [discoveredOnce, setDiscoveredOnce] = useAtom(__manga_home_settings_button_discovered)
     return (
         <Tooltip
@@ -377,25 +386,24 @@ export function MangaHomeSettingsButton() {
 }
 
 export function MangaHomeSettingsModal() {
-    const [isModalOpen, setIsModalOpen] = useAtom(__home_settingsModalOpen)
+    const serverStatus = useServerStatus()
+    const [isModalOpen, setIsModalOpen] = useAtom(__manga_home_settingsModalOpen)
     const [optionsModalOpen, setOptionsModalOpen] = React.useState<string | null>(null)
+
     const { data: _homeItems, isLoading: isLoadingHomeItems } = useGetMangaHomeItems()
     const { mutate: updateHomeItems, isPending: isUpdatingHomeItems } = useUpdateMangaHomeItems()
-    const queryClient = useQueryClient()
 
     const [currentItems, setCurrentItems] = React.useState<Models_HomeItem[]>(_homeItems || DEFAULT_MANGA_HOME_ITEMS)
-    const allowedMultiple = ["manga-carousel", "centered-title", "my-lists"] as const
-    // Show every manga home item; allow multiples for specific types
     const availableItems = MANGA_HOME_ITEM_IDS.filter(type => {
-        if (allowedMultiple.includes(type as typeof allowedMultiple[number])) return true
+        if (type === "manga-carousel" || type === "centered-title" || type === "my-lists") {
+            return true
+        }
         return !currentItems.some(item => item.type === type)
     })
 
     const checkTimeRef = React.useRef<NodeJS.Timeout | null>(null)
     React.useEffect(() => {
-        if (!_homeItems) return
-
-        const homeItems = normalizeHomeItems(_homeItems)
+        const homeItems = _homeItems || DEFAULT_MANGA_HOME_ITEMS
         setCurrentItems(homeItems)
 
         if (checkTimeRef.current) {
@@ -405,15 +413,13 @@ export function MangaHomeSettingsModal() {
 
         // Check if an item doesn't exist anymore and remove it
         checkTimeRef.current = setTimeout(() => {
-            const newItems = normalizeHomeItems(homeItems)
+            const newItems = normalizeHomeItems(currentItems)
 
             if (newItems.length !== homeItems.length) {
                 setCurrentItems(newItems)
                 updateHomeItems({ items: newItems }, {
                     onSuccess: () => {
                         console.log("Manga home items updated")
-                        // Invalidate cache to trigger real-time update
-                        queryClient.invalidateQueries({ queryKey: ["GetMangaHomeItems"] })
                     },
                 })
             }
@@ -438,13 +444,11 @@ export function MangaHomeSettingsModal() {
             setCurrentItems(newItems)
             updateHomeItems({ items: newItems }, {
                 onSuccess: () => {
-                    // Invalidate cache for real-time update
-                    queryClient.invalidateQueries({ queryKey: ["GetMangaHomeItems"] })
-                    toast.success("Manga home items reordered")
+                    // toast.success("Manga home items reordered")
                 },
             })
         }
-    }, [currentItems, updateHomeItems, queryClient])
+    }, [currentItems, updateHomeItems])
 
     function normalizeHomeItems(items: Models_HomeItem[]) {
         let newItems = items.filter(item => !!HOME_ITEMS[item.type] && MANGA_HOME_ITEM_IDS.includes(item.type as any))
@@ -467,8 +471,6 @@ export function MangaHomeSettingsModal() {
         updateHomeItems({ items: newItems }, {
             onSuccess: () => {
                 toast.success("Manga home item added")
-                // Invalidate cache for real-time update
-                queryClient.invalidateQueries({ queryKey: ["GetMangaHomeItems"] })
             },
         })
     }
@@ -479,8 +481,6 @@ export function MangaHomeSettingsModal() {
         updateHomeItems({ items: newItems }, {
             onSuccess: () => {
                 toast.success("Manga home item removed")
-                // Invalidate cache for real-time update
-                queryClient.invalidateQueries({ queryKey: ["GetMangaHomeItems"] })
             },
         })
     }
@@ -496,29 +496,14 @@ export function MangaHomeSettingsModal() {
             onSuccess: () => {
                 toast.success("Manga home layout updated")
                 setOptionsModalOpen(null)
-                // Invalidate cache for real-time update
-                queryClient.invalidateQueries({ queryKey: ["GetMangaHomeItems"] })
             },
         })
     }
 
-    if (isLoadingHomeItems) {
-        return (
-            <Modal
-                open={isModalOpen}
-                onOpenChange={setIsModalOpen}
-                title={<div className="flex items-center gap-2 w-full justify-center">
-                    <LuBookOpen className="size-5" />
-                    Manga Home
-                </div>}
-                contentClass="max-w-4xl bg-gray-950 bg-opacity-90 sm:rounded-3xl"
-            >
-                <div className="flex items-center justify-center py-12">
-                    <LoadingSpinner />
-                </div>
-            </Modal>
-        )
-    }
+    const mangaLibraryType = "local"
+
+    const { mutateAsync: updateSettings, isPending: isSavingSettings } = useSaveSettings()
+    const queryClient = useQueryClient()
 
     return (
         <>
@@ -532,49 +517,131 @@ export function MangaHomeSettingsModal() {
                 contentClass="max-w-5xl bg-gray-950 bg-opacity-90 sm:rounded-3xl"
             >
                 <div className="space-y-6">
-                    <div className="flex items-center gap-2 mb-4">
-                        <LuHeading className="size-5" />
-                        <h4 className="text-lg font-semibold">Layout</h4>
+                    <div>
+                        <div className="flex items-center gap-2 mb-4">
+                            <LuBookOpen className="size-5" />
+                            <h4 className="text-lg font-semibold">Manga Library</h4>
+                        </div>
+
+                        <RadioGroup
+                            value={mangaLibraryType}
+                            onValueChange={value => {
+                                (async () => {
+                                    await updateSettings({
+                                        ...(serverStatus?.settings as any),
+                                        manga: {
+                                            ...(serverStatus?.settings?.manga as any)!,
+                                            includeOnlineSourcesInLibrary: value === "online",
+                                        },
+                                    })
+                                    await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.MANGA.GetMangaCollection.key] })
+                                })()
+                            }}
+                            disabled={isSavingSettings}
+                            options={[
+                                { label: "Downloaded manga only", value: "local" },
+                                { label: "Downloaded + Online sources", value: "online" },
+                            ]}
+
+                            {...{
+                                itemClass: cn(
+                                    "border-transparent absolute top-2 right-2 bg-transparent dark:bg-transparent dark:data-[state=unchecked]:bg-transparent",
+                                    "data-[state=unchecked]:bg-transparent data-[state=unchecked]:hover:bg-transparent dark:data-[state=unchecked]:hover:bg-transparent",
+                                    "focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:ring-offset-transparent",
+                                ),
+                                stackClass: "space-y-0 flex flex-row gap-2",
+                                itemIndicatorClass: "hidden",
+                                itemLabelClass: "font-normal tracking-wide line-clamp-1 truncate flex flex-col items-center data-[state=checked]:text-[--gray] cursor-pointer",
+                                itemContainerClass: cn(
+                                    "items-start cursor-pointer transition border-transparent rounded-[--radius] py-1.5 px-3 w-full",
+                                    "hover:bg-[--subtle] dark:bg-gray-900",
+                                    "data-[state=checked]:bg-white dark:data-[state=unchecked]:hover:bg-gray-800 dark:data-[state=checked]:bg-gray-900",
+                                    "focus:ring-2 ring-transparent dark:ring-transparent outline-none ring-offset-1 ring-offset-[--background] focus-within:ring-2 transition",
+                                    "border border-transparent data-[state=checked]:border-gray-500 data-[state=checked]:ring-offset-0",
+                                ),
+                            }}
+                        />
+
+                        <p className="text-sm text-[--muted] pt-4">
+                            {mangaLibraryType === "local"
+                                ? "Only manga downloaded to your local directory will be displayed"
+                                : "All manga from your reading list and online sources will be included in the library"}
+                        </p>
+
+
                     </div>
 
-                    <DndContext modifiers={[restrictToVerticalAxis]} onDragEnd={handleDragEnd}>
-                        <SortableContext items={currentItems.map(item => item.id)} strategy={verticalListSortingStrategy}>
-                            <div className="space-y-2 bg-gray-900/30 rounded-xl p-4 border border-gray-800">
-                                {currentItems.length === 0 ? (
-                                    <div className="text-center py-8 text-gray-400">
-                                        No items added yet. Add some items below.
-                                    </div>
-                                ) : (
-                                    currentItems.map((item, index) => (
-                                        <MangaSortableItem
-                                            key={item.id}
-                                            item={item}
-                                            onRemove={handleRemoveItem}
-                                            onEditOptions={() => setOptionsModalOpen(item.id)}
-                                            isUpdating={isUpdatingHomeItems}
-                                        />
-                                    ))
-                                )}
-                            </div>
-                        </SortableContext>
-                    </DndContext>
+                    <div
+                        className={cn(
+                            "hidden lg:block",
+                        )}
+                    >
+                        <div className="flex items-center gap-2 mb-4">
+                            <LuLayoutPanelLeft className="size-5" />
+                            <h4 className="text-lg font-semibold">Home Layout</h4>
+                        </div>
 
-                    <div>
-                        <div className="flex items-center gap-2 mb-3">
+                        {isLoadingHomeItems ? (
+                            <div className="flex items-center justify-center py-8">
+                                <LoadingSpinner />
+                            </div>
+                        ) : (
+                            <DndContext
+                                modifiers={[restrictToVerticalAxis]}
+                                onDragEnd={handleDragEnd}
+                            >
+                                <SortableContext items={currentItems.map(item => item.id)} strategy={verticalListSortingStrategy}>
+                                    <div className="space-y-2 bg-gray-900/30 rounded-xl p-4 border border-gray-800">
+                                        {currentItems.length === 0 ? (
+                                            <div className="text-center py-8 text-gray-400">
+                                                No items added yet. Add some items below to customize your home screen.
+                                            </div>
+                                        ) : (
+                                            currentItems.map((item, index) => (
+                                                <MangaSortableItem
+                                                    key={item.id}
+                                                    item={item}
+                                                    index={index}
+                                                    onRemove={handleRemoveItem}
+                                                    onEditOptions={setOptionsModalOpen}
+                                                    isUpdating={isUpdatingHomeItems}
+                                                />
+                                            ))
+                                        )}
+                                    </div>
+                                </SortableContext>
+                            </DndContext>
+                        )}
+                    </div>
+
+
+                    <div
+                        className={cn(
+                            "hidden lg:block",
+                        )}
+                    >
+                        <div className="flex items-center gap-2 mb-4">
                             <BiPlus className="size-5" />
                             <h4 className="text-lg font-semibold">Available Items</h4>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {availableItems.map(type => (
-                                <AvailableMangaHomeItem
-                                    key={type}
-                                    id={type}
-                                    type={type}
-                                    onAdd={handleAddItem}
-                                    isUpdating={isUpdatingHomeItems}
-                                />
-                            ))}
-                        </div>
+
+                        {availableItems.length === 0 ? (
+                            <div className="text-center py-6 text-gray-400">
+                                All available items have been added to your home screen.
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {availableItems.toSorted((a, b) => HOME_ITEMS[a].name.localeCompare(HOME_ITEMS[b].name)).map((itemType) => (
+                                    <AvailableMangaHomeItem
+                                        key={itemType}
+                                        id={itemType}
+                                        type={itemType}
+                                        onAdd={handleAddItem}
+                                        isUpdating={isUpdatingHomeItems}
+                                    />
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             </Modal>

@@ -22,16 +22,16 @@ function formatBytes(bytes: number): string {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
 }
 
-// Truncate each path segment to max 15 chars, reversed order (last directory first)
-function truncatePathSegments(path: string, maxCharsPerSegment: number = 15): string {
+// Truncate each path segment to max 15 chars in natural order (root -> leaf).
+// If treatAsPath is false, do not split on '/' (so titles with '/' stay intact).
+function truncatePathSegments(path: string, maxCharsPerSegment: number = 15, treatAsPath: boolean = true): string {
     if (!path) return ""
-    const segments = path.split("/").filter(Boolean)
+    const segments = treatAsPath ? path.split("/").filter(Boolean) : [path]
     const truncated = segments.map(segment => {
         if (segment.length <= maxCharsPerSegment) return segment
         return segment.slice(0, maxCharsPerSegment - 1) + "…"
     })
-    // Reverse order: last directory first
-    return truncated.reverse().join(" / ")
+    return truncated.join(" / ")
 }
 
 export function UnmatchedTorrentCard({ torrent, onSelect }: UnmatchedTorrentCardProps) {
@@ -39,8 +39,10 @@ export function UnmatchedTorrentCard({ torrent, onSelect }: UnmatchedTorrentCard
     // Use name, or fall back to the folder name from path
     const displayName = torrent.name || torrent.path?.split("/").pop() || "Unknown torrent"
     
-    // Get truncated directory path for display
-    const truncatedPath = truncatePathSegments(torrent.name, 15)
+    // Get truncated directory path for display; prefer path (real folders) otherwise keep name intact (even with '/')
+    const truncatedPath = torrent.path
+        ? truncatePathSegments(torrent.path, 15, true)
+        : truncatePathSegments(displayName, 15, false)
     
     // Check if we have anime metadata
     const hasAnimeInfo = torrent.animeId && (torrent.animeTitleRomaji || torrent.animeTitleNative)

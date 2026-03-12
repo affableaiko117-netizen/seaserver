@@ -1,5 +1,6 @@
 "use client"
 import { CustomLibraryBanner } from "@/app/(main)/(library)/_containers/custom-library-banner"
+import { MediaCardLazyGrid } from "@/app/(main)/_features/media/_components/media-card-grid"
 import { MediaEntryCard } from "@/app/(main)/_features/media/_components/media-entry-card"
 import { MediaEntryPageLoadingDisplay } from "@/app/(main)/_features/media/_components/media-entry-page-loading-display"
 import { MangaLibraryHeader } from "@/app/(main)/manga/_components/library-header"
@@ -65,26 +66,21 @@ export default function Page() {
 
     const { data: downloadedList, isLoading: downloadsLoading, isError: downloadsError } = useGetMangaDownloadsList()
     const [downloadSearch, setDownloadSearch] = React.useState("")
-    const pageSize = 30
-    const [downloadPage, setDownloadPage] = React.useState(1)
 
     const downloadedWithMedia = React.useMemo(() => (downloadedList || []).filter(d => !!d.media), [downloadedList])
     const filteredDownloads = React.useMemo(() => {
         const list = downloadedList || []
         const q = downloadSearch.trim().toLowerCase()
         const filtered = !q ? list : list.filter(item => item.media?.title?.userPreferred?.toLowerCase().includes(q))
-        return filtered
+        
+        // Sort alphabetically with natural number ordering
+        return filtered.sort((a, b) => {
+            const titleA = a.media?.title?.userPreferred || `Unknown ${a.mediaId}`
+            const titleB = b.media?.title?.userPreferred || `Unknown ${b.mediaId}`
+            return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' })
+        })
     }, [downloadSearch, downloadedList])
-    const pagedDownloads = React.useMemo(() => {
-        const start = (downloadPage - 1) * pageSize
-        return filteredDownloads.slice(start, start + pageSize)
-    }, [filteredDownloads, downloadPage])
     const downloadedChaptersTotal = React.useMemo(() => downloadedList?.reduce((acc, d) => acc + Object.values(d.downloadData).flatMap(n => n).length, 0) || 0, [downloadedList])
-
-    // Reset to first page on new search or data
-    React.useEffect(() => {
-        setDownloadPage(1)
-    }, [downloadSearch, downloadedList?.length])
 
     if (!mangaCollection || mangaCollectionLoading) return <MediaEntryPageLoadingDisplay />
 
@@ -196,7 +192,7 @@ export default function Page() {
                                 filteredCollection={filteredMangaCollection}
                                 storedProviders={storedProviders}
                                 hasManga={hasManga}
-                                onHoverImage={setHoverImage}
+                                onHoverImage={handleHoverImage}
                             />
                         )
                     }
@@ -268,21 +264,18 @@ export default function Page() {
                                         <div className="flex items-center gap-3">
                                             <input
                                                 value={downloadSearch}
-                                                onChange={(e) => {
-                                                    setDownloadSearch(e.target.value)
-                                                    setDownloadPage(1)
-                                                }}
+                                                onChange={(e) => setDownloadSearch(e.target.value)}
                                                 placeholder="Search downloaded manga"
                                                 className="w-full rounded-lg bg-gray-900/70 border border-gray-800 px-3 py-2 text-sm text-white focus:border-brand-400 focus:outline-none"
                                             />
                                         </div>
 
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-4">
-                                            {pagedDownloads.map(item => {
+                                        <MediaCardLazyGrid itemCount={filteredDownloads.length}>
+                                            {filteredDownloads.map(item => {
                                                 const chapters = Object.values(item.downloadData).flatMap(n => n).length
-                                                const isSynthetic = (item.media?.id ?? 0) < 0 || Object.keys(item.downloadData || {}).includes("weebcentral")
+                                                const isSynthetic = (item.media?.id !== undefined && item.media.id < 0) || Object.keys(item.downloadData || {}).includes("weebcentral")
                                                 if (item.media) {
-                                                    const hoverImage = item.media?.coverImage?.extraLarge || item.media?.coverImage?.large || item.media?.coverImage?.medium || null
+                                                    const hoverImage = item.media?.bannerImage || item.media?.coverImage?.extraLarge || item.media?.coverImage?.large || null
                                                     return (
                                                         <div
                                                             key={item.media?.id}
@@ -326,32 +319,7 @@ export default function Page() {
                                                     </div>
                                                 )
                                             })}
-                                        </div>
-
-                                        <div className="flex items-center justify-between pt-2 text-xs text-[--muted]">
-                                            <div>
-                                                Page {downloadPage} / {Math.max(1, Math.ceil(filteredDownloads.length / pageSize))}
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <button
-                                                    className="px-3 py-1 rounded border border-gray-800 bg-gray-900/80 disabled:opacity-40"
-                                                    onClick={() => setDownloadPage(p => Math.max(1, p - 1))}
-                                                    disabled={downloadPage === 1}
-                                                >
-                                                    Prev
-                                                </button>
-                                                <button
-                                                    className="px-3 py-1 rounded border border-gray-800 bg-gray-900/80 disabled:opacity-40"
-                                                    onClick={() => setDownloadPage(p => {
-                                                        const maxPage = Math.max(1, Math.ceil(filteredDownloads.length / pageSize))
-                                                        return Math.min(maxPage, p + 1)
-                                                    })}
-                                                    disabled={downloadPage >= Math.max(1, Math.ceil(filteredDownloads.length / pageSize))}
-                                                >
-                                                    Next
-                                                </button>
-                                            </div>
-                                        </div>
+                                        </MediaCardLazyGrid>
                                     </div>
                                 )}
 
