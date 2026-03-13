@@ -1,7 +1,7 @@
 "use client"
 
 import { useCorrectMangaMatch, useConvertMangaToSynthetic, type MangaMatchRecord } from "@/api/hooks/enmasse.hooks"
-import { useAnilistListAnime } from "@/api/hooks/anilist.hooks"
+import { useAnilistListManga } from "@/api/hooks/manga.hooks"
 import { AL_BaseManga } from "@/api/generated/types"
 import { AppLayoutStack } from "@/components/ui/app-layout"
 import { Badge } from "@/components/ui/badge"
@@ -44,7 +44,7 @@ export function MangaMatchReviewModal({ record, onClose, onSuccess }: MangaMatch
     // Use either manual search query or auto-search query
     const effectiveSearchQuery = searchQuery || autoSearchQuery || ""
 
-    const { data: searchResults, isLoading: isSearching } = useAnilistListAnime({
+    const { data: searchResults, isLoading: isSearching } = useAnilistListManga({
         search: effectiveSearchQuery,
         page: 1,
         perPage: 20,

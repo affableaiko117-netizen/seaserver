@@ -193,18 +193,13 @@ func (d *MangaDownloader) Start(resume bool) error {
 	d.isRunning = true
 	d.isPaused = false
 
-	// Auto-resume if saved progress exists and resume not explicitly requested
-	autoResume := resume
-	if !resume && d.hasSavedProgress() {
-		autoResume = true
-		d.logger.Info().Msg("enmasse-manga: Saved progress found; auto-resuming")
-	}
-
-	if !autoResume {
+	// Only resume if explicitly requested (no auto-resume)
+	if !resume {
 		d.processedCount = 0
 		d.downloadedManga = make([]string, 0, MaxLogEntries)
 		d.failedManga = make([]string, 0, MaxLogEntries)
 		d.skippedManga = make([]string, 0, MaxLogEntries)
+		d.processedSyntheticIDs = make([]int, 0) // Clear processed synthetic IDs for fresh auto-match
 		d.clearProgress()
 	}
 	d.status = "Starting..."
@@ -213,7 +208,7 @@ func (d *MangaDownloader) Start(resume bool) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	d.cancelFunc = cancel
 
-	go d.run(ctx, autoResume)
+	go d.run(ctx, resume)
 
 	return nil
 }
