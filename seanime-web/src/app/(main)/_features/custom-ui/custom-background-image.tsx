@@ -3,6 +3,7 @@ import { cn } from "@/components/ui/core/styling"
 import { getAssetUrl } from "@/lib/server/assets"
 import { useThemeSettings } from "@/lib/theme/hooks"
 import { motion } from "motion/react"
+import { usePathname } from "next/navigation"
 import React from "react"
 
 type CustomBackgroundImageProps = React.ComponentPropsWithoutRef<"div"> & {}
@@ -15,6 +16,16 @@ export function CustomBackgroundImage(props: CustomBackgroundImageProps) {
     } = props
 
     const ts = useThemeSettings()
+    const pathname = usePathname()
+    
+    // Exclude specific pages from background effects
+    const isExcludedPage = React.useMemo(() => {
+        return pathname.includes('/manga/entry') || 
+               pathname.includes('/entry') || 
+               pathname.includes('/manga/_containers/chapter-reader')
+    }, [pathname])
+    
+    if (isExcludedPage) return null
 
     return (
         <>
@@ -24,16 +35,15 @@ export function CustomBackgroundImage(props: CustomBackgroundImageProps) {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 1, delay: 0.1 }}
-                    className="fixed w-full h-full inset-0"
+                    className="fixed w-full h-full inset-0 pointer-events-none"
                     data-custom-background-image
                 >
 
-                    {ts.libraryScreenCustomBackgroundBlur !== "" && <div
+                    {/* Enhanced blur layer with 80% dim */}
+                    <div
                         data-custom-background-image-blur
-                        className="fixed w-full h-full inset-0 z-[0]"
-                        style={{ backdropFilter: `blur(${ts.libraryScreenCustomBackgroundBlur})` }}
-                    >
-                    </div>}
+                        className="fixed w-full h-full inset-0 z-[0] backdrop-blur-2xl bg-black/80 transition-all duration-1000"
+                    />
 
                     <div
                         data-custom-background-image-cover

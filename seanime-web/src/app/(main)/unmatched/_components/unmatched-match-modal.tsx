@@ -19,9 +19,10 @@ import { TextInput } from "@/components/ui/text-input"
 import { Alert } from "@/components/ui/alert/alert"
 import React, { useState, useMemo, useCallback, useEffect } from "react"
 import { toast } from "sonner"
-import { BiCheck, BiFolder, BiFile, BiSearch, BiFolderOpen } from "react-icons/bi"
+import { BiCheck, BiFolder, BiFile, BiSearch, BiFolderOpen, BiSolidStar } from "react-icons/bi"
 import { LuChevronDown, LuChevronRight } from "react-icons/lu"
 import Image from "next/image"
+import capitalize from "lodash/capitalize"
 
 // Tree node structure for folder hierarchy
 interface TreeNode {
@@ -675,10 +676,29 @@ function TreeNodeItem({
 }
 
 function AnimeSearchItem({ anime, selected, onSelect }: { anime: AL_BaseAnime; selected: boolean; onSelect: () => void }) {
+    const season = anime.season ? capitalize(anime.season.toLowerCase()) : null
+    const year = anime.seasonYear
+    const seasonYear = season && year ? `${season} ${year}` : year ? `${year}` : null
+    
+    const getStatusColor = (status?: string) => {
+        switch (status) {
+            case "FINISHED":
+                return "text-green-400"
+            case "RELEASING":
+                return "text-blue-400"
+            case "NOT_YET_RELEASED":
+                return "text-yellow-400"
+            case "CANCELLED":
+                return "text-red-400"
+            default:
+                return "text-gray-400"
+        }
+    }
+    
     return (
         <div
             className={cn(
-                "flex items-center gap-3 p-2 rounded cursor-pointer hover:bg-gray-800/50",
+                "flex items-center gap-3 p-2 rounded cursor-pointer hover:bg-gray-800/50 transition-colors",
                 selected && "bg-brand-900/30 border border-brand-500"
             )}
             onClick={onSelect}
@@ -689,21 +709,60 @@ function AnimeSearchItem({ anime, selected, onSelect }: { anime: AL_BaseAnime; s
                     alt={anime.title?.romaji || ""}
                     width={50}
                     height={70}
-                    className="rounded object-cover"
+                    className="rounded object-cover flex-shrink-0"
                 />
             )}
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 space-y-1">
                 <p className="font-medium text-sm line-clamp-1">
                     {anime.title?.native || anime.title?.romaji}
                 </p>
                 <p className="text-xs text-[--muted] line-clamp-1">
                     {anime.title?.romaji}
                 </p>
-                <p className="text-xs text-[--muted]">
-                    {anime.format} • {anime.episodes ? `${anime.episodes} eps` : "Unknown eps"}
-                </p>
+                
+                {/* Season/Year and Status */}
+                <div className="flex items-center gap-2 flex-wrap">
+                    {seasonYear && (
+                        <span className="text-xs text-[--muted]">{seasonYear}</span>
+                    )}
+                    {anime.status && (
+                        <span className={cn("text-xs font-medium", getStatusColor(anime.status))}>
+                            {anime.status.replace(/_/g, " ")}
+                        </span>
+                    )}
+                </div>
+                
+                {/* Format, Episodes, Score */}
+                <div className="flex items-center gap-2 flex-wrap text-xs text-[--muted]">
+                    <span>{anime.format}</span>
+                    <span>•</span>
+                    <span>{anime.episodes ? `${anime.episodes} eps` : "Unknown eps"}</span>
+                    {anime.meanScore && (
+                        <>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                                <BiSolidStar className="text-yellow-500" />
+                                {anime.meanScore}%
+                            </span>
+                        </>
+                    )}
+                </div>
+                
+                {/* Genres */}
+                {anime.genres && anime.genres.length > 0 && (
+                    <div className="flex items-center gap-1 flex-wrap">
+                        {anime.genres.slice(0, 3).map((genre, idx) => (
+                            <span
+                                key={idx}
+                                className="text-[10px] px-1.5 py-0.5 rounded bg-gray-800/50 text-gray-300"
+                            >
+                                {genre}
+                            </span>
+                        ))}
+                    </div>
+                )}
             </div>
-            {selected && <BiCheck className="text-2xl text-brand-200" />}
+            {selected && <BiCheck className="text-2xl text-brand-200 flex-shrink-0" />}
         </div>
     )
 }

@@ -65,15 +65,21 @@ type (
 		mangaSemaphore    chan struct{}  // Controls concurrent manga processing
 		chapterSemaphore  chan struct{}  // Controls concurrent chapter downloads
 		// Match tracking
-		matchRecords      []*MangaMatchRecord
+		matchRecords           []*MangaMatchRecord
+		processedSyntheticIDs  []int    // Track which synthetic manga have been auto-matched
+		autoMatchInProgress    bool
+		autoMatchCurrent       string
+		autoMatchProcessed     int
+		autoMatchTotal         int
 	}
 
 	MangaDownloaderProgress struct {
-		ProcessedTitles  []string             `json:"processed_titles"`
-		DownloadedManga  []string             `json:"downloaded_manga"`
-		FailedManga      []string             `json:"failed_manga"`
-		SkippedManga     []string             `json:"skipped_manga"`
-		MatchRecords     []*MangaMatchRecord  `json:"match_records"`
+		ProcessedTitles       []string             `json:"processed_titles"`
+		DownloadedManga       []string             `json:"downloaded_manga"`
+		FailedManga           []string             `json:"failed_manga"`
+		SkippedManga          []string             `json:"skipped_manga"`
+		MatchRecords          []*MangaMatchRecord  `json:"match_records"`
+		ProcessedSyntheticIDs []int                `json:"processed_synthetic_ids"` // Track which synthetic manga have been auto-matched
 	}
 
 	MangaMatchRecord struct {
@@ -94,18 +100,22 @@ type (
 	}
 
 	MangaDownloaderStatus struct {
-		IsRunning        bool     `json:"isRunning"`
-		IsPaused         bool     `json:"isPaused"`
-		CurrentManga     *string  `json:"currentManga"`
-		CurrentChapter   *string  `json:"currentChapter"`
-		ProcessedCount   int      `json:"processedCount"`
-		TotalCount       int      `json:"totalCount"`
-		DownloadedManga  []string `json:"downloadedManga"`
-		FailedManga      []string `json:"failedManga"`
-		SkippedManga     []string `json:"skippedManga"`
-		Status           string   `json:"status"`
-		HasSavedProgress bool     `json:"hasSavedProgress"`
-		MatchRecordCount int      `json:"matchRecordCount"`
+		IsRunning           bool     `json:"isRunning"`
+		IsPaused            bool     `json:"isPaused"`
+		CurrentManga        *string  `json:"currentManga"`
+		CurrentChapter      *string  `json:"currentChapter"`
+		ProcessedCount      int      `json:"processedCount"`
+		TotalCount          int      `json:"totalCount"`
+		DownloadedManga     []string `json:"downloadedManga"`
+		FailedManga         []string `json:"failedManga"`
+		SkippedManga        []string `json:"skippedManga"`
+		Status              string   `json:"status"`
+		HasSavedProgress    bool     `json:"hasSavedProgress"`
+		MatchRecordCount    int      `json:"matchRecordCount"`
+		AutoMatchInProgress bool     `json:"autoMatchInProgress"`
+		AutoMatchCurrent    *string  `json:"autoMatchCurrent"`
+		AutoMatchProcessed  int      `json:"autoMatchProcessed"`
+		AutoMatchTotal      int      `json:"autoMatchTotal"`
 	}
 
 	NewMangaDownloaderOptions struct {
@@ -138,16 +148,23 @@ func (d *MangaDownloader) GetStatus() *MangaDownloaderStatus {
 	defer d.mu.Unlock()
 
 	status := &MangaDownloaderStatus{
-		IsRunning:        d.isRunning,
-		IsPaused:         d.isPaused,
-		ProcessedCount:   d.processedCount,
-		TotalCount:       d.totalCount,
-		DownloadedManga:  d.downloadedManga,
-		FailedManga:      d.failedManga,
-		SkippedManga:     d.skippedManga,
-		Status:           d.status,
-		HasSavedProgress: d.hasSavedProgress(),
-		MatchRecordCount: len(d.matchRecords),
+		IsRunning:           d.isRunning,
+		IsPaused:            d.isPaused,
+		ProcessedCount:      d.processedCount,
+		TotalCount:          d.totalCount,
+		DownloadedManga:     d.downloadedManga,
+		FailedManga:         d.failedManga,
+		SkippedManga:        d.skippedManga,
+		Status:              d.status,
+		HasSavedProgress:    d.hasSavedProgress(),
+		MatchRecordCount:    len(d.matchRecords),
+		AutoMatchInProgress: d.autoMatchInProgress,
+		AutoMatchProcessed:  d.autoMatchProcessed,
+		AutoMatchTotal:      d.autoMatchTotal,
+	}
+
+	if d.autoMatchCurrent != "" {
+		status.AutoMatchCurrent = &d.autoMatchCurrent
 	}
 
 	if d.currentManga != nil {
@@ -385,10 +402,13 @@ func (d *MangaDownloader) loadProgress() *MangaDownloaderProgress {
 		return nil
 	}
 
-	// Restore match records
+	// Restore match records and processed synthetic IDs
 	d.mu.Lock()
 	if progress.MatchRecords != nil {
 		d.matchRecords = progress.MatchRecords
+	}
+	if progress.ProcessedSyntheticIDs != nil {
+		d.processedSyntheticIDs = progress.ProcessedSyntheticIDs
 	}
 	d.mu.Unlock()
 
@@ -901,11 +921,12 @@ func (d *MangaDownloader) searchAniListMangaWithResults(ctx context.Context, tit
 		return nil, fmt.Errorf("title too short after sanitization")
 	}
 
-	var searchResult *anilist.ListManga
+	// Collect all search results from all variants
+	allSearchResults := make([]*anilist.BaseManga, 0)
+	searchResultsMap := make(map[int]bool) // Track unique manga IDs
 	var lastErr error
-	var usedSearchTitle string
 
-	// Try each search variant until one succeeds
+	// Try each search variant and collect results
 	// Rate limit: AniList is currently limited to 30 req/min, so wait 4s between requests (halved rate)
 	for _, searchTitle := range searchVariants {
 		d.logger.Debug().Str("originalTitle", title).Str("searchTitle", searchTitle).Msg("enmasse-manga: Trying search variant")
@@ -919,20 +940,86 @@ func (d *MangaDownloader) searchAniListMangaWithResults(ctx context.Context, tit
 			continue
 		}
 		
-		// Check if we got results
+		// Collect results from this variant
 		if result != nil && result.Page != nil && len(result.Page.Media) > 0 {
-			searchResult = result
-			usedSearchTitle = searchTitle
-			break
+			for _, media := range result.Page.Media {
+				if media != nil && !searchResultsMap[media.ID] {
+					allSearchResults = append(allSearchResults, media)
+					searchResultsMap[media.ID] = true
+				}
+			}
+			d.logger.Debug().
+				Str("searchTitle", searchTitle).
+				Int("resultCount", len(result.Page.Media)).
+				Msg("enmasse-manga: Search variant returned results")
+		} else {
+			d.logger.Debug().Str("searchTitle", searchTitle).Msg("enmasse-manga: Search variant returned no results")
 		}
 		
-		// No results but no error - try next variant
-		d.logger.Debug().Str("searchTitle", searchTitle).Msg("enmasse-manga: Search variant returned no results")
-		// Still wait to respect rate limits
+		// Wait before trying next variant to respect rate limits
 		time.Sleep(4 * time.Second)
 	}
 
-	if searchResult == nil {
+	// If we have results from the initial search, try searching with English and Romaji variants
+	// of the best match to find more potential matches
+	if len(allSearchResults) > 0 {
+		// Get the first result's English and Romaji titles
+		firstResult := allSearchResults[0]
+		additionalSearchTerms := make([]string, 0, 2)
+		
+		if firstResult.Title != nil {
+			if firstResult.Title.English != nil && *firstResult.Title.English != "" {
+				additionalSearchTerms = append(additionalSearchTerms, *firstResult.Title.English)
+			}
+			if firstResult.Title.Romaji != nil && *firstResult.Title.Romaji != "" {
+				additionalSearchTerms = append(additionalSearchTerms, *firstResult.Title.Romaji)
+			}
+		}
+		
+		// Search with English and Romaji variants
+		for _, searchTerm := range additionalSearchTerms {
+			// Skip if we already searched with this term
+			alreadySearched := false
+			for _, variant := range searchVariants {
+				if variant == searchTerm {
+					alreadySearched = true
+					break
+				}
+			}
+			if alreadySearched {
+				continue
+			}
+			
+			d.logger.Debug().
+				Str("originalTitle", title).
+				Str("variantTitle", searchTerm).
+				Msg("enmasse-manga: Trying English/Romaji variant search")
+			
+			result, err := anilistClient.ListManga(ctx, &page, &searchTerm, &perPage, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+			if err != nil {
+				d.logger.Debug().Err(err).Str("searchTitle", searchTerm).Msg("enmasse-manga: Variant search failed")
+				time.Sleep(4 * time.Second)
+				continue
+			}
+			
+			if result != nil && result.Page != nil && len(result.Page.Media) > 0 {
+				for _, media := range result.Page.Media {
+					if media != nil && !searchResultsMap[media.ID] {
+						allSearchResults = append(allSearchResults, media)
+						searchResultsMap[media.ID] = true
+					}
+				}
+				d.logger.Debug().
+					Str("searchTitle", searchTerm).
+					Int("newResults", len(result.Page.Media)).
+					Msg("enmasse-manga: Variant search added results")
+			}
+			
+			time.Sleep(4 * time.Second)
+		}
+	}
+
+	if len(allSearchResults) == 0 {
 		if lastErr != nil {
 			d.logger.Error().Err(lastErr).Str("title", title).Msg("enmasse-manga: All search variants failed")
 			return nil, lastErr
@@ -941,35 +1028,20 @@ func (d *MangaDownloader) searchAniListMangaWithResults(ctx context.Context, tit
 	}
 
 	d.logger.Debug().
-		Str("usedSearchTitle", usedSearchTitle).
-		Int("resultCount", len(searchResult.Page.Media)).
-		Msg("enmasse-manga: AniList search returned results")
+		Str("originalTitle", title).
+		Int("totalResults", len(allSearchResults)).
+		Msg("enmasse-manga: Collected search results from all variants")
 
-	// Find the best match using title comparison
+	// Find the best match using title comparison across all collected results
 	var bestMatch *anilist.BaseManga
 	bestScore := 0.0
 
-	for _, result := range searchResult.Page.Media {
+	for _, result := range allSearchResults {
 		if result == nil {
 			continue
 		}
 		// Compare search title with all titles of this result
 		allTitles := result.GetAllTitles()
-		
-		// Log what titles we're comparing against (only first result to avoid spam)
-		if bestMatch == nil {
-			titlesStr := make([]string, 0, len(allTitles))
-			for _, t := range allTitles {
-				if t != nil {
-					titlesStr = append(titlesStr, *t)
-				}
-			}
-			d.logger.Debug().
-				Str("searchTitle", title).
-				Strs("resultTitles", titlesStr).
-				Str("resultTitle", result.GetTitleSafe()).
-				Msg("enmasse-manga: First result titles")
-		}
 		
 		compRes, found := comparison.FindBestMatchWithSorensenDice(&title, allTitles)
 		if found && compRes.Value != nil {
@@ -1006,7 +1078,7 @@ func (d *MangaDownloader) searchAniListMangaWithResults(ctx context.Context, tit
 	return &anilistSearchResult{
 		bestMatch:     bestMatch,
 		bestScore:     bestScore,
-		searchResults: searchResult.Page.Media,
+		searchResults: allSearchResults,
 	}, nil
 }
 

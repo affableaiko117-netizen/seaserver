@@ -74,7 +74,7 @@ export function MangaLibraryHeader({ manga }: { manga: AL_BaseManga[] }) {
             <div
                 data-library-header-container
                 className={cn(
-                    "LIB_HEADER_CONTAINER __header h-[25rem] z-[1] top-0 w-full absolute group/library-header",
+                    "LIB_HEADER_CONTAINER __header h-[25rem] z-0 top-0 w-full absolute group/library-header pointer-events-none",
                     // Make it not fixed when the user scrolls down if a background image is set
                     !ts.libraryScreenCustomBackgroundImage && "fixed",
                     !!ts.libraryScreenCustomBackgroundImage && __isDesktop__ && "top-[-2rem]",
@@ -83,7 +83,7 @@ export function MangaLibraryHeader({ manga }: { manga: AL_BaseManga[] }) {
                 <div
                     data-library-header-banner-top-gradient
                     className={cn(
-                        "w-full z-[3] absolute bottom-[-10rem] h-[10rem] bg-gradient-to-b from-[--background] via-transparent via-100% to-transparent",
+                        "w-full z-[3] absolute bottom-[-10rem] h-[10rem] bg-gradient-to-b from-[--background] via-transparent via-100% to-transparent pointer-events-none",
                         !ts.disableSidebarTransparency && TRANSPARENT_SIDEBAR_BANNER_IMG_STYLE,
                     )}
                 />
@@ -102,12 +102,12 @@ export function MangaLibraryHeader({ manga }: { manga: AL_BaseManga[] }) {
 
                     {!ts.disableSidebarTransparency && <div
                         data-library-header-banner-top-gradient
-                        className="hidden lg:block h-full absolute z-[2] w-[20%] opacity-70 left-0 top-0 bg-gradient bg-gradient-to-r from-[var(--background)] to-transparent"
+                        className="hidden lg:block h-full absolute z-[2] w-[20%] opacity-70 left-0 top-0 bg-gradient bg-gradient-to-r from-[var(--background)] to-transparent pointer-events-none"
                     />}
 
                     <div
                         data-library-header-banner-bottom-gradient
-                        className="w-full z-[3] opacity-70 lg:opacity-50 absolute top-0 h-[5rem] bg-gradient-to-b from-[--background] via-transparent via-100% to-transparent"
+                        className="w-full z-[3] opacity-70 lg:opacity-50 absolute top-0 h-[5rem] bg-gradient-to-b from-[--background] via-transparent via-100% to-transparent pointer-events-none"
                     />
 
                     {/*<div*/}
@@ -163,7 +163,7 @@ export function MangaLibraryHeader({ manga }: { manga: AL_BaseManga[] }) {
                      />} */}
                     <div
                         data-library-header-banner-bottom-fade
-                        className="LIB_HEADER_IMG_BOTTOM_FADE w-full z-[2] absolute bottom-0 h-[20rem] lg:h-[15rem] bg-gradient-to-t from-[--background] lg:via-opacity-50 lg:via-10% to-transparent"
+                        className="LIB_HEADER_IMG_BOTTOM_FADE w-full z-[2] absolute bottom-0 h-[20rem] lg:h-[15rem] bg-gradient-to-t from-[--background] lg:via-opacity-50 lg:via-10% to-transparent pointer-events-none"
                     />
                 </motion.div>
             </div>

@@ -85,7 +85,7 @@ export function LibraryHeader({ list }: { list: Anime_Episode[] }) {
             <div
                 data-library-header-container
                 className={cn(
-                    "LIB_HEADER_CONTAINER __header h-[25rem] z-[1] !mt-0 !pt-0 top-0 w-full absolute group/library-header pointer-events-none",
+                    "LIB_HEADER_CONTAINER __header h-[25rem] z-0 !mt-0 !pt-0 top-0 w-full absolute group/library-header pointer-events-none",
                     // Make it not fixed when the user scrolls down if a background image is set
                     !ts.libraryScreenCustomBackgroundImage && "fixed",
                     !!ts.libraryScreenCustomBackgroundImage && __isDesktop__ && "top-[-2rem]",
