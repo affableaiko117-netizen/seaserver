@@ -1,12 +1,13 @@
 "use client"
 
-import { useMangaMatchHistory, useScanMangaCollection, useAutoMatchSyntheticManga, MangaMatchRecord } from "@/api/hooks/enmasse.hooks"
+import { useMangaMatchHistory, useScanMangaCollection, useAutoMatchSyntheticManga, useMangaEnMasseStatus, MangaMatchRecord } from "@/api/hooks/enmasse.hooks"
 import { MangaMatchCard } from "@/app/(main)/manga-validation/_components/manga-match-card"
 import { MangaMatchReviewModal } from "@/app/(main)/manga-validation/_components/manga-match-review-modal"
 import { AppLayoutStack } from "@/components/ui/app-layout"
 import { Button } from "@/components/ui/button"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { PageWrapper } from "@/components/shared/page-wrapper"
+import { ProgressBar } from "@/components/ui/progress-bar"
 import { atom, useAtom } from "jotai"
 import React from "react"
 import { LuClipboardCheck } from "react-icons/lu"
@@ -18,6 +19,7 @@ export function MangaValidationPage() {
     const [selectedRecord, setSelectedRecord] = useAtom(selectedMangaMatchRecordAtom)
     const { mutate: scanCollection, isPending: isScanning } = useScanMangaCollection()
     const { mutate: autoMatchSynthetic, isPending: isAutoMatching } = useAutoMatchSyntheticManga()
+    const { data: status } = useMangaEnMasseStatus(true)
 
     if (isLoading || isFetching) {
         return (
@@ -67,6 +69,30 @@ export function MangaValidationPage() {
             <p className="text-[--muted]">
                 Downloaded manga that may need validation. Review matches and correct any that are incorrect.
             </p>
+
+            {/* Auto-match progress indicator */}
+            {status?.autoMatchInProgress && (
+                <div className="border rounded-lg p-4 bg-gray-900/50 space-y-3">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="font-semibold text-brand-200">Auto-matching synthetic manga...</p>
+                            {status.autoMatchCurrent && (
+                                <p className="text-sm text-[--muted] mt-1">
+                                    Currently processing: <span className="text-white">{status.autoMatchCurrent}</span>
+                                </p>
+                            )}
+                        </div>
+                        <div className="text-sm font-medium">
+                            {status.autoMatchProcessed} / {status.autoMatchTotal}
+                        </div>
+                    </div>
+                    <ProgressBar 
+                        value={status.autoMatchProcessed} 
+                        max={status.autoMatchTotal} 
+                        className="h-2"
+                    />
+                </div>
+            )}
 
             {isError && (
                 <div className="flex flex-col gap-3 border rounded-md p-4 bg-amber-950/40 text-amber-100">

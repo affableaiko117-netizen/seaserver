@@ -89,6 +89,10 @@ export interface MangaEnMasseDownloaderStatus {
     skippedManga: string[]
     status: string
     hasSavedProgress: boolean
+    autoMatchInProgress: boolean
+    autoMatchCurrent: string | null
+    autoMatchProcessed: number
+    autoMatchTotal: number
 }
 
 const MANGA_ENMASSE_ENDPOINTS = {

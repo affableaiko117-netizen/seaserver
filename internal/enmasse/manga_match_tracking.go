@@ -280,11 +280,12 @@ func (d *MangaDownloader) saveProgress() error {
 	defer d.mu.Unlock()
 
 	progress := &MangaDownloaderProgress{
-		ProcessedTitles: d.getProcessedTitles(),
-		DownloadedManga: d.downloadedManga,
-		FailedManga:     d.failedManga,
-		SkippedManga:    d.skippedManga,
-		MatchRecords:    d.matchRecords,
+		ProcessedTitles:       d.getProcessedTitles(),
+		DownloadedManga:       d.downloadedManga,
+		FailedManga:           d.failedManga,
+		SkippedManga:          d.skippedManga,
+		MatchRecords:          d.matchRecords,
+		ProcessedSyntheticIDs: d.processedSyntheticIDs,
 	}
 
 	data, err := json.MarshalIndent(progress, "", "  ")
@@ -333,16 +334,32 @@ func (d *MangaDownloader) ScanExistingCollection(ctx context.Context) error {
 
 	d.logger.Info().Msg("Scanning existing manga collection for validation")
 
+	// Get download directory
+	downloadDir := filepath.Join(filepath.Dir(MangaProgressFilePath), "manga")
+
 	// Get all synthetic manga
 	syntheticManga, err := db.GetAllSyntheticManga()
 	if err != nil {
 		d.logger.Warn().Err(err).Msg("Failed to get synthetic manga")
 	}
 
-	// Create records for synthetic manga
+	// Create records for synthetic manga that have downloaded chapters
 	for _, manga := range syntheticManga {
-		// Check if already recorded
+		// Check if manga directory exists on disk
+		mangaPath := filepath.Join(downloadDir, manga.Title)
+		if _, err := os.Stat(mangaPath); os.IsNotExist(err) {
+			d.logger.Debug().
+				Str("title", manga.Title).
+				Msg("Skipping synthetic manga - no downloaded chapters found")
+			continue
+		}
+
+		// Only add if not already recorded
 		if d.isAlreadyRecorded(manga.ProviderID) {
+			d.logger.Debug().
+				Str("title", manga.Title).
+				Str("providerId", manga.ProviderID).
+				Msg("Skipping synthetic manga - already recorded")
 			continue
 		}
 
@@ -388,9 +405,23 @@ func (d *MangaDownloader) ScanExistingCollection(ctx context.Context) error {
 			mediaID := media.ID
 			mediaTitle := media.GetTitleSafe()
 
-			// Check if already recorded
+			// Check if manga directory exists on disk
+			mangaPath := filepath.Join(downloadDir, mediaTitle)
+			if _, err := os.Stat(mangaPath); os.IsNotExist(err) {
+				d.logger.Debug().
+					Str("title", mediaTitle).
+					Msg("Skipping AniList manga - no downloaded chapters found")
+				continue
+			}
+
 			providerID := fmt.Sprintf("anilist-%d", mediaID)
+
+			// Only add if not already recorded
 			if d.isAlreadyRecorded(providerID) {
+				d.logger.Debug().
+					Str("title", mediaTitle).
+					Str("providerId", providerID).
+					Msg("Skipping AniList manga - already recorded")
 				continue
 			}
 
@@ -457,19 +488,19 @@ func (d *MangaDownloader) AutoMatchSyntheticManga(ctx context.Context) error {
 
 	d.logger.Info().Msg("Starting auto-match for synthetic manga")
 
-	// Clear existing synthetic manga records to force re-evaluation
+	// Set auto-match in progress
 	d.mu.Lock()
-	var filteredRecords []*MangaMatchRecord
-	for _, record := range d.matchRecords {
-		// Keep only non-synthetic records or records that are not "existing" status
-		if !record.IsSynthetic || record.Status != "existing" {
-			filteredRecords = append(filteredRecords, record)
-		}
-	}
-	d.matchRecords = filteredRecords
+	d.autoMatchInProgress = true
 	d.mu.Unlock()
-
-	d.logger.Debug().Msg("Cleared existing synthetic manga records for re-evaluation")
+	defer func() {
+		d.mu.Lock()
+		d.autoMatchInProgress = false
+		d.autoMatchCurrent = ""
+		d.autoMatchProcessed = 0
+		d.autoMatchTotal = 0
+		d.mu.Unlock()
+		d.sendStatusUpdate()
+	}()
 
 	// Get all synthetic manga
 	syntheticManga, err := db.GetAllSyntheticManga()
@@ -482,24 +513,63 @@ func (d *MangaDownloader) AutoMatchSyntheticManga(ctx context.Context) error {
 		return nil
 	}
 
+	// Set total count
+	d.mu.Lock()
+	d.autoMatchTotal = len(syntheticManga)
+	d.mu.Unlock()
+	d.sendStatusUpdate()
+
+	d.logger.Info().
+		Int("total", len(syntheticManga)).
+		Msg("Auto-matching synthetic manga to AniList")
+
 	matchedCount := 0
-	for _, manga := range syntheticManga {
+	for i, manga := range syntheticManga {
+		// Check if already processed (for resumption support)
+		d.mu.Lock()
+		alreadyProcessed := false
+		for _, processedID := range d.processedSyntheticIDs {
+			if processedID == manga.SyntheticID {
+				alreadyProcessed = true
+				break
+			}
+		}
+		d.mu.Unlock()
+
+		if alreadyProcessed {
+			d.logger.Debug().
+				Str("title", manga.Title).
+				Int("syntheticId", manga.SyntheticID).
+				Msg("Skipping already processed synthetic manga")
+			d.mu.Lock()
+			d.autoMatchProcessed = i + 1
+			d.mu.Unlock()
+			d.sendStatusUpdate()
+			continue
+		}
+
+		// Update current manga being processed
+		d.mu.Lock()
+		d.autoMatchCurrent = manga.Title
+		d.autoMatchProcessed = i + 1
+		d.mu.Unlock()
+		d.sendStatusUpdate()
+
 		// Use ProviderID if available, otherwise use synthetic ID as identifier
 		identifier := manga.ProviderID
 		if identifier == "" {
 			identifier = fmt.Sprintf("synthetic-%d", manga.SyntheticID)
 		}
-		
-		// Don't skip - we cleared the records above
-		// This ensures all synthetic manga are re-evaluated
 
 		d.logger.Debug().
 			Str("title", manga.Title).
 			Int("syntheticId", manga.SyntheticID).
 			Str("identifier", identifier).
+			Int("progress", i+1).
+			Int("total", len(syntheticManga)).
 			Msg("Attempting to match synthetic manga to AniList")
 
-		// Search AniList for this manga
+		// Search AniList for this manga (with English and Romaji variants)
 		searchResults, err := d.searchAniListMangaWithResults(ctx, manga.Title)
 		if err != nil {
 			d.logger.Debug().
@@ -518,6 +588,17 @@ func (d *MangaDownloader) AutoMatchSyntheticManga(ctx context.Context) error {
 				nil,
 				"existing",
 			)
+			
+			// Mark as processed
+			d.mu.Lock()
+			d.processedSyntheticIDs = append(d.processedSyntheticIDs, manga.SyntheticID)
+			d.mu.Unlock()
+			
+			// Save progress after each manga
+			if err := d.saveProgress(); err != nil {
+				d.logger.Warn().Err(err).Msg("Failed to save progress")
+			}
+			
 			continue
 		}
 
@@ -528,7 +609,7 @@ func (d *MangaDownloader) AutoMatchSyntheticManga(ctx context.Context) error {
 		// Calculate confidence score
 		confidenceScore := searchResults.bestScore
 
-		// Record the match for review
+		// Record the match for review (NOT auto-convert, just create record)
 		d.recordMatch(
 			manga.Title,
 			identifier,
@@ -545,15 +626,22 @@ func (d *MangaDownloader) AutoMatchSyntheticManga(ctx context.Context) error {
 			Str("title", manga.Title).
 			Str("matched", bestMatch.GetTitleSafe()).
 			Float64("confidence", confidenceScore).
+			Int("progress", i+1).
+			Int("total", len(syntheticManga)).
 			Msg("Found potential AniList match for synthetic manga")
 
-		// Rate limiting
-		time.Sleep(DelayBetweenAPIRequests)
-	}
+		// Mark as processed
+		d.mu.Lock()
+		d.processedSyntheticIDs = append(d.processedSyntheticIDs, manga.SyntheticID)
+		d.mu.Unlock()
 
-	// Save the match records
-	if err := d.saveProgress(); err != nil {
-		d.logger.Warn().Err(err).Msg("Failed to save progress after auto-matching")
+		// Save progress after each manga
+		if err := d.saveProgress(); err != nil {
+			d.logger.Warn().Err(err).Msg("Failed to save progress")
+		}
+
+		// Rate limiting - wait before processing next manga
+		time.Sleep(DelayBetweenAPIRequests)
 	}
 
 	d.logger.Info().
