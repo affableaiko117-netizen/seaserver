@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/goccy/go-json"
 	"github.com/rs/zerolog"
@@ -232,7 +233,7 @@ func (cd *Downloader) downloadChapterImages(queueInfo *QueueInfo) (err error) {
 
 	// calculateBatchSize calculates the batch size based on the number of URLs.
 	calculateBatchSize := func(numURLs int) int {
-		maxBatchSize := 5
+		maxBatchSize := 3 // Reduced from 5 to 3 for better rate limiting
 		batchSize := numURLs / 10
 		if batchSize < 1 {
 			return 1
@@ -246,6 +247,7 @@ func (cd *Downloader) downloadChapterImages(queueInfo *QueueInfo) (err error) {
 	batchSize := calculateBatchSize(len(queueInfo.Pages))
 
 	var wg sync.WaitGroup
+	var downloadedCount int32
 	semaphore := make(chan struct{}, batchSize) // Semaphore to control concurrency
 	for _, page := range queueInfo.Pages {
 		semaphore <- struct{}{} // Acquire semaphore
@@ -261,6 +263,10 @@ func (cd *Downloader) downloadChapterImages(queueInfo *QueueInfo) (err error) {
 				return
 			default:
 				cd.downloadPage(page, destination, registry)
+				// Update progress after each page
+				newCount := atomic.AddInt32(&downloadedCount, 1)
+				_ = cd.database.UpdateChapterDownloadProgress(queueInfo.Provider, queueInfo.MediaId, queueInfo.ChapterId, int(newCount))
+				cd.wsEventManager.SendEvent(events.ChapterDownloadQueueUpdated, nil)
 			}
 		}(page, &registry)
 	}

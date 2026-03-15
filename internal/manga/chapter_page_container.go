@@ -116,6 +116,33 @@ func (r *Repository) GetMangaPageContainer(
 	}
 
 	// +---------------------+
+	// | Request Deduplication |
+	// +---------------------+
+	
+	// Check if there's already an in-flight request for this chapter
+	requestKey := pageContainerKey
+	resultChan := make(chan *PageContainer, 1)
+	
+	if existingChan, loaded := r.inFlightRequests.LoadOrStore(requestKey, resultChan); loaded {
+		// Another request is already in-flight, wait for its result
+		r.logger.Debug().Str("key", requestKey).Msg("manga: Waiting for in-flight request")
+		container := <-existingChan.(chan *PageContainer)
+		if container != nil {
+			// Hydrate page dimensions
+			pageDimensions, _ := r.getPageDimensions(doublePage, provider, mediaId, chapterId, container.Pages)
+			container.PageDimensions = pageDimensions
+		}
+		return container, nil
+	}
+	
+	// We're the first request, proceed with fetching
+	defer func() {
+		// Clean up the in-flight request tracker
+		r.inFlightRequests.Delete(requestKey)
+		close(resultChan)
+	}()
+
+	// +---------------------+
 	// |     Fetch pages     |
 	// +---------------------+
 
@@ -127,6 +154,7 @@ func (r *Repository) GetMangaPageContainer(
 	var chapterContainer *ChapterContainer
 	if found, _ := r.fileCacher.Get(containerBucket, chapterContainerKey, &chapterContainer); !found {
 		r.logger.Error().Msg("manga: Chapter Container not found")
+		resultChan <- nil
 		return nil, ErrNoChapters
 	}
 
@@ -150,6 +178,7 @@ func (r *Repository) GetMangaPageContainer(
 			Strs("availableChapterIds", availableIds).
 			Int("totalChapters", len(chapterContainer.Chapters)).
 			Msg("manga: Chapter not found in container")
+		resultChan <- nil
 		return nil, ErrChapterNotFound
 	}
 
@@ -159,11 +188,13 @@ func (r *Repository) GetMangaPageContainer(
 	pages, err = providerExtension.GetProvider().FindChapterPages(chapter.ID)
 	if err != nil {
 		r.logger.Error().Err(err).Msg("manga: Could not get chapter pages")
+		resultChan <- nil
 		return nil, err
 	}
 
 	if pages == nil || len(pages) == 0 {
 		r.logger.Error().Msg("manga: No pages found")
+		resultChan <- nil
 		return nil, fmt.Errorf("manga: No pages found")
 	}
 
@@ -192,6 +223,9 @@ func (r *Repository) GetMangaPageContainer(
 	}
 
 	r.logger.Debug().Str("key", pageContainerKey).Msg("manga: Retrieved pages")
+	
+	// Broadcast result to any waiting requests
+	resultChan <- container
 
 	return container, nil
 }

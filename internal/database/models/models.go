@@ -408,14 +408,16 @@ type Playlist struct {
 
 type ChapterDownloadQueueItem struct {
 	BaseModel
-	Provider      string `gorm:"column:provider" json:"provider"`
-	MediaID       int    `gorm:"column:media_id" json:"mediaId"`
-	ChapterID     string `gorm:"column:chapter_id" json:"chapterId"`
-	ChapterNumber string `gorm:"column:chapter_number" json:"chapterNumber"`
-	ChapterTitle  string `gorm:"column:chapter_title" json:"chapterTitle"` // Chapter title from provider
-	MediaTitle    string `gorm:"column:media_title" json:"mediaTitle"`     // Title for folder naming
-	PageData      []byte `gorm:"column:page_data" json:"pageData"`         // Contains map of page index to page details
-	Status        string `gorm:"column:status" json:"status"`
+	Provider        string `gorm:"column:provider" json:"provider"`
+	MediaID         int    `gorm:"column:media_id" json:"mediaId"`
+	ChapterID       string `gorm:"column:chapter_id" json:"chapterId"`
+	ChapterNumber   string `gorm:"column:chapter_number" json:"chapterNumber"`
+	ChapterTitle    string `gorm:"column:chapter_title" json:"chapterTitle"`       // Chapter title from provider
+	MediaTitle      string `gorm:"column:media_title" json:"mediaTitle"`           // Title for folder naming
+	PageData        []byte `gorm:"column:page_data" json:"pageData"`               // Contains map of page index to page details
+	Status          string `gorm:"column:status" json:"status"`
+	DownloadedPages int    `gorm:"column:downloaded_pages;default:0" json:"downloadedPages"` // Number of pages downloaded
+	TotalPages      int    `gorm:"column:total_pages;default:0" json:"totalPages"`           // Total number of pages
 }
 
 // +---------------------+
