@@ -110,6 +110,17 @@ func (db *Database) UpdateChapterDownloadQueueItemStatus(provider string, mId in
 	return nil
 }
 
+func (db *Database) UpdateChapterDownloadProgress(provider string, mId int, chapterId string, downloadedPages int) error {
+	err := db.gormdb.Model(&models.ChapterDownloadQueueItem{}).
+		Where("provider = ? AND media_id = ? AND chapter_id = ?", provider, mId, chapterId).
+		Update("downloaded_pages", downloadedPages).Error
+	if err != nil {
+		db.Logger.Error().Err(err).Msg("db: Failed to update chapter download progress")
+		return err
+	}
+	return nil
+}
+
 func (db *Database) GetChapterDownloadQueueCountForSeries(provider string, mediaID int) (int, error) {
 	var count int64
 	err := db.gormdb.Model(&models.ChapterDownloadQueueItem{}).

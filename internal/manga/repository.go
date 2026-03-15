@@ -45,6 +45,9 @@ type (
 		db               *db.Database
 
 		settings *models.Settings
+		
+		// Request deduplication
+		inFlightRequests sync.Map // map[string]chan *PageContainer for deduplicating concurrent requests
 	}
 
 	NewRepositoryOptions struct {
@@ -110,7 +113,7 @@ const (
 //
 // Note: Each bucket contains only 1 key-value pair.
 func (r *Repository) getFcProviderBucket(provider string, mediaId int, bucketType bucketType) filecache.Bucket {
-	return filecache.NewBucket("manga_"+provider+"_"+string(bucketType)+"_"+strconv.Itoa(mediaId), time.Hour*24*7)
+	return filecache.NewBucket("manga_"+provider+"_"+string(bucketType)+"_"+strconv.Itoa(mediaId), time.Hour*24*30) // Increased from 7 to 30 days
 }
 
 // EmptyMangaCache deletes all manga buckets associated with the given mediaId.

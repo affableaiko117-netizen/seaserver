@@ -31049,6 +31049,28 @@
         "required": true,
         "public": true,
         "comments": []
+      },
+      {
+        "name": "DownloadedPages",
+        "jsonName": "downloadedPages",
+        "goType": "int",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": [
+          " Number of pages downloaded"
+        ]
+      },
+      {
+        "name": "TotalPages",
+        "jsonName": "totalPages",
+        "goType": "int",
+        "typescriptType": "number",
+        "required": true,
+        "public": true,
+        "comments": [
+          " Total number of pages"
+        ]
       }
     ],
     "comments": [],
@@ -58953,6 +58975,19 @@
         "required": false,
         "public": false,
         "comments": []
+      },
+      {
+        "name": "inFlightRequests",
+        "jsonName": "inFlightRequests",
+        "goType": "sync.Map",
+        "typescriptType": "Map",
+        "usedTypescriptType": "Map",
+        "usedStructName": "sync.Map",
+        "required": false,
+        "public": false,
+        "comments": [
+          " map[string]chan *PageContainer for deduplicating concurrent requests"
+        ]
       }
     ],
     "comments": []

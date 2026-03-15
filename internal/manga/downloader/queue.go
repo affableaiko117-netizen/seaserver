@@ -70,15 +70,17 @@ func (q *Queue) Add(id DownloadID, pages []*hibikemanga.ChapterPage, runNext boo
 	}
 
 	err = q.db.InsertChapterDownloadQueueItem(&models.ChapterDownloadQueueItem{
-		BaseModel:     models.BaseModel{},
-		Provider:      id.Provider,
-		MediaID:       id.MediaId,
-		ChapterNumber: id.ChapterNumber,
-		ChapterID:     id.ChapterId,
-		ChapterTitle:  id.ChapterTitle,
-		MediaTitle:    id.MediaTitle,
-		PageData:      marshalled,
-		Status:        string(QueueStatusNotStarted),
+		BaseModel:       models.BaseModel{},
+		Provider:        id.Provider,
+		MediaID:         id.MediaId,
+		ChapterNumber:   id.ChapterNumber,
+		ChapterID:       id.ChapterId,
+		ChapterTitle:    id.ChapterTitle,
+		MediaTitle:      id.MediaTitle,
+		PageData:        marshalled,
+		Status:          string(QueueStatusNotStarted),
+		TotalPages:      len(pages),
+		DownloadedPages: 0,
 	})
 	if err != nil {
 		q.logger.Error().Err(err).Msgf("Failed to insert chapter download queue item for id %v", id)

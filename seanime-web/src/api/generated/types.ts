@@ -3801,6 +3801,14 @@ export type Models_ChapterDownloadQueueItem = {
      */
     pageData?: Array<string>
     status: string
+    /**
+     * Number of pages downloaded
+     */
+    downloadedPages: number
+    /**
+     * Total number of pages
+     */
+    totalPages: number
     id: number
     createdAt?: string
     updatedAt?: string

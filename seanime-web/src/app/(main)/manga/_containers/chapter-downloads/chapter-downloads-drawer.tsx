@@ -160,8 +160,10 @@ export function ChapterDownloadQueue(props: ChapterDownloadQueueProps) {
                                     return (
                                         <Card
                                             key={item.mediaId + item.provider + item.chapterId} className={cn(
-                                            "px-3 py-2 bg-gray-800 space-y-1.5",
-                                            item.status === "errored" && "border-[--orange]",
+                                            "px-3 py-2 space-y-1.5 transition-all duration-200",
+                                            item.status === "downloading" && "backdrop-blur-sm bg-white/5 hover:bg-white/10 shadow-lg",
+                                            item.status === "not_started" && "bg-gray-800",
+                                            item.status === "errored" && "bg-gray-800 border-[--orange]",
                                         )}
                                         >
                                             <div className="flex items-center gap-2">
@@ -179,7 +181,12 @@ export function ChapterDownloadQueue(props: ChapterDownloadQueueProps) {
                                                 )}
                                             </div>
                                             {item.status === "downloading" && (
-                                                <ProgressBar size="sm" isIndeterminate />
+                                                <>
+                                                    <p className="text-xs text-[--muted]">
+                                                        {item.downloadedPages || 0} / {item.totalPages || 0} pages downloaded
+                                                    </p>
+                                                    <ProgressBar size="sm" isIndeterminate />
+                                                </>
                                             )}
                                         </Card>
                                     )
