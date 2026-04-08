@@ -1,21 +1,18 @@
 import { useOpenInExplorer } from "@/api/hooks/explorer.hooks"
-import {
-    vc_containerElement,
-    vc_dispatchAction,
-    vc_isFullscreen,
-    vc_isMobile,
-    vc_mediaCaptionsManager,
-    vc_miniPlayer,
-    vc_playbackRate,
-    vc_subtitleManager,
-} from "@/app/(main)/_features/video-core/video-core"
+import { vc_subtitleManager } from "@/app/(main)/_features/video-core/video-core"
+import { vc_mediaCaptionsManager } from "@/app/(main)/_features/video-core/video-core"
 import { anime4kOptions, getAnime4KOptionByValue, vc_anime4kOption } from "@/app/(main)/_features/video-core/video-core-anime-4k"
 import { Anime4KOption } from "@/app/(main)/_features/video-core/video-core-anime-4k-manager"
+import { vc_menuOpen } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_menuSectionOpen } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_menuSubSectionOpen } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_isMobile } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_playbackRate } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_isFullscreen } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_miniPlayer } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_containerElement } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { VideoCoreControlButtonIcon } from "@/app/(main)/_features/video-core/video-core-control-bar"
 import {
-    vc_menuOpen,
-    vc_menuSectionOpen,
-    vc_menuSubSectionOpen,
     VideoCoreMenu,
     VideoCoreMenuOption,
     VideoCoreMenuSectionBody,
@@ -39,6 +36,7 @@ import {
     vc_storedPlaybackRateAtom,
     VideoCoreSettings,
 } from "@/app/(main)/_features/video-core/video-core.atoms"
+import { vc_dispatchAction } from "@/app/(main)/_features/video-core/video-core.utils"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
@@ -460,36 +458,57 @@ export function VideoCoreSettingsMenu() {
                     </VideoCoreMenuOption>
                     <VideoCoreMenuOption title="Subtitle Delay" icon={MdOutlineAccessTime}>
                         <p className="text-sm text-[--muted] mb-2">Positive values delay subtitles, negative values advance them.</p>
+                        <div className="flex gap-1.5 items-center mt-3">
+                            <Button
+                                className="px-1 !text-xs flex-1"
+                                intent="gray-subtle"
+                                size="sm"
+                                onClick={() => handleSubtitleDelayChange(parseFloat((editedSubtitleDelay - 0.5).toFixed(1)))}
+                            >
+                                −0.5
+                            </Button>
+                            <Button
+                                className="px-1 !text-xs flex-1"
+                                intent="gray-subtle"
+                                size="sm"
+                                onClick={() => handleSubtitleDelayChange(parseFloat((editedSubtitleDelay - 0.1).toFixed(1)))}
+                            >
+                                −0.1
+                            </Button>
+                            <span className="text-sm text-center text-[--muted] px-1 flex-1">
+                                {editedSubtitleDelay.toFixed(1)}s
+                            </span>
+                            <Button
+                                className="px-1 !text-xs flex-1"
+                                intent="gray-subtle"
+                                size="sm"
+                                onClick={() => handleSubtitleDelayChange(parseFloat((editedSubtitleDelay + 0.1).toFixed(1)))}
+                            >
+                                +0.1
+                            </Button>
+                            <Button
+                                className="px-1 !text-xs flex-1"
+                                intent="gray-subtle"
+                                size="sm"
+                                onClick={() => handleSubtitleDelayChange(parseFloat((editedSubtitleDelay + 0.5).toFixed(1)))}
+                            >
+                                +0.5
+                            </Button>
+                        </div>
                         <VideoCoreSettingSelect
                             options={[
                                 { label: "-2.0s", value: -2.0 },
                                 { label: "-1.0s", value: -1.0 },
-                                { label: "-0.9s", value: -0.9 },
-                                { label: "-0.8s", value: -0.8 },
-                                { label: "-0.7s", value: -0.7 },
-                                { label: "-0.6s", value: -0.6 },
                                 { label: "-0.5s", value: -0.5 },
-                                { label: "-0.4s", value: -0.4 },
-                                { label: "-0.3s", value: -0.3 },
-                                { label: "-0.2s", value: -0.2 },
-                                { label: "-0.1s", value: -0.1 },
                                 { label: "0s", value: 0 },
-                                { label: "0.1s", value: 0.1 },
-                                { label: "0.2s", value: 0.2 },
-                                { label: "0.3s", value: 0.3 },
-                                { label: "0.4s", value: 0.4 },
                                 { label: "0.5s", value: 0.5 },
-                                { label: "0.6s", value: 0.6 },
-                                { label: "0.7s", value: 0.7 },
-                                { label: "0.8s", value: 0.8 },
-                                { label: "0.9s", value: 0.9 },
                                 { label: "1.0s", value: 1.0 },
                                 { label: "2.0s", value: 2.0 },
                             ]}
                             onValueChange={(v: number) => {
                                 handleSubtitleDelayChange(v)
                             }}
-                            value={editedSubtitleDelay}
+                            value={[-2.0, -1.0, -0.5, 0, 0.5, 0.1, 2.0].includes(editedSubtitleDelay) ? editedSubtitleDelay : null}
                         />
                     </VideoCoreMenuOption>
                     <VideoCoreMenuOption title="Playback Speed" icon={MdSpeed}>

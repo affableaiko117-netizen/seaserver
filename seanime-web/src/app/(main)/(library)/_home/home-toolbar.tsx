@@ -12,6 +12,7 @@ import { HomeSettingsButton } from "@/app/(main)/(library)/_home/home-settings-b
 import { libraryExplorer_drawerOpenAtom } from "@/app/(main)/_features/library-explorer/library-explorer.atoms"
 import { useNakamaStatus } from "@/app/(main)/_features/nakama/nakama-manager"
 import { usePlaylistEditorManager } from "@/app/(main)/_features/playlists/lib/playlist-editor-manager"
+import { useSeaCommand } from "@/app/(main)/_features/sea-command/sea-command.tsx"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { SeaLink } from "@/components/shared/sea-link"
 import { Button, IconButton } from "@/components/ui/button"
@@ -25,6 +26,7 @@ import React from "react"
 import { BiCollection, BiDotsVerticalRounded, BiFolder } from "react-icons/bi"
 import { HiExclamation } from "react-icons/hi"
 import { IoHome, IoLibraryOutline, IoLibrarySharp } from "react-icons/io5"
+import { LuSearch } from "react-icons/lu"
 import { LuFolderSearch, LuFolderSync, LuFolderTree } from "react-icons/lu"
 import { MdOutlineConnectWithoutContact, MdOutlineVideoLibrary } from "react-icons/md"
 import { TbFileSad, TbReportSearch } from "react-icons/tb"
@@ -73,6 +75,8 @@ export function HomeToolbar(props: HomeToolbarProps) {
     const [homeView, setHomeView] = useAtom(__home_currentView)
 
     const { mutate: openInExplorer } = useOpenInExplorer()
+
+    const { setSeaCommandInput, setSeaCommandOpen } = useSeaCommand()
 
     const hasLibraryPath = !!status?.settings?.library?.libraryPath
 
@@ -198,6 +202,23 @@ export function HomeToolbar(props: HomeToolbarProps) {
                         {/*    <LuFolderTree />*/}
                         {/*    <span>Library explorer</span>*/}
                         {/*</DropdownMenuItem>*/}
+
+                        <DropdownMenuItem
+                            data-home-toolbar-search-library
+                            disabled={!hasLibraryPath}
+                            className={cn("cursor-pointer", { "!text-[--muted]": !hasLibraryPath })}
+                            onClick={() => {
+                                setSeaCommandOpen(true)
+                                React.startTransition(() => {
+                                    setTimeout(() => {
+                                        setSeaCommandInput("/library ")
+                                    }, 300)
+                                })
+                            }}
+                        >
+                            <LuSearch />
+                            <span>Search in library</span>
+                        </DropdownMenuItem>
 
                         <DropdownMenuItem
                             data-home-toolbar-open-directory-button

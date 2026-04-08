@@ -5,13 +5,45 @@ import { useDirectstreamConvertSubs } from "@/api/hooks/directstream.hooks"
 import { useCancelDiscordActivity } from "@/api/hooks/discord.hooks"
 import { useNakamaWatchParty } from "@/app/(main)/_features/nakama/nakama-manager"
 import { nativePlayer_initialState, nativePlayer_stateAtom } from "@/app/(main)/_features/native-player/native-player.atoms"
-import { AniSkipTime } from "@/app/(main)/_features/sea-media-player/aniskip"
+import { AniSkipTime } from "@/app/(main)/_features/video-core/_lib/aniskip"
 import { vc_anime4kOption, VideoCoreAnime4K } from "@/app/(main)/_features/video-core/video-core-anime-4k"
 import { Anime4KOption, VideoCoreAnime4KManager } from "@/app/(main)/_features/video-core/video-core-anime-4k-manager"
+import { vc_menuOpen } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_menuSectionOpen } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_hoveringControlBar } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_activePlayerId } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_isMobile } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_isSwiping } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_swipeSeekTime } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_videoSize } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_realVideoSize } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_duration } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_currentTime } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_playbackRate } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_readyState } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_buffering } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_isMuted } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_volume } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_subtitleDelay } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_isFullscreen } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_seeking } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_seekingTargetProgress } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_timeRanges } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_ended } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_paused } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_miniPlayer } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_cursorBusy } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_cursorPosition } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_busy } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_videoElement } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_containerElement } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_previousPausedState } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_lastKnownProgress } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_skipOpeningTime } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_skipEndingTime } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { VideoCoreAudioManager } from "@/app/(main)/_features/video-core/video-core-audio"
 import { VideoCoreAudioMenu } from "@/app/(main)/_features/video-core/video-core-audio-menu"
 import {
-    vc_hoveringControlBar,
     VideoCoreControlBar,
     VideoCoreFullscreenButton,
     VideoCoreMobileControlBar,
@@ -32,17 +64,18 @@ import {
     vc_hlsSetAudioTrack,
     vc_hlsSetQuality,
 } from "@/app/(main)/_features/video-core/video-core-hls"
+import { vc_inSight_data } from "@/app/(main)/_features/video-core/video-core-in-sight"
+import { vc_inSight_open } from "@/app/(main)/_features/video-core/video-core-in-sight"
+import { VideoCoreInSight } from "@/app/(main)/_features/video-core/video-core-in-sight"
 import { useVideoCoreIOSFullscreenSubtitles } from "@/app/(main)/_features/video-core/video-core-ios-fullscreen-subtitles"
 import { MediaCaptionsManager } from "@/app/(main)/_features/video-core/video-core-media-captions"
 import { vc_mediaSessionManager, VideoCoreMediaSessionManager } from "@/app/(main)/_features/video-core/video-core-media-session"
-import { vc_menuOpen, vc_menuSectionOpen } from "@/app/(main)/_features/video-core/video-core-menu"
 import { useVideoCoreMobileGestures } from "@/app/(main)/_features/video-core/video-core-mobile-gestures"
-import {
-    vc_overlayFeedback,
-    vc_overlayFeedbackTimeout,
-    vc_showOverlayFeedback,
-    VideoCoreOverlayDisplay,
-} from "@/app/(main)/_features/video-core/video-core-overlay-display"
+import { vc_overlayFeedback } from "@/app/(main)/_features/video-core/video-core-overlay-display"
+import { vc_overlayFeedbackTimeout } from "@/app/(main)/_features/video-core/video-core-overlay-display"
+import { vc_showOverlayFeedback } from "@/app/(main)/_features/video-core/video-core-overlay-display"
+import { VideoCoreOverlayDisplay } from "@/app/(main)/_features/video-core/video-core-overlay-display"
+import { vc_pip } from "@/app/(main)/_features/video-core/video-core-pip"
 import { vc_pipElement, vc_pipManager, VideoCorePipManager } from "@/app/(main)/_features/video-core/video-core-pip"
 import {
     useVideoCorePlaylist,
@@ -54,6 +87,7 @@ import { VideoCoreKeybindingController, VideoCorePreferencesModal } from "@/app/
 import { VideoCorePreviewManager } from "@/app/(main)/_features/video-core/video-core-preview"
 import { VideoCoreResolutionMenu } from "@/app/(main)/_features/video-core/video-core-resolution-menu"
 import { VideoCoreSettingsMenu } from "@/app/(main)/_features/video-core/video-core-settings-menu"
+import { VideoCoreStatsForNerds } from "@/app/(main)/_features/video-core/video-core-stats"
 import { VideoCoreSubtitleMenu } from "@/app/(main)/_features/video-core/video-core-subtitle-menu"
 import { VideoCoreSubtitleManager } from "@/app/(main)/_features/video-core/video-core-subtitles"
 import { vc_timeRangeElement, VideoCoreTimeRange } from "@/app/(main)/_features/video-core/video-core-time-range"
@@ -65,6 +99,7 @@ import {
     vc_autoSkipOPEDAtom,
     vc_beautifyImageAtom,
     vc_settings,
+    vc_showStatsForNerdsAtom,
     vc_storedMutedAtom,
     vc_storedPlaybackRateAtom,
     vc_storedVolumeAtom,
@@ -73,14 +108,14 @@ import {
     VideoCore_VideoSubtitleTrack,
     VideoCoreLifecycleState,
 } from "@/app/(main)/_features/video-core/video-core.atoms"
+import { vc_dispatchAction } from "@/app/(main)/_features/video-core/video-core.utils"
 import {
     useVideoCoreBindings,
     vc_createChapterCues,
     vc_createChaptersFromAniSkip,
-    vc_formatTime,
     vc_logGeneralInfo,
 } from "@/app/(main)/_features/video-core/video-core.utils"
-import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
+import { useServerHMACAuth, useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { __torrentSearch_selectedTorrentsAtom } from "@/app/(main)/entry/_containers/torrent-search/torrent-search-container"
 import {
     __torrentSearch_selectionAtom,
@@ -97,7 +132,6 @@ import { __isDesktop__ } from "@/types/constants"
 import { useQueryClient } from "@tanstack/react-query"
 import { ErrorData } from "hls.js"
 import { atom } from "jotai"
-import { derive } from "jotai-derive"
 import { ScopeProvider } from "jotai-scope"
 import { useAtom, useAtomValue, useSetAtom } from "jotai/react"
 import React, { useMemo, useRef, useState } from "react"
@@ -106,7 +140,7 @@ import { FiMinimize2 } from "react-icons/fi"
 import { ImSpinner2 } from "react-icons/im"
 import { PiSpinnerDuotone } from "react-icons/pi"
 import { RemoveScrollBar } from "react-remove-scroll-bar"
-import { useMeasure, useUnmount, useUpdateEffect, useWindowSize } from "react-use"
+import { useUnmount, useUpdateEffect, useWindowSize } from "react-use"
 
 const log = logger("VIDEO CORE")
 
@@ -114,101 +148,11 @@ export const VIDEOCORE_DEBUG_ELEMENTS = false
 
 const DELAY_BEFORE_NOT_BUSY = 1_000 //ms
 
-export const vc_activePlayerId = atom<string | null>(null)
-
-export const vc_isMobile = atom(false)
-export const vc_isSwiping = atom(false) // Mobile swipe state
-export const vc_swipeSeekTime = atom<number | null>(null) // Mobile swipe seek time
-export const vc_videoSize = atom({ width: 1, height: 1 })
-export const vc_realVideoSize = atom({ width: 0, height: 0 })
-export const vc_duration = atom(1)
-export const vc_currentTime = atom(0)
-export const vc_playbackRate = atom(1)
-export const vc_readyState = atom(0)
-export const vc_buffering = atom(false)
-export const vc_isMuted = atom(false)
-export const vc_volume = atom(1)
-export const vc_subtitleDelay = atom(0)
-export const vc_isFullscreen = atom(false)
-export const vc_pip = derive([vc_pipElement], (pipElement) => pipElement !== null)
-export const vc_seeking = atom(false)
-export const vc_seekingTargetProgress = atom(0) // 0-100
-export const vc_timeRanges = atom<TimeRanges | null>(null)
-export const vc_closestBufferedTime = derive([vc_timeRanges, vc_currentTime], (tr, currentTime) => {
-    if (!tr) return 0
-    let closest = 0
-    for (let i = 0; i < tr.length; i++) {
-        const start = tr.start(i)
-        const end = tr.end(i)
-        if (currentTime >= start && currentTime <= end) {
-            return end
-        }
-        if (end >= currentTime && closest > end) {
-            closest = end
-        }
-    }
-    return closest
-})
-export const vc_ended = atom(false)
-export const vc_paused = atom(true)
-export const vc_miniPlayer = atom(false)
-export const vc_cursorBusy = derive([vc_hoveringControlBar, vc_menuOpen], (f1, f2) => {
-    return f1 || !!f2
-})
-export const vc_cursorPosition = atom({ x: 0, y: 0 })
-export const vc_busy = atom(true)
-
-export const vc_videoElement = atom<HTMLVideoElement | null>(null)
-export const vc_containerElement = atom<HTMLDivElement | null>(null)
-
 export const vc_subtitleManager = atom<VideoCoreSubtitleManager | null>(null)
 export const vc_mediaCaptionsManager = atom<MediaCaptionsManager | null>(null)
 export const vc_audioManager = atom<VideoCoreAudioManager | null>(null)
 export const vc_previewManager = atom<VideoCorePreviewManager | null>(null)
 export const vc_anime4kManager = atom<VideoCoreAnime4KManager | null>(null)
-
-export const vc_previousPausedState = atom(false)
-
-export const vc_lastKnownProgress = atom<{ mediaId: number, progressNumber: number, time: number } | null>(null)
-
-export const vc_skipOpeningTime = atom<number | null>(null)
-export const vc_skipEndingTime = atom<number | null>(null)
-
-type VideoCoreAction = "seekTo" | "seek" | "togglePlay"
-
-export const vc_dispatchAction = atom(null, (get, set, action: { type: VideoCoreAction; payload?: any }) => {
-    const videoElement = get(vc_videoElement)
-    const duration = get(vc_duration)
-    let t = 0
-    if (videoElement) {
-        switch (action.type) {
-            // for smooth seeking, we don't want to peg the current time to the actual video time
-            // instead act like the target time is instantly reached
-            case "seekTo":
-                if (isNaN(duration) || duration <= 1) return
-                t = Math.min(duration, Math.max(0, action.payload.time))
-                videoElement.currentTime = t
-                set(vc_currentTime, t)
-                if (action.payload.flashTime) {
-                    set(vc_showOverlayFeedback, { message: `${vc_formatTime(t)} / ${vc_formatTime(duration)}`, type: "message" })
-                }
-                break
-            case "seek":
-                if (isNaN(duration) || duration <= 1) return
-                const currentTime = get(vc_currentTime)
-                t = Math.min(duration, Math.max(0, currentTime + action.payload.time))
-                videoElement.currentTime = t
-                set(vc_currentTime, t)
-                if (action.payload.flashTime) {
-                    set(vc_showOverlayFeedback, { message: `${vc_formatTime(t)} / ${vc_formatTime(duration)}`, type: "message" })
-                }
-                break
-            case "togglePlay":
-                videoElement.paused ? videoElement.play() : videoElement.pause()
-                break
-        }
-    }
-})
 
 export function VideoCoreProvider(props: { id: string, children: React.ReactNode }) {
     const { children } = props
@@ -306,6 +250,8 @@ interface PlayerContentProps {
     combineRef: (instance: HTMLVideoElement | null) => void
     combineContainerRef: (instance: HTMLDivElement | null) => void
     handleContainerPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void
+    handleContainerMouseEnter: () => void
+    handleContainerMouseLeave: () => void
     handleClick: (e: React.MouseEvent<HTMLDivElement>) => void
     handleLoadedMetadata: (e: React.SyntheticEvent<HTMLVideoElement>) => void
     handleTimeUpdate: (e: React.SyntheticEvent<HTMLVideoElement>) => void
@@ -334,6 +280,8 @@ const PlayerContent = React.memo<PlayerContentProps>(({
     combineRef,
     combineContainerRef,
     handleContainerPointerMove,
+    handleContainerMouseEnter,
+    handleContainerMouseLeave,
     handleClick,
     handleLoadedMetadata,
     handleTimeUpdate,
@@ -365,6 +313,7 @@ const PlayerContent = React.memo<PlayerContentProps>(({
     const action = useSetAtom(vc_dispatchAction)
     const [autoPlay] = useAtom(vc_autoPlayVideoAtom)
     const [muted] = useAtom(vc_storedMutedAtom)
+    const showStats = useAtomValue(vc_showStatsForNerdsAtom)
 
     return (
         <>
@@ -403,6 +352,8 @@ const PlayerContent = React.memo<PlayerContentProps>(({
                     (!busy && !isMiniPlayer) && "cursor-none",
                 )}
                 onPointerMove={handleContainerPointerMove}
+                onMouseEnter={handleContainerMouseEnter}
+                onMouseLeave={handleContainerMouseLeave}
             >
                 {(!!state.playbackInfo?.streamUrl && !state.loadingState) ? (
                     <>
@@ -415,6 +366,13 @@ const PlayerContent = React.memo<PlayerContentProps>(({
                             endingStartTime={aniSkipData?.ed?.interval?.startTime}
                             endingEndTime={aniSkipData?.ed?.interval?.endTime}
                         />
+
+                        {showStats && !isMobile && (
+                            <VideoCoreStatsForNerds
+                                playbackInfo={state.playbackInfo}
+                                videoRef={videoRef}
+                            />
+                        )}
 
                         <VideoCoreOverlayDisplay />
 
@@ -486,6 +444,7 @@ const PlayerContent = React.memo<PlayerContentProps>(({
                                 preload="auto"
                                 src={streamUrl && !streamUrl.includes(".m3u8") ? streamUrl : undefined}
                                 ref={combineRef}
+                                tabIndex={0}
                                 onLoadedMetadata={handleLoadedMetadata}
                                 onTimeUpdate={handleTimeUpdate}
                                 onEnded={handleEnded}
@@ -505,6 +464,7 @@ const PlayerContent = React.memo<PlayerContentProps>(({
                                 controls={false}
                                 style={{
                                     border: "none",
+                                    outline: "none",
                                     width: "100%",
                                     height: "100%",
                                     objectFit: "contain",
@@ -526,6 +486,8 @@ const PlayerContent = React.memo<PlayerContentProps>(({
                                 ))}
                             </video>
                         </div>
+
+                        {!isMobile && <VideoCoreInSight />}
 
                         {!isMobile && <VideoCoreTopSection inline={inline}>
                             <VideoCoreTopPlaybackInfo state={state} />
@@ -685,7 +647,16 @@ export function VideoCore(props: VideoCoreProps) {
         mRef,
     } = props
     const serverStatus = useServerStatus()
+    const { getHMACTokenQueryParam } = useServerHMACAuth()
     const [streamType, setStreamType] = useState<VideoCore_VideoPlaybackInfo["streamType"]>(state.playbackInfo?.streamType ?? "unknown")
+
+    // HMAC token for directstream attachment URLs (fonts)
+    const [directstreamAttToken, setDirectstreamAttToken] = React.useState("")
+    React.useEffect(() => {
+        (async () => {
+            setDirectstreamAttToken(await getHMACTokenQueryParam("/api/v1/directstream/att", "?"))
+        })()
+    }, [getHMACTokenQueryParam])
 
     const videoRef = useRef<HTMLVideoElement | null>(null)
     const containerRef = useRef<HTMLDivElement | null>(null)
@@ -729,6 +700,8 @@ export function VideoCore(props: VideoCoreProps) {
     const setIsFullscreen = useSetAtom(vc_isFullscreen)
     const [mediaSessionManager, setMediaSessionManager] = useAtom(vc_mediaSessionManager)
     const action = useSetAtom(vc_dispatchAction)
+    const setInSightOpen = useSetAtom(vc_inSight_open)
+    const setInSightData = useSetAtom(vc_inSight_data)
 
     // States
     const qc = useQueryClient()
@@ -781,14 +754,33 @@ export function VideoCore(props: VideoCoreProps) {
         dispatchTerminatedEvent()
     }
 
-    // Measure video element size
-    const [measureRef, { width, height }] = useMeasure<HTMLVideoElement>()
+    // measure video element size using a throttled ResizeObserver
+    const videoResizeObserverRef = React.useRef<ResizeObserver | null>(null)
+    const videoResizeRafRef = React.useRef<number | null>(null)
+    const videoResizeTargetRef = React.useRef<HTMLVideoElement | null>(null)
+
     React.useEffect(() => {
-        setRealVideoSize({
-            width,
-            height,
+        videoResizeObserverRef.current = new ResizeObserver((entries) => {
+            if (videoResizeRafRef.current !== null) return // already scheduled
+            videoResizeRafRef.current = requestAnimationFrame(() => {
+                videoResizeRafRef.current = null
+                const entry = entries[0]
+                if (!entry) return
+                const { width: w, height: h } = entry.contentRect
+                setRealVideoSize(prev => {
+                    if (prev.width === w && prev.height === h) return prev
+                    return { width: w, height: h }
+                })
+            })
         })
-    }, [width, height])
+
+        return () => {
+            videoResizeObserverRef.current?.disconnect()
+            if (videoResizeRafRef.current !== null) {
+                cancelAnimationFrame(videoResizeRafRef.current)
+            }
+        }
+    }, [])
 
     // refetch continuity data when playback info changes
     React.useEffect(() => {
@@ -814,7 +806,14 @@ export function VideoCore(props: VideoCoreProps) {
         if (mRef) {
             mRef.current = instance
         }
-        if (instance) measureRef(instance)
+        // observe/unobserve the video element for size changes
+        if (videoResizeTargetRef.current && videoResizeTargetRef.current !== instance) {
+            videoResizeObserverRef.current?.unobserve(videoResizeTargetRef.current)
+        }
+        if (instance) {
+            videoResizeObserverRef.current?.observe(instance)
+        }
+        videoResizeTargetRef.current = instance
         setVideoElement(instance)
     }
 
@@ -899,6 +898,8 @@ export function VideoCore(props: VideoCoreProps) {
             setPipElement(null)
             fullscreenManager?.destroy?.()
             setFullscreenManager(null)
+            setInSightOpen(false)
+            setInSightData(null)
             // setIsFullscreen(false)
             if (mediaSessionManager) {
                 mediaSessionManager.setVideo(null)
@@ -913,6 +914,8 @@ export function VideoCore(props: VideoCoreProps) {
         if (!!state.playbackInfo?.id && (!currentPlaybackRef.current || state.playbackInfo.id !== currentPlaybackRef.current)) {
             hasSoughtRef.current = false
             isFirstError.current = true
+            setInSightOpen(false)
+            setInSightData(null)
             log.info("New stream loaded", state.playbackInfo)
             setStreamType(state.playbackInfo.streamType)
             vc_logGeneralInfo(videoRef.current)
@@ -1017,6 +1020,7 @@ export function VideoCore(props: VideoCoreProps) {
                     videoElement: v!,
                     playbackInfo: state.playbackInfo!,
                     jassubOffscreenRender: true,
+                    hmacToken: directstreamAttToken,
                     translateTargetLang: serverStatus?.settings?.mediaPlayer?.vcTranslate
                         ? serverStatus?.settings?.mediaPlayer?.vcTranslateTargetLanguage
                         : null,
@@ -1436,6 +1440,8 @@ export function VideoCore(props: VideoCoreProps) {
     // container events
     const setNotBusyTimeout = React.useRef<NodeJS.Timeout | null>(null)
     const lastPointerPosition = React.useRef({ x: 0, y: 0 })
+    const isHoveringContainer = React.useRef(false)
+
     const handleContainerPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
         const { x, y } = e.nativeEvent
         const dx = x - lastPointerPosition.current.x
@@ -1452,6 +1458,33 @@ export function VideoCore(props: VideoCoreProps) {
         }, DELAY_BEFORE_NOT_BUSY)
         lastPointerPosition.current = { x, y }
     }
+
+    const handleContainerMouseEnter = () => {
+        // don't
+        // isHoveringContainer.current = true
+        // if (videoRef.current && state.active) {
+        //     videoRef.current.focus()
+        // }
+    }
+
+    const handleContainerMouseLeave = () => {
+        isHoveringContainer.current = false
+    }
+
+    // Focus video element when window regains focus, but only if hovering
+    React.useEffect(() => {
+        const handleWindowFocus = () => {
+            if (videoRef.current && state.active && isHoveringContainer.current) {
+                videoRef.current.focus()
+                setBusy(false)
+            }
+        }
+
+        window.addEventListener("focus", handleWindowFocus)
+        return () => {
+            window.removeEventListener("focus", handleWindowFocus)
+        }
+    }, [state.active])
 
     const chapterCues = useMemo(() => {
             if (!duration || duration <= 1) return []
@@ -1506,6 +1539,8 @@ export function VideoCore(props: VideoCoreProps) {
                         combineRef={combineRef}
                         combineContainerRef={combineContainerRef}
                         handleContainerPointerMove={handleContainerPointerMove}
+                        handleContainerMouseEnter={handleContainerMouseEnter}
+                        handleContainerMouseLeave={handleContainerMouseLeave}
                         handleClick={handleClick}
                         handleLoadedMetadata={handleLoadedMetadata}
                         handleTimeUpdate={handleTimeUpdate}
@@ -1584,6 +1619,8 @@ export function VideoCore(props: VideoCoreProps) {
                         combineRef={combineRef}
                         combineContainerRef={combineContainerRef}
                         handleContainerPointerMove={handleContainerPointerMove}
+                        handleContainerMouseEnter={handleContainerMouseEnter}
+                        handleContainerMouseLeave={handleContainerMouseLeave}
                         handleClick={handleClick}
                         handleLoadedMetadata={handleLoadedMetadata}
                         handleTimeUpdate={handleTimeUpdate}

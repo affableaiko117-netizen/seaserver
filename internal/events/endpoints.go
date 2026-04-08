@@ -11,6 +11,7 @@ const (
 	AnimeEntryManualMatchEndpoint                      = "ANIME-ENTRIES-anime-entry-manual-match"
 	AutoMatchSyntheticMangaEndpoint                    = "ENMASSE-auto-match-synthetic-manga"
 	CancelDiscordActivityEndpoint                      = "DISCORD-cancel-discord-activity"
+	CheckForUpdatesEndpoint                            = "RELEASES-check-for-updates"
 	ClearAllChapterDownloadQueueEndpoint               = "MANGA-DOWNLOAD-clear-all-chapter-download-queue"
 	ClearCompletedTorrentEndpoint                      = "UNMATCHED-clear-completed-torrent"
 	ClearFileCacheMediastreamVideoFilesEndpoint        = "FILECACHE-clear-file-cache-mediastream-video-files"
