@@ -29,7 +29,7 @@ import { __isDesktop__, __isElectronDesktop__ } from "@/types/constants"
 import { atom, useAtomValue } from "jotai"
 import { useAtom, useSetAtom } from "jotai/react"
 import { AnimatePresence, motion } from "motion/react"
-import { usePathname } from "next/navigation"
+import { usePathname } from "@/lib/navigation"
 import React from "react"
 import { RiSignalTowerLine } from "react-icons/ri"
 

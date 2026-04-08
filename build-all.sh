@@ -75,12 +75,8 @@ fi
 step "1.1" "Frontend dependencies"
 (
   cd seanime-web
-  if [[ -d node_modules ]]; then
-    substep "Cleaning stale node_modules..."
-    rm -rf node_modules
-  fi
-  substep "Running npm install..."
-  npm install
+  substep "Running npm ci..."
+  npm ci
 )
 success "Dependencies installed"
 

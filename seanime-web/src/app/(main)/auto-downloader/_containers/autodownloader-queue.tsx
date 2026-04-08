@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { openTab } from "@/lib/helpers/browser"
 import { formatDistanceToNowSafe } from "@/lib/helpers/date"
-import Image from "next/image"
+import { SeaImage as Image } from "@/components/shared/sea-image"
 import React from "react"
 import { BiDownload, BiTrash } from "react-icons/bi"
 

@@ -10,7 +10,7 @@ import { useInvalidateQueriesListener } from "@/app/(main)/_listeners/invalidate
 import { LoadingOverlayWithLogo } from "@/components/shared/loading-overlay-with-logo"
 import { AppLayout, AppLayoutContent, AppLayoutSidebar, AppSidebarProvider } from "@/components/ui/app-layout"
 import { __isElectronDesktop__ } from "@/types/constants"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname, useRouter } from "@/lib/navigation"
 import React from "react"
 import { NativePlayer } from "../native-player/native-player"
 import { SeaCommand } from "../sea-command/sea-command"

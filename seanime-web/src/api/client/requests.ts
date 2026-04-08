@@ -5,7 +5,7 @@ import { useMutation, UseMutationOptions, useQuery, UseQueryOptions } from "@tan
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios"
 import { useAtomValue } from "jotai"
 import { useAtom } from "jotai/react"
-import { usePathname } from "next/navigation"
+import { usePathname } from "@/lib/navigation"
 import { useEffect } from "react"
 import { toast } from "sonner"
 

@@ -1,6 +1,6 @@
 "use client"
 import { CustomLibraryBanner } from "@/app/(main)/(library)/_containers/custom-library-banner"
-import { OfflineAnimeLists } from "@/app/(main)/(offline)/offline/_components/offline-anime-lists"
+import { OfflineAnimeLists } from "@/app/(main)/_features/offline/_components/offline-anime-lists"
 import { ThemeLibraryScreenBannerType, useThemeSettings } from "@/lib/theme/hooks"
 import React from "react"
 

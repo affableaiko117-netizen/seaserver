@@ -16,7 +16,7 @@ import { Pagination, PaginationEllipsis, PaginationItem, PaginationTrigger } fro
 import { Select } from "@/components/ui/select"
 import { TextInput } from "@/components/ui/text-input"
 import { useAtom } from "jotai/react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams } from "@/lib/navigation"
 import React from "react"
 import { AiOutlineArrowLeft } from "react-icons/ai"
 import { FiSearch } from "react-icons/fi"

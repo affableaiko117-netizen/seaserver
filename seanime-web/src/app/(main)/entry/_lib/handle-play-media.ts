@@ -18,7 +18,7 @@ import { openTab } from "@/lib/helpers/browser"
 import { logger } from "@/lib/helpers/debug"
 import { __isElectronDesktop__ } from "@/types/constants"
 import { useAtomValue, useSetAtom } from "jotai"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/lib/navigation"
 import React from "react"
 import { toast } from "sonner"
 

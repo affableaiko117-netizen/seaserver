@@ -9,7 +9,7 @@ import { Vaul, VaulContent } from "@/components/vaul"
 import { useThemeSettings } from "@/lib/theme/hooks"
 import { atom } from "jotai"
 import { useAtom } from "jotai/react"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "@/lib/navigation"
 import React, { useEffect } from "react"
 
 export const __torrentSearch_selectionAtom = atom<TorrentSelectionType | undefined>(undefined)

@@ -186,7 +186,7 @@ export function VideoCoreProvider(props: { id: string, children: React.ReactNode
                 vc_isMuted,
                 vc_volume,
                 vc_subtitleDelay,
-                // vc_isFullscreen, expose this
+                vc_isFullscreen,
                 vc_seeking,
                 vc_seekingTargetProgress,
                 vc_timeRanges,

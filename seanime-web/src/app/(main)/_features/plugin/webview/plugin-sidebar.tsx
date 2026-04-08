@@ -9,7 +9,7 @@ import { VerticalMenuItem } from "@/components/ui/vertical-menu"
 import { logger } from "@/lib/helpers/debug"
 import { WSEvents } from "@/lib/server/ws-events"
 import { useMap } from "@uidotdev/usehooks"
-import { usePathname, useSearchParams } from "next/navigation"
+import { usePathname, useSearchParams } from "@/lib/navigation"
 import React, { useMemo } from "react"
 import { useMount } from "react-use"
 

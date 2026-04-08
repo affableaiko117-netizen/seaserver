@@ -1,7 +1,7 @@
 "use client"
 import { cn } from "@/components/ui/core/styling"
 import { motion } from "motion/react"
-import { usePathname } from "next/navigation"
+import { usePathname } from "@/lib/navigation"
 import React from "react"
 
 type DepthOfFieldBackgroundProps = {

@@ -4,7 +4,7 @@ import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { Status } from "@/api/generated/types"
 import { useSetServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { useQueryClient } from "@tanstack/react-query"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/lib/navigation"
 import { toast } from "sonner"
 
 export function useLogin() {
