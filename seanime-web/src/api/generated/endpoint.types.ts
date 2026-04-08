@@ -732,6 +732,7 @@ export type DownloadTorrentFile_Variables = {
     download_urls: Array<string>
     destination: string
     media?: AL_BaseAnime
+    clientId: string
 }
 
 /**

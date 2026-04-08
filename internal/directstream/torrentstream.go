@@ -68,7 +68,7 @@ func (s *TorrentStream) LoadPlaybackInfo() (ret *nativeplayer.PlaybackInfo, err 
 			ID:                id,
 			StreamType:        s.Type(),
 			MimeType:          s.LoadContentType(),
-			StreamUrl:         "{{SERVER_URL}}/api/v1/directstream/stream?id=" + id,
+			StreamUrl:         "{{SERVER_URL}}/api/v1/directstream/stream?id=" + id + s.manager.GetHMACTokenQueryParam("/api/v1/directstream/stream", "&"),
 			ContentLength:     s.file.Length(),
 			MkvMetadata:       nil,
 			MkvMetadataParser: mo.None[*mkvparser.MetadataParser](),

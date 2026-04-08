@@ -1,21 +1,6 @@
 import { VideoCoreSettings } from "@/app/(main)/_features/video-core/video-core.atoms"
 import { logger } from "@/lib/helpers/debug"
-import {
-    Anime4KPipeline,
-    CNNx2M,
-    CNNx2UL,
-    CNNx2VL,
-    DenoiseCNNx2VL,
-    GANx3L,
-    GANx4UUL,
-    ModeA,
-    ModeAA,
-    ModeB,
-    ModeBB,
-    ModeC,
-    ModeCA,
-    render,
-} from "anime4k-webgpu"
+import type { Anime4KPipeline } from "anime4k-webgpu"
 
 const log = logger("VIDEO CORE ANIME 4K MANAGER")
 
@@ -53,10 +38,18 @@ interface FrameDropState {
     enabled: boolean
     frameDropThreshold: number
     frameDropCount: number
+    totalFrameDrops: number
     lastFrameTime: number
     targetFrameTime: number
     performanceGracePeriod: number
     initTime: number
+}
+
+interface RenderStats {
+    currentFps: number
+    frameTimeSamples: number[]
+    lastRenderTime: number
+    renderCallbackId: number | null
 }
 
 export class VideoCoreAnime4KManager extends EventTarget {
@@ -69,12 +62,19 @@ export class VideoCoreAnime4KManager extends EventTarget {
     private _abortController: AbortController | null = null
     private _frameDropState: FrameDropState = {
         enabled: true,
-        frameDropThreshold: 5,
+        frameDropThreshold: 8,
         frameDropCount: 0,
+        totalFrameDrops: 0,
         lastFrameTime: 0,
         targetFrameTime: 1000 / 16, // 30fps target
         performanceGracePeriod: 1000,
         initTime: 0,
+    }
+    private _renderStats: RenderStats = {
+        currentFps: 0,
+        frameTimeSamples: [],
+        lastRenderTime: 0,
+        renderCallbackId: null,
     }
     private readonly _onFallback?: (message: string) => void
     private readonly _onOptionChanged?: (option: Anime4KOption) => void
@@ -102,6 +102,17 @@ export class VideoCoreAnime4KManager extends EventTarget {
         this._onOptionChanged = onOptionChanged
 
         log.info("Anime4K manager initialized")
+    }
+
+    getStats() {
+        return {
+            currentOption: this._currentOption,
+            frameDropCount: this._frameDropState.frameDropCount,
+            totalFrameDrops: this._frameDropState.totalFrameDrops,
+            currentFps: this._renderStats.currentFps,
+            targetFrameTime: this._frameDropState.targetFrameTime,
+            lastFrameTime: this._frameDropState.lastFrameTime,
+        }
     }
 
     getCurrentOption(): Anime4KOption {
@@ -146,12 +157,17 @@ export class VideoCoreAnime4KManager extends EventTarget {
         super.removeEventListener(type, listener, options)
     }
 
-    updateCanvasSize(size: { width: number; height: number }) {
-        const videoContentSize = this.getRenderedVideoContentSize(this.videoElement)
-        this._boxSize = { width: videoContentSize?.displayedWidth || size.width, height: videoContentSize?.displayedHeight || size.height }
+    updateCanvasSize(_size: { width: number; height: number }) {
+        const rect = this.videoElement.getBoundingClientRect()
+        const containerWidth = rect.width
+        const containerHeight = rect.height
+        const videoContentSize = this.getRenderedVideoContentSize(this.videoElement, containerWidth, containerHeight)
+        this._boxSize = { width: videoContentSize?.displayedWidth || containerWidth, height: videoContentSize?.displayedHeight || containerHeight }
         if (this.canvas) {
             this.canvas.width = this._boxSize.width
             this.canvas.height = this._boxSize.height
+            this.canvas.style.width = this._boxSize.width + "px"
+            this.canvas.style.height = this._boxSize.height + "px"
             log.info("Updating canvas size", { ...this._boxSize })
         }
 
@@ -160,8 +176,8 @@ export class VideoCoreAnime4KManager extends EventTarget {
         this.dispatchEvent(event)
     }
 
-    resize() {
-        const videoContentSize = this.getRenderedVideoContentSize(this.videoElement)
+    resize(containerWidth: number, containerHeight: number) {
+        const videoContentSize = this.getRenderedVideoContentSize(this.videoElement, containerWidth, containerHeight)
         this._boxSize = { width: videoContentSize?.displayedWidth || 0, height: videoContentSize?.displayedHeight || 0 }
         if (this.canvas) {
             this.canvas.width = this._boxSize.width
@@ -254,6 +270,18 @@ export class VideoCoreAnime4KManager extends EventTarget {
 
         this._initialized = false
 
+        if (this._renderStats.renderCallbackId !== null) {
+            this.videoElement.cancelVideoFrameCallback(this._renderStats.renderCallbackId)
+            this._renderStats.renderCallbackId = null
+        }
+
+        this._renderStats = {
+            currentFps: 0,
+            frameTimeSamples: [],
+            lastRenderTime: 0,
+            renderCallbackId: null,
+        }
+
         if (this._initializationTimeout) {
             clearTimeout(this._initializationTimeout)
             this._initializationTimeout = null
@@ -267,6 +295,11 @@ export class VideoCoreAnime4KManager extends EventTarget {
         if (this._renderLoopId) {
             cancelAnimationFrame(this._renderLoopId)
             this._renderLoopId = null
+        }
+
+        if (this._renderStats.renderCallbackId !== null) {
+            this.videoElement.cancelVideoFrameCallback(this._renderStats.renderCallbackId)
+            this._renderStats.renderCallbackId = null
         }
 
         if (this._webgpuResources?.device) {
@@ -301,8 +334,16 @@ export class VideoCoreAnime4KManager extends EventTarget {
         this._frameDropState = {
             ...this._frameDropState,
             frameDropCount: 0,
+            totalFrameDrops: 0,
             initTime: performance.now(),
             lastFrameTime: 0,
+        }
+
+        this._renderStats = {
+            currentFps: 0,
+            frameTimeSamples: [],
+            lastRenderTime: 0,
+            renderCallbackId: null,
         }
 
         // Check WebGPU support, create canvas, and start rendering
@@ -331,10 +372,7 @@ export class VideoCoreAnime4KManager extends EventTarget {
         }
     }
 
-    private getRenderedVideoContentSize(video: HTMLVideoElement) {
-        const containerWidth = video.clientWidth
-        const containerHeight = video.clientHeight
-
+    private getRenderedVideoContentSize(video: HTMLVideoElement, containerWidth: number, containerHeight: number) {
         const videoWidth = video.videoWidth
         const videoHeight = video.videoHeight
 
@@ -345,28 +383,12 @@ export class VideoCoreAnime4KManager extends EventTarget {
 
         let displayedWidth, displayedHeight
 
-        const objectFit = getComputedStyle(video).objectFit || "fill"
-
-        if (objectFit === "cover") {
-            if (videoRatio > containerRatio) {
-                displayedHeight = containerHeight
-                displayedWidth = containerHeight * videoRatio
-            } else {
-                displayedWidth = containerWidth
-                displayedHeight = containerWidth / videoRatio
-            }
-        } else if (objectFit === "contain") {
-            if (videoRatio > containerRatio) {
-                displayedWidth = containerWidth
-                displayedHeight = containerWidth / videoRatio
-            } else {
-                displayedHeight = containerHeight
-                displayedWidth = containerHeight * videoRatio
-            }
-        } else {
-            // object-fit: fill or none or scale-down, fallback
+        if (videoRatio > containerRatio) {
             displayedWidth = containerWidth
+            displayedHeight = containerWidth / videoRatio
+        } else {
             displayedHeight = containerHeight
+            displayedWidth = containerHeight * videoRatio
         }
 
         return { displayedWidth, displayedHeight }
@@ -376,6 +398,12 @@ export class VideoCoreAnime4KManager extends EventTarget {
     // Create and position the canvas
     private _createCanvas() {
         if (this._abortController?.signal.aborted) return
+
+        const rect = this.videoElement.getBoundingClientRect()
+        const videoContentSize = this.getRenderedVideoContentSize(this.videoElement, rect.width, rect.height)
+        if (videoContentSize) {
+            this._boxSize = { width: videoContentSize.displayedWidth, height: videoContentSize.displayedHeight }
+        }
 
         this.canvas = document.createElement("canvas")
 
@@ -405,6 +433,8 @@ export class VideoCoreAnime4KManager extends EventTarget {
             return
         }
 
+        const anime4k = await import("anime4k-webgpu")
+
         const nativeDimensions = {
             width: this.videoElement.videoWidth,
             height: this.videoElement.videoHeight,
@@ -417,7 +447,7 @@ export class VideoCoreAnime4KManager extends EventTarget {
 
         log.info("Rendering started")
 
-        await render({
+        await anime4k.render({
             video: this.videoElement,
             canvas: this.canvas,
             pipelineBuilder: (device, inputTexture) => {
@@ -430,24 +460,56 @@ export class VideoCoreAnime4KManager extends EventTarget {
                     targetDimensions,
                 }
 
-                return this.createPipeline(commonProps)
+                return this.createPipeline(commonProps, anime4k)
             },
         })
 
         setTimeout(() => {
-            if (this.canvas) {
-                for (const callback of this._onCanvasCreatedCallbacks) {
-                    callback(this.canvas)
-                }
-                for (const callback of this._onCanvasCreatedCallbacksOnce) {
-                    callback(this.canvas)
-                }
-                this._onCanvasCreatedCallbacksOnce.clear()
+            requestAnimationFrame(() => {
+                if (this.canvas) {
+                    const rect = this.videoElement.getBoundingClientRect()
+                    const videoContentSize = this.getRenderedVideoContentSize(this.videoElement, rect.width, rect.height)
+                    if (videoContentSize && (videoContentSize.displayedWidth !== this._boxSize.width || videoContentSize.displayedHeight !== this._boxSize.height)) {
+                        this._boxSize = { width: videoContentSize.displayedWidth, height: videoContentSize.displayedHeight }
+                        this.canvas.width = this._boxSize.width
+                        this.canvas.height = this._boxSize.height
+                        this.canvas.style.width = this._boxSize.width + "px"
+                        this.canvas.style.height = this._boxSize.height + "px"
+                        log.info("Post-init canvas resize correction", { ...this._boxSize })
+                    }
 
-                const event: Anime4KManagerCanvasCreatedEvent = new CustomEvent("canvascreated", { detail: { canvas: this.canvas } })
-                this.dispatchEvent(event)
-            }
+                    for (const callback of this._onCanvasCreatedCallbacks) {
+                        callback(this.canvas)
+                    }
+                    for (const callback of this._onCanvasCreatedCallbacksOnce) {
+                        callback(this.canvas)
+                    }
+                    this._onCanvasCreatedCallbacksOnce.clear()
+
+                    const event: Anime4KManagerCanvasCreatedEvent = new CustomEvent("canvascreated", { detail: { canvas: this.canvas } })
+                    this.dispatchEvent(event)
+
+                    this._startRenderFpsTracking()
+                }
+            })
         }, 100)
+
+        setTimeout(() => {
+            requestAnimationFrame(() => {
+                if (this.canvas && !this._abortController?.signal.aborted) {
+                    const rect = this.videoElement.getBoundingClientRect()
+                    const videoContentSize = this.getRenderedVideoContentSize(this.videoElement, rect.width, rect.height)
+                    if (videoContentSize && (videoContentSize.displayedWidth !== this._boxSize.width || videoContentSize.displayedHeight !== this._boxSize.height)) {
+                        this._boxSize = { width: videoContentSize.displayedWidth, height: videoContentSize.displayedHeight }
+                        this.canvas.width = this._boxSize.width
+                        this.canvas.height = this._boxSize.height
+                        this.canvas.style.width = this._boxSize.width + "px"
+                        this.canvas.style.height = this._boxSize.height + "px"
+                        log.info("Deferred canvas resize correction", { ...this._boxSize })
+                    }
+                }
+            })
+        }, 500)
 
         // Start frame drop detection if enabled
         if (this._frameDropState.enabled && this._isOptionSelected(this._currentOption)) {
@@ -455,34 +517,34 @@ export class VideoCoreAnime4KManager extends EventTarget {
         }
     }
 
-    private createPipeline(commonProps: any): [Anime4KPipeline] {
+    private createPipeline(commonProps: any, anime4k: typeof import("anime4k-webgpu")): [Anime4KPipeline] {
         switch (this._currentOption) {
             case "mode-a":
-                return [new ModeA(commonProps)]
+                return [new anime4k.ModeA(commonProps)]
             case "mode-b":
-                return [new ModeB(commonProps)]
+                return [new anime4k.ModeB(commonProps)]
             case "mode-c":
-                return [new ModeC(commonProps)]
+                return [new anime4k.ModeC(commonProps)]
             case "mode-aa":
-                return [new ModeAA(commonProps)]
+                return [new anime4k.ModeAA(commonProps)]
             case "mode-bb":
-                return [new ModeBB(commonProps)]
+                return [new anime4k.ModeBB(commonProps)]
             case "mode-ca":
-                return [new ModeCA(commonProps)]
+                return [new anime4k.ModeCA(commonProps)]
             case "cnn-2x-medium":
-                return [new CNNx2M(commonProps)]
+                return [new anime4k.CNNx2M(commonProps)]
             case "cnn-2x-very-large":
-                return [new CNNx2VL(commonProps)]
+                return [new anime4k.CNNx2VL(commonProps)]
             case "denoise-cnn-2x-very-large":
-                return [new DenoiseCNNx2VL(commonProps)]
+                return [new anime4k.DenoiseCNNx2VL(commonProps)]
             case "cnn-2x-ultra-large":
-                return [new CNNx2UL(commonProps)]
+                return [new anime4k.CNNx2UL(commonProps)]
             case "gan-3x-large":
-                return [new GANx3L(commonProps)]
+                return [new anime4k.GANx3L(commonProps)]
             case "gan-4x-ultra-large":
-                return [new GANx4UUL(commonProps)]
+                return [new anime4k.GANx4UUL(commonProps)]
             default:
-                return [new ModeA(commonProps)]
+                return [new anime4k.ModeA(commonProps)]
         }
     }
 
@@ -518,6 +580,7 @@ export class VideoCoreAnime4KManager extends EventTarget {
 
             if (isFrameDrop) {
                 this._frameDropState.frameDropCount++
+                this._frameDropState.totalFrameDrops++
 
                 if (this._frameDropState.frameDropCount >= this._frameDropState.frameDropThreshold) {
                     log.warning(`Detected ${this._frameDropState.frameDropCount} consecutive frame drops. Falling back to 'off' mode.`)
@@ -596,5 +659,31 @@ export class VideoCoreAnime4KManager extends EventTarget {
 
     private _isCanvasHidden(): boolean {
         return this.canvas ? this.canvas.style.display === "none" : false
+    }
+
+    private _startRenderFpsTracking() {
+        if (!this.videoElement.requestVideoFrameCallback) return
+
+        const trackFrame = (now: number, metadata: VideoFrameCallbackMetadata) => {
+            if (this._renderStats.lastRenderTime > 0) {
+                const frameTime = now - this._renderStats.lastRenderTime
+
+                this._renderStats.frameTimeSamples.push(frameTime)
+                if (this._renderStats.frameTimeSamples.length > 10) {
+                    this._renderStats.frameTimeSamples.shift()
+                }
+
+                const avgFrameTime = this._renderStats.frameTimeSamples.reduce((a, b) => a + b, 0) / this._renderStats.frameTimeSamples.length
+                this._renderStats.currentFps = avgFrameTime > 0 ? 1000 / avgFrameTime : 0
+            }
+
+            this._renderStats.lastRenderTime = now
+
+            if (this._isOptionSelected(this._currentOption)) {
+                this._renderStats.renderCallbackId = this.videoElement.requestVideoFrameCallback(trackFrame)
+            }
+        }
+
+        this._renderStats.renderCallbackId = this.videoElement.requestVideoFrameCallback(trackFrame)
     }
 }
