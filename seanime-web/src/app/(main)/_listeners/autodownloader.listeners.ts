@@ -5,7 +5,7 @@ import { useWebsocketMessageListener } from "@/app/(main)/_hooks/handle-websocke
 import { WSEvents } from "@/lib/server/ws-events"
 import { useQueryClient } from "@tanstack/react-query"
 import { useSetAtom } from "jotai/react"
-import { usePathname } from "next/navigation"
+import { usePathname } from "@/lib/navigation"
 import { useEffect } from "react"
 
 /**

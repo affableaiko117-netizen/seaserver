@@ -1,6 +1,6 @@
 "use client"
 import { cn } from "@/components/ui/core/styling"
-import { usePathname } from "next/navigation"
+import { usePathname } from "@/lib/navigation"
 import React from "react"
 
 export function LayoutHeaderBackground() {

@@ -23,7 +23,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { BiCheck, BiFolder, BiFile, BiSearch, BiFolderOpen, BiSolidStar } from "react-icons/bi"
 import { LuChevronDown, LuChevronRight } from "react-icons/lu"
-import Image from "next/image"
+import { SeaImage as Image } from "@/components/shared/sea-image"
 import capitalize from "lodash/capitalize"
 
 // Tree node structure for folder hierarchy

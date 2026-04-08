@@ -6,7 +6,7 @@ import { useHandleMissingEpisodes } from "@/app/(main)/schedule/_lib/handle-miss
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { AppLayoutStack } from "@/components/ui/app-layout"
 import { Carousel, CarouselContent, CarouselDotButtons, CarouselItem } from "@/components/ui/carousel"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/lib/navigation"
 import React from "react"
 import { AiOutlineDownload } from "react-icons/ai"
 import { IoLibrary } from "react-icons/io5"

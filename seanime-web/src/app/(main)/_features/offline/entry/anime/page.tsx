@@ -1,11 +1,11 @@
 "use client"
 
 import { useGetAnimeEntry } from "@/api/hooks/anime_entries.hooks"
-import { OfflineMetaSection } from "@/app/(main)/(offline)/offline/entry/_components/offline-meta-section"
+import { OfflineMetaSection } from "@/app/(main)/_features/offline/entry/_components/offline-meta-section"
 import { MediaEntryPageLoadingDisplay } from "@/app/(main)/_features/media/_components/media-entry-page-loading-display"
 import { EpisodeSection } from "@/app/(main)/entry/_containers/episode-list/episode-section"
 import { PageWrapper } from "@/components/shared/page-wrapper"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "@/lib/navigation"
 import React from "react"
 
 export default function Page() {

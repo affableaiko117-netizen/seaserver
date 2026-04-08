@@ -43,7 +43,7 @@ import { ContextMenuGroup, ContextMenuItem, ContextMenuLabel, ContextMenuTrigger
 import { useAtom } from "jotai"
 import { useSetAtom } from "jotai/react"
 import capitalize from "lodash/capitalize"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname, useRouter } from "@/lib/navigation"
 import React, { useState } from "react"
 import { BiAddToQueue, BiPlay } from "react-icons/bi"
 import { IoLibrarySharp } from "react-icons/io5"

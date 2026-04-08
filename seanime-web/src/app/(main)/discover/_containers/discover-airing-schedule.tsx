@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator"
 import { format, isSameMonth, isToday, subDays } from "date-fns"
 import { addDays } from "date-fns/addDays"
 import { isSameDay } from "date-fns/isSameDay"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/lib/navigation"
 import React from "react"
 import { LuDock, LuEye } from "react-icons/lu"
 

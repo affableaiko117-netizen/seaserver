@@ -3,7 +3,7 @@ import { TextGenerateEffect } from "@/components/shared/text-generate-effect"
 import { Button } from "@/components/ui/button"
 import { LoadingOverlay } from "@/components/ui/loading-spinner"
 import { __isDesktop__ } from "@/types/constants"
-import Image from "next/image"
+import { SeaImage as Image } from "@/components/shared/sea-image"
 import React from "react"
 
 export function LoadingOverlayWithLogo({ refetch, title }: { refetch?: () => void, title?: string }) {

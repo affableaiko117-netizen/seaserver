@@ -17,7 +17,7 @@ import { ThemeLibraryScreenBannerType, useThemeSettings } from "@/lib/theme/hook
 import { useWindowSize } from "@uidotdev/usehooks"
 import { atom } from "jotai/index"
 import { useAtom, useSetAtom } from "jotai/react"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/lib/navigation"
 import React from "react"
 import { seaCommand_compareMediaTitles } from "../../_features/sea-command/utils"
 

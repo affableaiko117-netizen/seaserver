@@ -1,7 +1,7 @@
 "use client"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { NavigationMenu, NavigationMenuProps } from "@/components/ui/navigation-menu"
-import { usePathname } from "next/navigation"
+import { usePathname } from "@/lib/navigation"
 import React, { useMemo } from "react"
 
 interface OfflineTopMenuProps {

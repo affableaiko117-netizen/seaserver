@@ -1,7 +1,7 @@
 "use client"
 
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/lib/navigation"
 import React from "react"
 
 export default function Layout({ children }: { children?: React.ReactNode }) {

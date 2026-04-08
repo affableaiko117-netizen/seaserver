@@ -19,7 +19,6 @@ import { Route as SplashscreenCrashIndexRouteImport } from './routes/splashscree
 import { Route as PublicAuthIndexRouteImport } from './routes/public/auth/index'
 import { Route as MainSettingsIndexRouteImport } from './routes/_main/settings/index'
 import { Route as MainSearchIndexRouteImport } from './routes/_main/search/index'
-import { Route as MainOnlinestreamIndexRouteImport } from './routes/_main/onlinestream/index'
 import { Route as MainOfflineIndexRouteImport } from './routes/_main/offline/index'
 import { Route as MainMediastreamIndexRouteImport } from './routes/_main/mediastream/index'
 import { Route as MainMedialinksIndexRouteImport } from './routes/_main/medialinks/index'
@@ -226,13 +225,6 @@ const MainSearchIndexRoute = MainSearchIndexRouteImport.update({
 } as any).lazy(() =>
   import('./routes/_main/search/index.lazy').then((d) => d.Route),
 )
-const MainOnlinestreamIndexRoute = MainOnlinestreamIndexRouteImport.update({
-  id: '/onlinestream/',
-  path: '/onlinestream/',
-  getParentRoute: () => MainRoute,
-} as any).lazy(() =>
-  import('./routes/_main/onlinestream/index.lazy').then((d) => d.Route),
-)
 const MainOfflineIndexRoute = MainOfflineIndexRouteImport.update({
   id: '/offline/',
   path: '/offline/',
@@ -345,7 +337,6 @@ export interface FileRoutesByFullPath {
   '/medialinks/': typeof MainMedialinksIndexRoute
   '/mediastream/': typeof MainMediastreamIndexRoute
   '/offline/': typeof MainOfflineIndexRoute
-  '/onlinestream/': typeof MainOnlinestreamIndexRoute
   '/search/': typeof MainSearchIndexRoute
   '/settings/': typeof MainSettingsIndexRoute
   '/public/auth/': typeof PublicAuthIndexRoute
@@ -384,7 +375,6 @@ export interface FileRoutesByTo {
   '/medialinks': typeof MainMedialinksIndexRoute
   '/mediastream': typeof MainMediastreamIndexRoute
   '/offline': typeof MainOfflineIndexRoute
-  '/onlinestream': typeof MainOnlinestreamIndexRoute
   '/search': typeof MainSearchIndexRoute
   '/settings': typeof MainSettingsIndexRoute
   '/public/auth': typeof PublicAuthIndexRoute
@@ -425,7 +415,6 @@ export interface FileRoutesById {
   '/_main/medialinks/': typeof MainMedialinksIndexRoute
   '/_main/mediastream/': typeof MainMediastreamIndexRoute
   '/_main/offline/': typeof MainOfflineIndexRoute
-  '/_main/onlinestream/': typeof MainOnlinestreamIndexRoute
   '/_main/search/': typeof MainSearchIndexRoute
   '/_main/settings/': typeof MainSettingsIndexRoute
   '/public/auth/': typeof PublicAuthIndexRoute
@@ -466,7 +455,6 @@ export interface FileRouteTypes {
     | '/medialinks/'
     | '/mediastream/'
     | '/offline/'
-    | '/onlinestream/'
     | '/search/'
     | '/settings/'
     | '/public/auth/'
@@ -505,7 +493,6 @@ export interface FileRouteTypes {
     | '/medialinks'
     | '/mediastream'
     | '/offline'
-    | '/onlinestream'
     | '/search'
     | '/settings'
     | '/public/auth'
@@ -545,7 +532,6 @@ export interface FileRouteTypes {
     | '/_main/medialinks/'
     | '/_main/mediastream/'
     | '/_main/offline/'
-    | '/_main/onlinestream/'
     | '/_main/search/'
     | '/_main/settings/'
     | '/public/auth/'
@@ -751,13 +737,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainSearchIndexRouteImport
       parentRoute: typeof MainRoute
     }
-    '/_main/onlinestream/': {
-      id: '/_main/onlinestream/'
-      path: '/onlinestream'
-      fullPath: '/onlinestream/'
-      preLoaderRoute: typeof MainOnlinestreamIndexRouteImport
-      parentRoute: typeof MainRoute
-    }
     '/_main/offline/': {
       id: '/_main/offline/'
       path: '/offline'
@@ -862,7 +841,6 @@ interface MainRouteChildren {
   MainMedialinksIndexRoute: typeof MainMedialinksIndexRoute
   MainMediastreamIndexRoute: typeof MainMediastreamIndexRoute
   MainOfflineIndexRoute: typeof MainOfflineIndexRoute
-  MainOnlinestreamIndexRoute: typeof MainOnlinestreamIndexRoute
   MainSearchIndexRoute: typeof MainSearchIndexRoute
   MainSettingsIndexRoute: typeof MainSettingsIndexRoute
   MainAutoDownloaderIndexLazyRoute: typeof MainAutoDownloaderIndexLazyRoute
@@ -896,7 +874,6 @@ const MainRouteChildren: MainRouteChildren = {
   MainMedialinksIndexRoute: MainMedialinksIndexRoute,
   MainMediastreamIndexRoute: MainMediastreamIndexRoute,
   MainOfflineIndexRoute: MainOfflineIndexRoute,
-  MainOnlinestreamIndexRoute: MainOnlinestreamIndexRoute,
   MainSearchIndexRoute: MainSearchIndexRoute,
   MainSettingsIndexRoute: MainSettingsIndexRoute,
   MainAutoDownloaderIndexLazyRoute: MainAutoDownloaderIndexLazyRoute,

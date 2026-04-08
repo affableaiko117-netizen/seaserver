@@ -2,7 +2,6 @@
 import { ScanProgressBar } from "@/app/(main)/(library)/_containers/scan-progress-bar"
 import { ScannerModal } from "@/app/(main)/(library)/_containers/scanner-modal"
 import { ErrorExplainer } from "@/app/(main)/_features/error-explainer/error-explainer"
-import { GlobalSearch } from "@/app/(main)/_features/global-search/global-search"
 import { IssueReport } from "@/app/(main)/_features/issue-report/issue-report"
 import { LibraryExplorerDrawer } from "@/app/(main)/_features/library-explorer/library-explorer-drawer"
 import { LibraryWatcher } from "@/app/(main)/_features/library-watcher/library-watcher"
@@ -34,7 +33,7 @@ import { MangaChapterMigrationProgressBar } from "@/app/(main)/manga/_containers
 import { LoadingOverlayWithLogo } from "@/components/shared/loading-overlay-with-logo"
 import { AppLayout, AppLayoutContent, AppLayoutSidebar, AppSidebarProvider } from "@/components/ui/app-layout"
 import { __isElectronDesktop__ } from "@/types/constants"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname, useRouter } from "@/lib/navigation"
 import React from "react"
 import { useServerStatus } from "../../_hooks/use-server-status"
 import { useInvalidateQueriesListener } from "../../_listeners/invalidate-queries.listeners"
@@ -49,7 +48,6 @@ export const MainLayout = ({ children }: { children: React.ReactNode }) => {
     return (
         <>
             <Loader />
-            <GlobalSearch />
             <ScanProgressBar />
             <MangaChapterMigrationProgressBar />
             <LibraryWatcher />

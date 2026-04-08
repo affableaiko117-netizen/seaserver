@@ -23,7 +23,7 @@ import {
 } from "@vidstack/react"
 import HLS, { LoadPolicy } from "hls.js"
 import { useAtomValue } from "jotai"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/lib/navigation"
 import React from "react"
 import { toast } from "sonner"
 

@@ -18,7 +18,7 @@ import { logger } from "@/lib/helpers/debug"
 import { WSEvents } from "@/lib/server/ws-events"
 import { Portal } from "@radix-ui/react-portal"
 import { useMap } from "@uidotdev/usehooks"
-import { usePathname, useSearchParams } from "next/navigation"
+import { usePathname, useSearchParams } from "@/lib/navigation"
 import React from "react"
 import { useMount, useUnmount } from "react-use"
 

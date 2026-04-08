@@ -18,7 +18,7 @@ import { MediaPlayerInstance } from "@vidstack/react"
 import { atom } from "jotai"
 import { useAtom, useAtomValue, useSetAtom } from "jotai/react"
 import { uniq } from "lodash"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "@/lib/navigation"
 import React from "react"
 import { toast } from "sonner"
 

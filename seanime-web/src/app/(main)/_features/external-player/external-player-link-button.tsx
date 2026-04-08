@@ -2,7 +2,7 @@ import { SeaLink } from "@/components/shared/sea-link"
 import { Button } from "@/components/ui/button"
 import { atom } from "jotai"
 import { useAtom } from "jotai/react"
-import { useRouter } from "next/navigation"
+import { useRouter } from "@/lib/navigation"
 import React from "react"
 
 type ExternalPlayerLinkButtonProps = {}

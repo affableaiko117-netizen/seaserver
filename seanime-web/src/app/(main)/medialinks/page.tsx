@@ -18,7 +18,7 @@ import { ExternalPlayerLink } from "@/lib/external-player-link/external-player-l
 import { openTab } from "@/lib/helpers/browser"
 import { logger } from "@/lib/helpers/debug"
 import { useAtomValue, useSetAtom } from "jotai"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "@/lib/navigation"
 import React from "react"
 import { AiOutlineArrowLeft } from "react-icons/ai"
 import { toast } from "sonner"
