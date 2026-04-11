@@ -96,13 +96,13 @@ import { VideoCoreWatchPartyChat } from "@/app/(main)/_features/video-core/video
 import {
     vc_autoNextAtom,
     vc_autoPlayVideoAtom,
-    vc_autoSkipOPEDAtom,
     vc_beautifyImageAtom,
     vc_settings,
     vc_showStatsForNerdsAtom,
     vc_storedMutedAtom,
     vc_storedPlaybackRateAtom,
     vc_storedVolumeAtom,
+    vc_watchContinuityAtom,
     VideoCore_VideoPlaybackInfo,
     VideoCore_VideoSource,
     VideoCore_VideoSubtitleTrack,
@@ -306,6 +306,7 @@ const PlayerContent = React.memo<PlayerContentProps>(({
     const buffering = useAtomValue(vc_buffering)
     const settings = useAtomValue(vc_settings)
     const beautifyImage = useAtomValue(vc_beautifyImageAtom)
+    const vcWatchContinuity = useAtomValue(vc_watchContinuityAtom)
     const isPip = useAtomValue(vc_pip)
     const skipOpeningTime = useAtomValue(vc_skipOpeningTime)
     const skipEndingTime = useAtomValue(vc_skipEndingTime)
@@ -719,7 +720,6 @@ export function VideoCore(props: VideoCoreProps) {
 
     const [autoNext] = useAtom(vc_autoNextAtom)
     const [autoPlay] = useAtom(vc_autoPlayVideoAtom)
-    const [autoSkipOpeningOutro] = useAtom(vc_autoSkipOPEDAtom)
     const [volume] = useAtom(vc_storedVolumeAtom)
     const [muted] = useAtom(vc_storedMutedAtom)
     const [playbackRate, setPlaybackRate] = useAtom(vc_storedPlaybackRateAtom)
@@ -858,7 +858,7 @@ export function VideoCore(props: VideoCoreProps) {
         waitForWatchHistory,
         shouldWaitForWatchHistory,
         getEpisodeContinuitySeekTo,
-    } = useHandleCurrentMediaContinuity(state?.playbackInfo?.media?.id)
+    } = useHandleCurrentMediaContinuity(state?.playbackInfo?.media?.id, vcWatchContinuity)
 
     React.useEffect(() => {
         if (watchHistory) {

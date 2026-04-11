@@ -68,7 +68,9 @@ func (h *Handler) HandleGetContinuityWatchHistoryItem(c echo.Context) error {
 		return h.RespondWithError(c, err)
 	}
 
-	if !h.App.ContinuityManager.GetSettings().WatchContinuityEnabled {
+	force := c.QueryParam("force") == "true" || c.QueryParam("force") == "1"
+
+	if !h.App.ContinuityManager.GetSettings().WatchContinuityEnabled && !force {
 		return h.RespondWithData(c, &continuity.WatchHistoryItemResponse{
 			Item:  nil,
 			Found: false,

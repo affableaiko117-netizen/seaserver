@@ -172,7 +172,11 @@ export const vc_highlightOPEDChaptersAtom = atomWithStorage("sea-video-core-high
 export const vc_beautifyImageAtom = atomWithStorage("sea-video-core-increase-saturation", false, undefined, { getOnInit: true })
 export const vc_autoNextAtom = atomWithStorage("sea-video-core-auto-next", true, undefined, { getOnInit: true })
 export const vc_autoPlayVideoAtom = atomWithStorage("sea-video-core-auto-play", true, undefined, { getOnInit: true })
-export const vc_autoSkipOPEDAtom = atomWithStorage("sea-video-core-auto-skip-op-ed", false, undefined, { getOnInit: true })
+export const vc_autoSkipOPAtom = atomWithStorage("sea-video-core-auto-skip-op", false, undefined, { getOnInit: true })
+export const vc_autoSkipEDAtom = atomWithStorage("sea-video-core-auto-skip-ed", false, undefined, { getOnInit: true })
+
+// Watch Continuity override: "inherit" uses global setting, "on" forces enabled, "off" forces disabled
+export const vc_watchContinuityAtom = atomWithStorage<"inherit" | "on" | "off">("sea-video-core-watch-continuity", "inherit", undefined, { getOnInit: true })
 export const vc_storedVolumeAtom = atomWithStorage("sea-video-core-volume", 1, undefined, { getOnInit: true })
 export const vc_storedMutedAtom = atomWithStorage("sea-video-core-muted", false, undefined, { getOnInit: true })
 export const vc_storedPlaybackRateAtom = atomWithStorage("sea-video-core-playback-rate", 1, undefined, { getOnInit: true })

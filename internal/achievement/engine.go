@@ -1,6 +1,7 @@
 package achievement
 
 import (
+	"math"
 	"seanime/internal/database/db"
 	"seanime/internal/database/models"
 	"seanime/internal/events"
@@ -9,6 +10,9 @@ import (
 
 	"github.com/rs/zerolog"
 )
+
+// CurrentXPVersion is bumped whenever the XP formula changes to trigger retroactive recalculation.
+const CurrentXPVersion = 1
 
 // AchievementEvent is carried into the engine from handlers.
 // All fields are optional except ProfileID and Trigger.
@@ -223,11 +227,21 @@ func (e *Engine) unlock(database *db.Database, def *Definition, tier int, profil
 		return
 	}
 
-	// Award XP
-	xp := def.XPReward
-	if xp <= 0 {
-		xp = DefaultTierXP(tier)
+	// Award XP (base × difficulty multiplier × activity multiplier)
+	baseXP := def.XPReward
+	if baseXP <= 0 {
+		baseXP = DefaultTierXP(tier)
 	}
+	xp := int(math.Round(float64(baseXP) * DifficultyMultiplier(def.Difficulty)))
+
+	// Apply activity multiplier
+	activityMult, actErr := database.ComputeActivityMultiplier()
+	if actErr != nil {
+		e.logger.Warn().Err(actErr).Msg("achievement: failed to compute activity multiplier, using 1.0")
+		activityMult = 1.0
+	}
+	xp = int(math.Round(float64(xp) * activityMult))
+
 	newLevel, leveledUp, xpErr := database.AddXP(xp)
 	if xpErr != nil {
 		e.logger.Error().Err(xpErr).Str("key", def.Key).Msg("achievement: failed to award XP")
@@ -309,6 +323,61 @@ func (e *Engine) ensureInitialized(database *db.Database) {
 	}
 
 	_ = database.BulkUpsertAchievements(rows)
+}
+
+// RunStartupMigrations checks all given databases for XP version mismatches and recalculates if needed.
+// Called once at app startup for all known profile databases.
+func (e *Engine) RunStartupMigrations(databases []*db.Database) {
+	for _, database := range databases {
+		version, err := database.GetXPVersion()
+		if err != nil {
+			e.logger.Warn().Err(err).Msg("achievement: failed to get XP version for migration check")
+			continue
+		}
+		if version < CurrentXPVersion {
+			e.logger.Info().Int("oldVersion", version).Int("newVersion", CurrentXPVersion).Msg("achievement: recalculating XP for profile database")
+			if err := e.RecalculateXP(database); err != nil {
+				e.logger.Error().Err(err).Msg("achievement: failed to recalculate XP")
+				continue
+			}
+			if err := database.SetXPVersion(CurrentXPVersion); err != nil {
+				e.logger.Error().Err(err).Msg("achievement: failed to update XP version")
+			}
+		}
+	}
+}
+
+// RecalculateXP recomputes total XP from all unlocked achievements using current difficulty multipliers
+// and the current activity multiplier, then updates the level progress.
+func (e *Engine) RecalculateXP(database *db.Database) error {
+	unlocked, err := database.GetUnlockedAchievements()
+	if err != nil {
+		return err
+	}
+
+	activityMult, actErr := database.ComputeActivityMultiplier()
+	if actErr != nil {
+		e.logger.Warn().Err(actErr).Msg("achievement: failed to compute activity multiplier during recalculation, using 1.0")
+		activityMult = 1.0
+	}
+
+	totalXP := 0
+	for _, a := range unlocked {
+		def, ok := e.defMap[a.Key]
+		if !ok {
+			continue
+		}
+		baseXP := def.XPReward
+		if baseXP <= 0 {
+			baseXP = DefaultTierXP(a.Tier)
+		}
+		baseWithDifficulty := int(math.Round(float64(baseXP) * DifficultyMultiplier(def.Difficulty)))
+		xp := int(math.Round(float64(baseWithDifficulty) * activityMult))
+		totalXP += xp
+	}
+
+	e.logger.Info().Int("totalXP", totalXP).Int("unlockedCount", len(unlocked)).Msg("achievement: recalculated XP")
+	return database.SetXP(totalXP)
 }
 
 // --- Evaluator helpers ---

@@ -169,12 +169,22 @@ function getLevelColor(level: number): { ring: string; glow: string; label: stri
     return { ring: "stroke-gray-400", glow: "shadow-gray-400/30", label: "text-gray-400" }
 }
 
-export function LevelRingAvatar({ profile, size = 80 }: { profile: { currentLevel: number; avatarPath?: string; anilistAvatar?: string; name: string }; size?: number }) {
+export function xpForLevel(level: number): number {
+    if (level <= 1) return 0
+    return Math.floor(100 * Math.pow(level - 1, 1.5))
+}
+
+export function LevelRingAvatar({ profile, size = 80 }: { profile: { currentLevel: number; totalXP?: number; avatarPath?: string; anilistAvatar?: string; name: string }; size?: number }) {
     const colors = getLevelColor(profile.currentLevel)
     const avatarSrc = profile.avatarPath || profile.anilistAvatar
     const radius = (size - 6) / 2
     const circumference = 2 * Math.PI * radius
-    const progress = Math.min(profile.currentLevel / 50, 1)
+    // XP-based ring progress: derive from totalXP and currentLevel using the level formula
+    const currentLevelXP = xpForLevel(profile.currentLevel)
+    const nextLevelXP = xpForLevel(profile.currentLevel + 1)
+    const xpRange = nextLevelXP - currentLevelXP
+    const xpInLevel = (profile.totalXP ?? 0) - currentLevelXP
+    const progress = xpRange > 0 ? Math.max(0, Math.min(xpInLevel / xpRange, 1)) : 0
     const strokeDashoffset = circumference * (1 - progress)
 
     return (
@@ -226,21 +236,32 @@ function CommunityProfileCard({ profile }: { profile: Handlers_CommunityProfile 
 
     return (
         <SeaLink href={`/profile/user?id=${profile.id}`}>
-            <div className="flex flex-col items-center gap-3 p-4 rounded-lg bg-[--subtle] hover:bg-[--subtle-highlight] transition-colors cursor-pointer group">
-                <LevelRingAvatar profile={profile} size={80} />
-                <div className="text-center min-w-0 w-full">
-                    <p className="font-semibold text-sm truncate">{profile.name}</p>
-                    <p className={cn("text-xs font-bold", colors.label)}>Lv. {profile.currentLevel}</p>
-                </div>
-                <div className="flex items-center gap-3 text-xs text-[--muted]">
-                    <span className="flex items-center gap-1">
-                        <LuTrophy className="size-3" />
-                        {profile.achievementCount}
-                    </span>
-                    <span className="flex items-center gap-1">
-                        <LuStar className="size-3" />
-                        {profile.totalXP.toLocaleString()} XP
-                    </span>
+            <div className="relative flex flex-col items-center gap-3 p-4 rounded-lg bg-[--subtle] hover:bg-[--subtle-highlight] transition-colors cursor-pointer group overflow-hidden">
+                {profile.bannerImage && (
+                    <>
+                        <div
+                            className="absolute inset-0 bg-cover bg-center blur-md scale-110 opacity-30"
+                            style={{ backgroundImage: `url(${profile.bannerImage})` }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[--subtle] via-[--subtle]/80 to-transparent" />
+                    </>
+                )}
+                <div className="relative z-10 flex flex-col items-center gap-3">
+                    <LevelRingAvatar profile={profile} size={80} />
+                    <div className="text-center min-w-0 w-full">
+                        <p className="font-semibold text-sm truncate">{profile.name}</p>
+                        <p className={cn("text-xs font-bold", colors.label)}>Lv. {profile.currentLevel}</p>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-[--muted]">
+                        <span className="flex items-center gap-1">
+                            <LuTrophy className="size-3" />
+                            {profile.achievementCount}
+                        </span>
+                        <span className="flex items-center gap-1">
+                            <LuStar className="size-3" />
+                            {profile.totalXP.toLocaleString()} XP
+                        </span>
+                    </div>
                 </div>
             </div>
         </SeaLink>

@@ -12,3 +12,14 @@ export function useGetProfileStats(year?: number) {
         queryKey: [API_ENDPOINTS.PROFILE_STATS.GetProfileStats.key, year ?? "rolling"],
     })
 }
+
+export function useGetUserProfileStats(id: number, year?: number) {
+    const base = `/api/v1/profile/user/${id}/stats`
+    const endpoint = year ? `${base}?year=${year}` : base
+    return useServerQuery<ProfileStats_ProfileStats>({
+        endpoint,
+        method: "GET",
+        queryKey: ["USER-profile-stats", id, year ?? "rolling"],
+        enabled: id > 0,
+    })
+}

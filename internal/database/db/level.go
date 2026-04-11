@@ -41,14 +41,26 @@ func (db *Database) AddXP(xp int) (int, bool, error) {
 	return lp.CurrentLevel, lp.CurrentLevel > oldLevel, nil
 }
 
-// ComputeLevel returns the level for a given total XP amount. Max level 50.
+// ComputeLevel returns the level for a given total XP amount. No upper cap.
 func ComputeLevel(totalXP int) int {
-	for lvl := 50; lvl >= 1; lvl-- {
-		if totalXP >= XPForLevel(lvl) {
-			return lvl
+	if totalXP <= 0 {
+		return 1
+	}
+	// Binary search for the highest level whose XP threshold ≤ totalXP.
+	// XPForLevel grows as 100*(level-1)^1.5, so we find an upper bound first.
+	lo, hi := 1, 2
+	for XPForLevel(hi) <= totalXP {
+		hi *= 2
+	}
+	for lo < hi {
+		mid := (lo + hi + 1) / 2
+		if XPForLevel(mid) <= totalXP {
+			lo = mid
+		} else {
+			hi = mid - 1
 		}
 	}
-	return 1
+	return lo
 }
 
 // XPForLevel returns the cumulative XP required to reach a given level.
@@ -62,10 +74,37 @@ func XPForLevel(level int) int {
 
 // XPToNextLevel returns the XP needed from current total to reach the next level.
 func XPToNextLevel(totalXP int, currentLevel int) int {
-	if currentLevel >= 50 {
-		return 0
-	}
 	return XPForLevel(currentLevel+1) - totalXP
+}
+
+// SetXP directly sets the total XP and recomputes the current level.
+func (db *Database) SetXP(totalXP int) error {
+	lp, err := db.GetLevelProgress()
+	if err != nil {
+		return err
+	}
+	lp.TotalXP = totalXP
+	lp.CurrentLevel = ComputeLevel(totalXP)
+	return db.gormdb.Save(lp).Error
+}
+
+// GetXPVersion returns the current XP migration version from LevelProgress.
+func (db *Database) GetXPVersion() (int, error) {
+	lp, err := db.GetLevelProgress()
+	if err != nil {
+		return 0, err
+	}
+	return lp.XPVersion, nil
+}
+
+// SetXPVersion updates the XP migration version on the LevelProgress record.
+func (db *Database) SetXPVersion(version int) error {
+	lp, err := db.GetLevelProgress()
+	if err != nil {
+		return err
+	}
+	lp.XPVersion = version
+	return db.gormdb.Save(lp).Error
 }
 
 // ComputeActivityMultiplier calculates the XP multiplier based on rolling 30-day activity hours.

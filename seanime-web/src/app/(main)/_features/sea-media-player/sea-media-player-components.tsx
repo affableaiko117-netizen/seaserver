@@ -7,22 +7,26 @@ import React from "react"
 import { AiFillPlayCircle } from "react-icons/ai"
 import { MdPlaylistPlay } from "react-icons/md"
 import { RxSlider } from "react-icons/rx"
-import { TbLanguage } from "react-icons/tb"
+import { TbHistory, TbLanguage } from "react-icons/tb"
 import {
     __seaMediaPlayer_autoNextAtom,
     __seaMediaPlayer_autoPlayAtom,
-    __seaMediaPlayer_autoSkipIntroOutroAtom,
+    __seaMediaPlayer_autoSkipEndingAtom,
+    __seaMediaPlayer_autoSkipOpeningAtom,
     __seaMediaPlayer_discreteControlsAtom,
     __seaMediaPlayer_preferredAudioLanguageAtom,
     __seaMediaPlayer_preferredSubtitleLanguageAtom,
+    __seaMediaPlayer_watchContinuityAtom,
 } from "./sea-media-player.atoms"
 
 export function SeaMediaPlayerPlaybackSubmenu() {
 
     const [autoPlay, setAutoPlay] = useAtom(__seaMediaPlayer_autoPlayAtom)
     const [autoNext, setAutoNext] = useAtom(__seaMediaPlayer_autoNextAtom)
-    const [autoSkipIntroOutro, setAutoSkipIntroOutro] = useAtom(__seaMediaPlayer_autoSkipIntroOutroAtom)
+    const [autoSkipOpening, setAutoSkipOpening] = useAtom(__seaMediaPlayer_autoSkipOpeningAtom)
+    const [autoSkipEnding, setAutoSkipEnding] = useAtom(__seaMediaPlayer_autoSkipEndingAtom)
     const [discreteControls, setDiscreteControls] = useAtom(__seaMediaPlayer_discreteControlsAtom)
+    const [watchContinuity, setWatchContinuity] = useAtom(__seaMediaPlayer_watchContinuityAtom)
 
     return (
         <>
@@ -60,17 +64,33 @@ export function SeaMediaPlayerPlaybackSubmenu() {
             </Menu.Root>
             <Menu.Root>
                 <VdsSubmenuButton
-                    label={`Skip Intro/Outro`}
-                    hint={autoSkipIntroOutro ? "On" : "Off"}
+                    label={`Skip Opening`}
+                    hint={autoSkipOpening ? "On" : "Off"}
                     disabled={false}
                     icon={MdPlaylistPlay}
                 />
                 <Menu.Content className={submenuClass}>
                     <Switch
-                        label="Skip intro/outro"
+                        label="Skip opening"
                         fieldClass="py-2 px-2"
-                        value={autoSkipIntroOutro}
-                        onValueChange={setAutoSkipIntroOutro}
+                        value={autoSkipOpening}
+                        onValueChange={setAutoSkipOpening}
+                    />
+                </Menu.Content>
+            </Menu.Root>
+            <Menu.Root>
+                <VdsSubmenuButton
+                    label={`Skip Ending`}
+                    hint={autoSkipEnding ? "On" : "Off"}
+                    disabled={false}
+                    icon={MdPlaylistPlay}
+                />
+                <Menu.Content className={submenuClass}>
+                    <Switch
+                        label="Skip ending"
+                        fieldClass="py-2 px-2"
+                        value={autoSkipEnding}
+                        onValueChange={setAutoSkipEnding}
                     />
                 </Menu.Content>
             </Menu.Root>
@@ -90,6 +110,30 @@ export function SeaMediaPlayerPlaybackSubmenu() {
                         onValueChange={setDiscreteControls}
                         fieldHelpTextClass="max-w-xs"
                     />
+                </Menu.Content>
+            </Menu.Root>
+            <Menu.Root>
+                <VdsSubmenuButton
+                    label={`Watch Continuity`}
+                    hint={watchContinuity === "inherit" ? "Global" : watchContinuity === "on" ? "On" : "Off"}
+                    disabled={false}
+                    icon={TbHistory}
+                />
+                <Menu.Content className={submenuClass}>
+                    <div className="space-y-2 p-2">
+                        {(["inherit", "on", "off"] as const).map((val) => (
+                            <label key={val} className="flex items-center gap-2 cursor-pointer text-sm">
+                                <input
+                                    type="radio"
+                                    name="smp-watch-continuity"
+                                    checked={watchContinuity === val}
+                                    onChange={() => setWatchContinuity(val)}
+                                    className="accent-brand-300"
+                                />
+                                {val === "inherit" ? "Use global setting" : val === "on" ? "Always on" : "Always off"}
+                            </label>
+                        ))}
+                    </div>
                 </Menu.Content>
             </Menu.Root>
             <SeaMediaPlayerLanguageSubmenu />

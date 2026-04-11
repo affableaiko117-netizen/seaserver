@@ -5,7 +5,8 @@ export const __seaMediaPlayer_autoPlayAtom = atomWithStorage("sea-media-player-a
 
 export const __seaMediaPlayer_autoNextAtom = atomWithStorage("sea-media-player-autonext", false, undefined, { getOnInit: true })
 
-export const __seaMediaPlayer_autoSkipIntroOutroAtom = atomWithStorage("sea-media-player-autoskip-intro-outro", false, undefined, { getOnInit: true })
+export const __seaMediaPlayer_autoSkipOpeningAtom = atomWithStorage("sea-media-player-autoskip-opening", false, undefined, { getOnInit: true })
+export const __seaMediaPlayer_autoSkipEndingAtom = atomWithStorage("sea-media-player-autoskip-ending", false, undefined, { getOnInit: true })
 
 export const __seaMediaPlayer_discreteControlsAtom = atomWithStorage("sea-media-player-discrete-controls", false, undefined, { getOnInit: true })
 
@@ -14,6 +15,9 @@ export const __seaMediaPlayer_volumeAtom = atomWithStorage("sea-media-player-vol
 export const __seaMediaPlayer_mutedAtom = atomWithStorage("sea-media-player-muted", false, undefined, { getOnInit: true })
 
 export const __seaMediaPlayer_playbackRateAtom = atomWithStorage("sea-media-playback-rate", 1, undefined, { getOnInit: true })
+
+// Watch Continuity override: "inherit" uses global setting, "on" forces enabled, "off" forces disabled
+export const __seaMediaPlayer_watchContinuityAtom = atomWithStorage<"inherit" | "on" | "off">("sea-media-player-watch-continuity", "inherit", undefined, { getOnInit: true })
 
 export const __seaMediaPlayer_isFullscreenAtom = atom(false)
 

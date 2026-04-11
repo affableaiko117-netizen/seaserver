@@ -20,6 +20,15 @@ export function useGetAchievements() {
     })
 }
 
+export function useGetUserAchievements(id: number) {
+    return useServerQuery<Achievement_ListResponse>({
+        endpoint: `/api/v1/achievements/user/${id}`,
+        method: "GET",
+        queryKey: ["USER-achievements", id],
+        enabled: id > 0,
+    })
+}
+
 export function useGetAchievementSummary() {
     return useServerQuery<Achievement_SummaryResponse>({
         endpoint: API_ENDPOINTS.ACHIEVEMENT.GetAchievementSummary.endpoint,

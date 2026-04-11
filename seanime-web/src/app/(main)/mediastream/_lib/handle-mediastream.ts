@@ -4,7 +4,7 @@ import { useHandleContinuityWithMediaPlayer, useHandleCurrentMediaContinuity } f
 import { useGetMediastreamSettings, useMediastreamShutdownTranscodeStream, useRequestMediastreamMediaContainer } from "@/api/hooks/mediastream.hooks"
 import { usePlaylistManager } from "@/app/(main)/_features/playlists/_containers/global-playlist-manager"
 import { useIsCodecSupported } from "@/app/(main)/_features/sea-media-player/hooks"
-import { __seaMediaPlayer_isFullscreenAtom } from "@/app/(main)/_features/sea-media-player/sea-media-player.atoms"
+import { __seaMediaPlayer_isFullscreenAtom, __seaMediaPlayer_watchContinuityAtom } from "@/app/(main)/_features/sea-media-player/sea-media-player.atoms"
 import { useWebsocketMessageListener } from "@/app/(main)/_hooks/handle-websockets"
 import { useMediastreamCurrentFile, useMediastreamJassubOffscreenRender } from "@/app/(main)/mediastream/_lib/mediastream.atoms"
 import { clientIdAtom } from "@/app/websocket-provider"
@@ -115,6 +115,7 @@ export function useHandleMediastream(props: HandleMediastreamProps) {
     const [streamType, setStreamType] = React.useState<Mediastream_StreamType>("transcode") // do not chance
     const [canPlay, setCanPlay] = React.useState<boolean>(false)
     const _fullscreen = useAtomValue(__seaMediaPlayer_isFullscreenAtom)
+    const smpWatchContinuity = useAtomValue(__seaMediaPlayer_watchContinuityAtom)
     const fullscreen = useDebounce(_fullscreen, 1000)
 
     // Refs
@@ -126,7 +127,7 @@ export function useHandleMediastream(props: HandleMediastreamProps) {
     /**
      * Watch history
      */
-    const { waitForWatchHistory } = useHandleCurrentMediaContinuity(mediaId)
+    const { waitForWatchHistory } = useHandleCurrentMediaContinuity(mediaId, smpWatchContinuity)
 
     /**
      * Fetch media container containing stream URL
@@ -451,7 +452,7 @@ export function useHandleMediastream(props: HandleMediastreamProps) {
     /**
      * Continuity
      */
-    const { handleUpdateWatchHistory } = useHandleContinuityWithMediaPlayer(playerRef, episode?.episodeNumber, mediaId)
+    const { handleUpdateWatchHistory } = useHandleContinuityWithMediaPlayer(playerRef, episode?.episodeNumber, mediaId, smpWatchContinuity)
 
 
     const preloadedNextFileForRef = React.useRef<string | undefined>(undefined) // unused

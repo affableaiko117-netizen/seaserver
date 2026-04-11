@@ -3,6 +3,7 @@ import { ExtensionRepo_OnlinestreamProviderExtensionItem, Onlinestream_EpisodeSo
 import { useHandleCurrentMediaContinuity } from "@/api/hooks/continuity.hooks"
 import { useGetOnlineStreamEpisodeList, useGetOnlineStreamEpisodeSource } from "@/api/hooks/onlinestream.hooks"
 import { useNakamaStatus } from "@/app/(main)/_features/nakama/nakama-manager"
+import { __seaMediaPlayer_watchContinuityAtom } from "@/app/(main)/_features/sea-media-player/sea-media-player.atoms"
 import { useServerHMACAuth } from "@/app/(main)/_hooks/use-server-status"
 import { __anime_entryPageViewAtom } from "@/app/(main)/entry/_containers/anime-entry-page"
 import { useHandleOnlinestreamProviderExtensions } from "@/app/(main)/onlinestream/_lib/handle-onlinestream-providers"
@@ -155,7 +156,8 @@ export function useLegacyHandleOnlinestream(props: LegacyHandleOnlinestreamProps
     /**
      * 2. Watch history
      */
-    const { waitForWatchHistory } = useHandleCurrentMediaContinuity(mediaId)
+    const watchContinuityOverride = useAtomValue(__seaMediaPlayer_watchContinuityAtom)
+    const { waitForWatchHistory } = useHandleCurrentMediaContinuity(mediaId, watchContinuityOverride)
 
     /**
      * 3. Get the current episode source
