@@ -3,6 +3,7 @@ package handlers
 import (
 	"seanime/internal/achievement"
 	"seanime/internal/database/models"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 )
@@ -124,4 +125,63 @@ func (h *Handler) HandleGetAchievementShowcase(c echo.Context) error {
 		return h.RespondWithError(c, err)
 	}
 	return h.RespondWithData(c, showcase)
+}
+
+// HandleGetUserAchievements
+//
+//	@summary get all achievements for another user by profile ID.
+//	@desc Returns achievement definitions, categories, progress/unlock state, and summary for the specified user.
+//	@returns achievement.ListResponse
+//	@route /api/v1/achievements/user/:id [GET]
+func (h *Handler) HandleGetUserAchievements(c echo.Context) error {
+	idStr := c.Param("id")
+	if idStr == "" {
+		return h.RespondWithError(c, echo.NewHTTPError(400, "Missing profile ID"))
+	}
+	pid, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil || pid == 0 {
+		return h.RespondWithError(c, echo.NewHTTPError(400, "Invalid profile ID"))
+	}
+	profileID := uint(pid)
+
+	if h.App.ProfileDatabaseManager == nil {
+		return h.RespondWithError(c, echo.NewHTTPError(400, "Profiles not active"))
+	}
+
+	database, err := h.App.ProfileDatabaseManager.GetDatabase(profileID)
+	if err != nil {
+		return h.RespondWithError(c, err)
+	}
+
+	dbAchievements, err := database.GetAllAchievements()
+	if err != nil {
+		return h.RespondWithError(c, err)
+	}
+
+	entries := make([]achievement.Entry, 0, len(dbAchievements))
+	for _, a := range dbAchievements {
+		entry := achievement.Entry{
+			Key:        a.Key,
+			Tier:       a.Tier,
+			IsUnlocked: a.IsUnlocked,
+			Progress:   a.Progress,
+		}
+		if a.UnlockedAt != nil {
+			ts := a.UnlockedAt.Format("2006-01-02T15:04:05Z")
+			entry.UnlockedAt = &ts
+		}
+		entries = append(entries, entry)
+	}
+
+	total, unlocked, _ := database.GetAchievementSummary()
+
+	return h.RespondWithData(c, achievement.ListResponse{
+		Definitions:  achievement.AllDefinitions,
+		Categories:   achievement.AllCategories,
+		Achievements: entries,
+		Summary: achievement.SummaryResponse{
+			TotalCount:    total,
+			UnlockedCount: unlocked,
+		},
+	})
 }

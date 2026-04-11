@@ -703,6 +703,7 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	v1Achievements.GET("/summary", h.HandleGetAchievementSummary)
 	v1Achievements.GET("/showcase", h.HandleGetAchievementShowcase)
 	v1Achievements.POST("/showcase", h.HandleSetAchievementShowcase)
+	v1Achievements.GET("/user/:id", h.HandleGetUserAchievements)
 
 	// Profile Stats
 	v1.GET("/profile/stats", h.HandleGetProfileStats)
@@ -710,6 +711,7 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	// Profile Page
 	v1.GET("/profile/me", h.HandleGetMyProfile)
 	v1.GET("/profile/user/:id", h.HandleGetUserProfile)
+	v1.GET("/profile/user/:id/stats", h.HandleGetUserProfileStats)
 	v1.PATCH("/profile/bio", h.HandleUpdateBio)
 	v1.GET("/profile/level", h.HandleGetLevel)
 

@@ -82,6 +82,75 @@ func (h *Handler) HandleGetProfileStats(c echo.Context) error {
 	return h.RespondWithData(c, result)
 }
 
+// HandleGetUserProfileStats
+//
+//	@summary get profile statistics for another user by profile ID.
+//	@desc Returns activity heatmap, streak data, and watch patterns. Personality/AniList data not available for other users.
+//	@desc Optional query param "year" selects a calendar year; defaults to last 365 days.
+//	@returns profilestats.ProfileStats
+//	@route /api/v1/profile/user/:id/stats [GET]
+func (h *Handler) HandleGetUserProfileStats(c echo.Context) error {
+	idStr := c.Param("id")
+	if idStr == "" {
+		return h.RespondWithError(c, echo.NewHTTPError(400, "Missing profile ID"))
+	}
+	pid, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil || pid == 0 {
+		return h.RespondWithError(c, echo.NewHTTPError(400, "Invalid profile ID"))
+	}
+
+	if h.App.ProfileDatabaseManager == nil {
+		return h.RespondWithError(c, echo.NewHTTPError(400, "Profiles not active"))
+	}
+
+	profileDB, err := h.App.ProfileDatabaseManager.GetDatabase(uint(pid))
+	if err != nil {
+		return h.RespondWithError(c, err)
+	}
+
+	yearStr := c.QueryParam("year")
+	var startDate, endDate string
+	if yearStr != "" {
+		yr, err := strconv.Atoi(yearStr)
+		if err == nil && yr >= 2000 && yr <= 2100 {
+			startDate = time.Date(yr, 1, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02")
+			endDate = time.Date(yr, 12, 31, 0, 0, 0, 0, time.Local).Format("2006-01-02")
+		}
+	}
+	if startDate == "" {
+		endDate = time.Now().Format("2006-01-02")
+		startDate = time.Now().AddDate(-1, 0, 0).Format("2006-01-02")
+	}
+
+	heatmapLogs, err := profileDB.GetActivityLogs(startDate, endDate)
+	if err != nil {
+		return h.RespondWithError(c, err)
+	}
+
+	allLogs, err := profileDB.GetAllActivityLogs()
+	if err != nil {
+		return h.RespondWithError(c, err)
+	}
+
+	heatmap := profilestats.BuildHeatmap(heatmapLogs, startDate, endDate)
+	animeStreak := profilestats.ComputeStreaks(allLogs, true)
+	mangaStreak := profilestats.ComputeStreaks(allLogs, false)
+	watchPatterns := profilestats.ComputeWatchPatterns(heatmapLogs)
+	totalActive, animeDays, mangaDays := profilestats.CountActiveDays(allLogs)
+
+	result := &profilestats.ProfileStats{
+		ActivityHeatmap: heatmap,
+		AnimeStreak:     animeStreak,
+		MangaStreak:     mangaStreak,
+		TotalActiveDays: totalActive,
+		TotalAnimeDays:  animeDays,
+		TotalMangaDays:  mangaDays,
+		WatchPatterns:   watchPatterns,
+	}
+
+	return h.RespondWithData(c, result)
+}
+
 // computePersonality extracts genre counts and collection stats from the AniList collection
 // to classify the user's anime personality.
 func (h *Handler) computePersonality() *profilestats.PersonalityResult {

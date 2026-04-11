@@ -18,11 +18,13 @@ import {
 import {
     __seaMediaPlayer_autoNextAtom,
     __seaMediaPlayer_autoPlayAtom,
-    __seaMediaPlayer_autoSkipIntroOutroAtom,
+    __seaMediaPlayer_autoSkipEndingAtom,
+    __seaMediaPlayer_autoSkipOpeningAtom,
     __seaMediaPlayer_discreteControlsAtom,
     __seaMediaPlayer_isFullscreenAtom,
     __seaMediaPlayer_mutedAtom,
     __seaMediaPlayer_volumeAtom,
+    __seaMediaPlayer_watchContinuityAtom,
 } from "@/app/(main)/_features/sea-media-player/sea-media-player.atoms"
 import { useServerStatus } from "@/app/(main)/_hooks/use-server-status"
 import { LuffyError } from "@/components/shared/luffy-error"
@@ -129,7 +131,9 @@ export function SeaMediaPlayer(props: SeaMediaPlayerProps) {
     const autoPlay = useAtomValue(__seaMediaPlayer_autoPlayAtom)
     const autoNext = useAtomValue(__seaMediaPlayer_autoNextAtom)
     const discreteControls = useAtomValue(__seaMediaPlayer_discreteControlsAtom)
-    const autoSkipIntroOutro = useAtomValue(__seaMediaPlayer_autoSkipIntroOutroAtom)
+    const autoSkipOpening = useAtomValue(__seaMediaPlayer_autoSkipOpeningAtom)
+    const autoSkipEnding = useAtomValue(__seaMediaPlayer_autoSkipEndingAtom)
+    const watchContinuityOverride = useAtomValue(__seaMediaPlayer_watchContinuityAtom)
     const [volume, setVolume] = useAtom(__seaMediaPlayer_volumeAtom)
     const [muted, setMuted] = useAtom(__seaMediaPlayer_mutedAtom)
 
@@ -172,7 +176,7 @@ export function SeaMediaPlayer(props: SeaMediaPlayerProps) {
     /**
      * Continuity
      */
-    const { handleUpdateWatchHistory } = useHandleContinuityWithMediaPlayer(playerRef, progress.currentEpisodeNumber, media?.id)
+    const { handleUpdateWatchHistory } = useHandleContinuityWithMediaPlayer(playerRef, progress.currentEpisodeNumber, media?.id, watchContinuityOverride)
 
     /**
      * Discord Rich Presence
@@ -236,7 +240,7 @@ export function SeaMediaPlayer(props: SeaMediaPlayerProps) {
             detail?.currentTime <= aniSkipData.op.interval.endTime
         ) {
             setShowSkipIntroButton(true)
-            if (autoSkipIntroOutro) {
+            if (autoSkipOpening) {
                 seekTo(aniSkipData?.op?.interval?.endTime || 0)
             }
         } else {
@@ -250,7 +254,7 @@ export function SeaMediaPlayer(props: SeaMediaPlayerProps) {
             detail?.currentTime <= aniSkipData.ed.interval.endTime
         ) {
             setShowSkipEndingButton(true)
-            if (autoSkipIntroOutro) {
+            if (autoSkipEnding) {
                 seekTo(aniSkipData?.ed?.interval?.endTime || 0)
             }
         } else {
@@ -312,7 +316,7 @@ export function SeaMediaPlayer(props: SeaMediaPlayerProps) {
     /**
      * Watch continuity
      */
-    const { watchHistory, waitForWatchHistory, getEpisodeContinuitySeekTo } = useHandleCurrentMediaContinuity(media?.id)
+    const { watchHistory, waitForWatchHistory, getEpisodeContinuitySeekTo } = useHandleCurrentMediaContinuity(media?.id, watchContinuityOverride)
 
     const wentToNextEpisodeRef = React.useRef(false)
     const isTransitioningRef = React.useRef(false)
@@ -594,14 +598,14 @@ export function SeaMediaPlayer(props: SeaMediaPlayerProps) {
                         >
                             <div>
                                 {showSkipIntroButton && (
-                                    <Button intent="white" size="sm" onClick={onSkipIntro} loading={autoSkipIntroOutro}>
+                                    <Button intent="white" size="sm" onClick={onSkipIntro} loading={autoSkipOpening}>
                                         Skip opening
                                     </Button>
                                 )}
                             </div>
                             <div>
                                 {showSkipEndingButton && (
-                                    <Button intent="white" size="sm" onClick={onSkipOutro} loading={autoSkipIntroOutro}>
+                                    <Button intent="white" size="sm" onClick={onSkipOutro} loading={autoSkipEnding}>
                                         Skip ending
                                     </Button>
                                 )}

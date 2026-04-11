@@ -1,21 +1,55 @@
 "use client"
 
+import { useGetAchievements } from "@/api/hooks/achievement.hooks"
+import { useGetAniListStats } from "@/api/hooks/anilist.hooks"
 import { useGetMyProfile, useUpdateBio } from "@/api/hooks/community.hooks"
-import { Handlers_RecentAchievementEntry, Handlers_ShowcaseEntry, ProfileStats_StreakInfo } from "@/api/generated/types"
+import { useGetProfileStats } from "@/api/hooks/profile-stats.hooks"
+import {
+    Achievement_Category,
+    Achievement_CategoryInfo,
+    Achievement_Definition,
+    Achievement_Entry,
+    AL_Stats,
+    Handlers_RecentAchievementEntry,
+    Handlers_ShowcaseEntry,
+    ProfileStats_ActivityDay,
+    ProfileStats_PersonalityResult,
+    ProfileStats_StreakInfo,
+} from "@/api/generated/types"
 import { CustomLibraryBanner } from "@/app/(main)/(library)/_containers/custom-library-banner"
+import { AchievementShowcase } from "@/app/(main)/_features/achievement/achievement-showcase"
 import { LevelRingAvatar } from "@/app/(main)/community/page"
 import { ActivityHeatmap } from "@/app/(main)/_features/profile/activity-heatmap"
 import { PageWrapper } from "@/components/shared/page-wrapper"
+import { tabsTriggerClass, tabsListClass } from "@/components/shared/classnames"
+import { Badge } from "@/components/ui/badge"
+import { BarChart, DonutChart, AreaChart } from "@/components/ui/charts"
 import { cn } from "@/components/ui/core/styling"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { Separator } from "@/components/ui/separator"
+import { Stats } from "@/components/ui/stats"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useRouter, useSearchParams } from "@/lib/navigation"
 import React from "react"
-import { LuTrophy, LuStar, LuPencil, LuCheck, LuX, LuFlame, LuCalendar, LuBookOpen, LuTv, LuClock } from "react-icons/lu"
+import {
+    LuTrophy, LuStar, LuPencil, LuCheck, LuX, LuFlame,
+    LuCalendar, LuBookOpen, LuTv, LuClock, LuActivity,
+    LuGlobe, LuHourglass, LuLock, LuZap,
+} from "react-icons/lu"
+
+const formatName: Record<string, string> = {
+    TV: "TV", TV_SHORT: "TV Short", MOVIE: "Movie",
+    SPECIAL: "Special", OVA: "OVA", ONA: "ONA", MUSIC: "Music",
+}
 
 export default function Page() {
     const { data, isLoading } = useGetMyProfile()
     const { mutate: updateBio, isPending: isUpdatingBio } = useUpdateBio()
     const [editingBio, setEditingBio] = React.useState(false)
     const [bioText, setBioText] = React.useState("")
+    const searchParams = useSearchParams()
+    const router = useRouter()
+    const activeTab = searchParams.get("tab") || "activity"
 
     if (isLoading) {
         return (
@@ -34,12 +68,10 @@ export default function Page() {
     }
 
     const { profile, level, showcase, achievementSummary, activityHeatmap, animeStreak, mangaStreak, recentAchievements } = data
-
     const levelColors = getLevelColor(level?.currentLevel ?? 1)
 
     return (
         <>
-            {/* Banner */}
             {profile!.bannerImage ? (
                 <div className="relative h-48 w-full overflow-hidden">
                     <div
@@ -57,18 +89,23 @@ export default function Page() {
                     <LevelRingAvatar
                         profile={{
                             currentLevel: level?.currentLevel ?? 1,
+                            totalXP: level?.totalXP ?? 0,
                             avatarPath: profile!.avatarPath,
                             anilistAvatar: profile!.anilistAvatar,
                             name: profile!.name,
                         }}
                         size={100}
                     />
-                    <div className="space-y-1">
-                        <h1 className="text-2xl font-bold">{profile!.name}</h1>
+                    <div className="space-y-1 flex-1">
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-2xl font-bold">{profile!.name}</h1>
+                            {level && level.multiplier > 1 && (
+                                <ActivityMultiplierBadge multiplier={level.multiplier} />
+                            )}
+                        </div>
                         <p className={cn("text-lg font-bold", levelColors.label)}>
                             Level {level?.currentLevel ?? 1}
                         </p>
-                        {/* Editable bio */}
                         {editingBio ? (
                             <div className="flex items-center gap-2">
                                 <textarea
@@ -127,11 +164,6 @@ export default function Page() {
                         <span className="font-semibold">{achievementSummary?.unlockedCount ?? 0}</span>
                         <span className="text-sm">/ {achievementSummary?.totalCount ?? 0} achievements</span>
                     </div>
-                    {level && level.multiplier > 1 && (
-                        <div className="text-sm text-[--muted]">
-                            {level.multiplier.toFixed(1)}x activity bonus
-                        </div>
-                    )}
                 </div>
 
                 {/* Level progress bar */}
@@ -139,7 +171,7 @@ export default function Page() {
                     <div className="space-y-1">
                         <div className="flex justify-between text-xs text-[--muted]">
                             <span>Level {level.currentLevel}</span>
-                            <span>Level {Math.min(level.currentLevel + 1, 50)}</span>
+                            <span>Level {level.currentLevel + 1}</span>
                         </div>
                         <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
                             <div
@@ -153,23 +185,93 @@ export default function Page() {
                     </div>
                 )}
 
-                {/* Streaks */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <StreakCard label="Anime Streak" icon={<LuTv className="text-lg" />} streak={animeStreak} />
-                    <StreakCard label="Manga Streak" icon={<LuBookOpen className="text-lg" />} streak={mangaStreak} />
-                </div>
+                {/* Tabs */}
+                <Tabs
+                    value={activeTab}
+                    onValueChange={(v) => router.push(`/profile/me?tab=${v}`)}
+                >
+                    <TabsList className={tabsListClass}>
+                        <TabsTrigger value="activity" className={tabsTriggerClass}>
+                            <LuActivity className="mr-1.5" /> Activity
+                        </TabsTrigger>
+                        <TabsTrigger value="stats" className={tabsTriggerClass}>
+                            <LuStar className="mr-1.5" /> Stats
+                        </TabsTrigger>
+                        <TabsTrigger value="achievements" className={tabsTriggerClass}>
+                            <LuTrophy className="mr-1.5" /> Achievements
+                        </TabsTrigger>
+                    </TabsList>
 
-                {/* Activity Heatmap */}
-                <div className="space-y-2">
-                    <h2 className="text-lg font-semibold flex items-center gap-2">
-                        <LuCalendar className="text-blue-400" />
-                        Activity (90 days)
-                    </h2>
-                    <ActivityHeatmap days={activityHeatmap} />
-                </div>
+                    <TabsContent value="activity" className="space-y-6 mt-6">
+                        <ActivityTabContent
+                            animeStreak={animeStreak}
+                            mangaStreak={mangaStreak}
+                            activityHeatmap={activityHeatmap}
+                            showcase={showcase}
+                            recentAchievements={recentAchievements}
+                            editable
+                        />
+                    </TabsContent>
 
-                {/* Achievement Showcase */}
-                {showcase && showcase.length > 0 && (
+                    <TabsContent value="stats" className="space-y-6 mt-6">
+                        <StatsTabContent />
+                    </TabsContent>
+
+                    <TabsContent value="achievements" className="space-y-6 mt-6">
+                        <AchievementsTabContent editable />
+                    </TabsContent>
+                </Tabs>
+            </PageWrapper>
+        </>
+    )
+}
+
+// ─────────────────────── Activity Multiplier Badge ───────────────────────
+
+export function ActivityMultiplierBadge({ multiplier }: { multiplier: number }) {
+    const isMax = multiplier >= 2.0
+    return (
+        <div className={cn(
+            "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold border",
+            isMax
+                ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/40 shadow-sm shadow-yellow-500/20"
+                : "bg-brand-500/15 text-brand-300 border-brand-500/30",
+        )}>
+            <LuZap className={cn("size-3", isMax && "text-yellow-400")} />
+            {multiplier.toFixed(1)}x Buff
+        </div>
+    )
+}
+
+// ─────────────────────── Activity Tab ───────────────────────
+
+export function ActivityTabContent({ animeStreak, mangaStreak, activityHeatmap, showcase, recentAchievements, editable }: {
+    animeStreak?: ProfileStats_StreakInfo
+    mangaStreak?: ProfileStats_StreakInfo
+    activityHeatmap?: ProfileStats_ActivityDay[]
+    showcase?: Handlers_ShowcaseEntry[]
+    recentAchievements?: Handlers_RecentAchievementEntry[]
+    editable?: boolean
+}) {
+    return (
+        <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <StreakCard label="Anime Streak" icon={<LuTv className="text-lg" />} streak={animeStreak} />
+                <StreakCard label="Manga Streak" icon={<LuBookOpen className="text-lg" />} streak={mangaStreak} />
+            </div>
+
+            <div className="space-y-2">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                    <LuCalendar className="text-blue-400" />
+                    Activity (90 days)
+                </h2>
+                <ActivityHeatmap days={activityHeatmap} />
+            </div>
+
+            {editable ? (
+                <AchievementShowcase />
+            ) : (
+                showcase && showcase.length > 0 && (
                     <div className="space-y-3">
                         <h2 className="text-lg font-semibold">Showcase</h2>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -178,28 +280,185 @@ export default function Page() {
                             ))}
                         </div>
                     </div>
-                )}
+                )
+            )}
 
-                {/* Recent Achievements */}
-                {recentAchievements && recentAchievements.length > 0 && (
-                    <div className="space-y-3">
-                        <h2 className="text-lg font-semibold flex items-center gap-2">
-                            <LuClock className="text-emerald-400" />
-                            Recent Achievements
-                        </h2>
-                        <div className="space-y-2">
-                            {recentAchievements.map((ach) => (
-                                <RecentAchievementRow key={`${ach.key}-${ach.tier}`} entry={ach} />
-                            ))}
-                        </div>
+            {recentAchievements && recentAchievements.length > 0 && (
+                <div className="space-y-3">
+                    <h2 className="text-lg font-semibold flex items-center gap-2">
+                        <LuClock className="text-emerald-400" />
+                        Recent Achievements
+                    </h2>
+                    <div className="space-y-2">
+                        {recentAchievements.map((ach) => (
+                            <RecentAchievementRow key={`${ach.key}-${ach.tier}`} entry={ach} />
+                        ))}
                     </div>
-                )}
-            </PageWrapper>
+                </div>
+            )}
         </>
     )
 }
 
-function StreakCard({ label, icon, streak }: { label: string; icon: React.ReactNode; streak?: ProfileStats_StreakInfo }) {
+// ─────────────────────── Stats Tab (lazy) ───────────────────────
+
+function StatsTabContent() {
+    const [selectedYear, setSelectedYear] = React.useState<number | undefined>(undefined)
+    const { data: profileStats, isLoading: profileLoading } = useGetProfileStats(selectedYear)
+    const { data: anilistStats, isLoading: anilistLoading } = useGetAniListStats(true)
+
+    const currentYear = new Date().getFullYear()
+    const yearOptions = React.useMemo(() => {
+        const years: (number | undefined)[] = [undefined]
+        for (let y = currentYear; y >= currentYear - 5; y--) years.push(y)
+        return years
+    }, [currentYear])
+
+    if (profileLoading || anilistLoading) {
+        return <div className="flex justify-center py-12"><LoadingSpinner /></div>
+    }
+
+    return (
+        <>
+            <HeroStats anilistStats={anilistStats} profileStats={profileStats} />
+
+            <Separator />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <StreakCard label="Anime Watching Streak" icon={<LuTv className="text-lg" />} streak={profileStats?.animeStreak} />
+                <StreakCard label="Manga Reading Streak" icon={<LuBookOpen className="text-lg" />} streak={profileStats?.mangaStreak} />
+            </div>
+
+            <Separator />
+
+            <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold flex items-center gap-2">
+                        <LuCalendar className="text-blue-400" />
+                        Activity
+                    </h2>
+                    <select
+                        className="bg-gray-900 border border-[--border] rounded-md px-3 py-1.5 text-sm"
+                        value={selectedYear ?? ""}
+                        onChange={(e) => setSelectedYear(e.target.value ? Number(e.target.value) : undefined)}
+                    >
+                        {yearOptions.map((y) => (
+                            <option key={y ?? "rolling"} value={y ?? ""}>
+                                {y ? `${y}` : "Last 365 days"}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <StatsActivityHeatmap days={profileStats?.activityHeatmap} />
+                <DayOfWeekChart patterns={profileStats?.watchPatterns?.byDayOfWeek} />
+            </div>
+
+            <Separator />
+
+            {profileStats?.personality && (
+                <>
+                    <PersonalityCard personality={profileStats.personality} />
+                    <Separator />
+                </>
+            )}
+
+            <AniListCharts stats={anilistStats} />
+        </>
+    )
+}
+
+// ─────────────────────── Achievements Tab (lazy) ───────────────────────
+
+function AchievementsTabContent({ editable }: { editable?: boolean }) {
+    const { data, isLoading } = useGetAchievements()
+    const [selectedCategory, setSelectedCategory] = React.useState<Achievement_Category | "all">("all")
+
+    if (isLoading) {
+        return <div className="flex justify-center py-12"><LoadingSpinner /></div>
+    }
+
+    if (!data) return null
+
+    const { definitions = [], categories = [], achievements = [], summary } = data
+
+    const entryMap = new Map<string, Achievement_Entry>()
+    for (const a of achievements) {
+        entryMap.set(`${a.key}:${a.tier}`, a)
+    }
+
+    const categoryMap = new Map<Achievement_Category, Achievement_CategoryInfo>()
+    for (const cat of categories) {
+        categoryMap.set(cat.Key, cat)
+    }
+
+    const filteredDefs = selectedCategory === "all"
+        ? definitions
+        : definitions.filter(d => d.Category === selectedCategory)
+
+    const groupedDefs = new Map<Achievement_Category, Achievement_Definition[]>()
+    for (const def of filteredDefs) {
+        const list = groupedDefs.get(def.Category) || []
+        list.push(def)
+        groupedDefs.set(def.Category, list)
+    }
+
+    const unlockedCount = summary?.unlockedCount ?? 0
+    const totalCount = summary?.totalCount ?? 0
+
+    return (
+        <>
+            <div className="flex items-center gap-4">
+                <LuTrophy className="size-8 text-yellow-500" />
+                <div>
+                    <h2 className="text-xl font-bold">Achievements</h2>
+                    <p className="text-[--muted]">{unlockedCount} / {totalCount} unlocked</p>
+                </div>
+                <div className="ml-auto">
+                    <ProgressRing value={totalCount > 0 ? (unlockedCount / totalCount) * 100 : 0} />
+                </div>
+            </div>
+
+            {editable && <AchievementShowcase />}
+
+            <div className="flex flex-wrap gap-2">
+                <CategoryPill name="All" isActive={selectedCategory === "all"} onClick={() => setSelectedCategory("all")} />
+                {categories.map(cat => (
+                    <CategoryPill
+                        key={cat.Key}
+                        name={cat.Name}
+                        svg={cat.IconSVG}
+                        isActive={selectedCategory === cat.Key}
+                        onClick={() => setSelectedCategory(cat.Key)}
+                    />
+                ))}
+            </div>
+
+            {Array.from(groupedDefs.entries()).map(([catKey, defs]) => {
+                const catInfo = categoryMap.get(catKey)
+                return (
+                    <div key={catKey} className="space-y-3">
+                        <div className="flex items-center gap-2">
+                            {catInfo?.IconSVG && (
+                                <span className="size-5 text-[--muted] [&>svg]:size-5" dangerouslySetInnerHTML={{ __html: catInfo.IconSVG }} />
+                            )}
+                            <h3 className="text-lg font-semibold">{catInfo?.Name ?? catKey}</h3>
+                            {catInfo?.Description && <span className="text-sm text-[--muted]">— {catInfo.Description}</span>}
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                            {defs.map(def => (
+                                <AchievementCard key={def.Key} definition={def} entryMap={entryMap} />
+                            ))}
+                        </div>
+                    </div>
+                )
+            })}
+        </>
+    )
+}
+
+// ─────────────────────── Shared Sub-components ───────────────────────
+
+export function StreakCard({ label, icon, streak }: { label: string; icon: React.ReactNode; streak?: ProfileStats_StreakInfo }) {
     return (
         <div className="bg-gray-900 border border-[--border] rounded-lg p-4 space-y-2">
             <div className="flex items-center gap-2 text-[--muted]">
@@ -223,34 +482,24 @@ function StreakCard({ label, icon, streak }: { label: string; icon: React.ReactN
     )
 }
 
-function ShowcaseCard({ entry }: { entry: Handlers_ShowcaseEntry }) {
+export function ShowcaseCard({ entry }: { entry: Handlers_ShowcaseEntry }) {
     return (
         <div className="p-3 rounded-lg bg-[--subtle] text-center space-y-2">
             {entry.definition?.IconSVG && (
-                <div
-                    className="w-8 h-8 mx-auto text-brand-300"
-                    dangerouslySetInnerHTML={{ __html: entry.definition.IconSVG }}
-                />
+                <div className="w-8 h-8 mx-auto text-brand-300" dangerouslySetInnerHTML={{ __html: entry.definition.IconSVG }} />
             )}
-            <p className="font-semibold text-sm truncate">
-                {entry.definition?.Name ?? entry.key}
-            </p>
-            {entry.tier > 0 && (
-                <p className="text-xs text-[--muted]">Tier {entry.tier}</p>
-            )}
+            <p className="font-semibold text-sm truncate">{entry.definition?.Name ?? entry.key}</p>
+            {entry.tier > 0 && <p className="text-xs text-[--muted]">Tier {entry.tier}</p>}
         </div>
     )
 }
 
-function RecentAchievementRow({ entry }: { entry: Handlers_RecentAchievementEntry }) {
+export function RecentAchievementRow({ entry }: { entry: Handlers_RecentAchievementEntry }) {
     const timeAgo = entry.unlockedAt ? formatTimeAgo(new Date(entry.unlockedAt)) : ""
     return (
         <div className="flex items-center gap-3 p-3 rounded-lg bg-[--subtle]">
             {entry.definition?.IconSVG && (
-                <div
-                    className="w-6 h-6 shrink-0 text-emerald-400"
-                    dangerouslySetInnerHTML={{ __html: entry.definition.IconSVG }}
-                />
+                <div className="w-6 h-6 shrink-0 text-emerald-400" dangerouslySetInnerHTML={{ __html: entry.definition.IconSVG }} />
             )}
             <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold truncate">{entry.definition?.Name ?? entry.key}</p>
@@ -261,7 +510,326 @@ function RecentAchievementRow({ entry }: { entry: Handlers_RecentAchievementEntr
     )
 }
 
-function formatTimeAgo(date: Date): string {
+// ─────────────────────── Stats Sub-components ───────────────────────
+
+function HeroStats({ anilistStats, profileStats }: { anilistStats?: AL_Stats; profileStats?: any }) {
+    return (
+        <div className="space-y-2">
+            <Stats className="w-full" size="lg" items={[
+                { icon: <LuTv />, name: "Total Anime", value: anilistStats?.animeStats?.count ?? 0 },
+                { icon: <LuBookOpen />, name: "Total Manga", value: anilistStats?.mangaStats?.count ?? 0 },
+                { icon: <LuHourglass />, name: "Watch Time", value: Math.round((anilistStats?.animeStats?.minutesWatched ?? 0) / 60), unit: "hours" },
+                { icon: <LuStar />, name: "Mean Score", value: ((anilistStats?.animeStats?.meanScore ?? 0) / 10).toFixed(1) },
+            ]} />
+            <Stats className="w-full" size="md" items={[
+                { icon: <LuTrophy />, name: "Active Days", value: profileStats?.totalActiveDays ?? 0 },
+                { icon: <LuTv />, name: "Anime Days", value: profileStats?.totalAnimeDays ?? 0 },
+                { icon: <LuBookOpen />, name: "Manga Days", value: profileStats?.totalMangaDays ?? 0 },
+            ]} />
+        </div>
+    )
+}
+
+export function StatsActivityHeatmap({ days }: { days?: ProfileStats_ActivityDay[] }) {
+    if (!days || days.length === 0) {
+        return <p className="text-[--muted] text-sm">No activity data yet.</p>
+    }
+
+    const firstDate = new Date(days[0].date + "T00:00:00")
+    const startDow = (firstDate.getDay() + 6) % 7
+    const maxActivity = Math.max(1, ...days.map(d => d.totalActivity))
+    const cells: (ProfileStats_ActivityDay | null)[] = []
+    for (let i = 0; i < startDow; i++) cells.push(null)
+    for (const d of days) cells.push(d)
+    const columns: (ProfileStats_ActivityDay | null)[][] = []
+    for (let i = 0; i < cells.length; i += 7) columns.push(cells.slice(i, i + 7))
+    const lastCol = columns[columns.length - 1]
+    while (lastCol && lastCol.length < 7) lastCol.push(null)
+    const cellSize = 12, gap = 2, dayLabelWidth = 20
+    const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    const width = dayLabelWidth + columns.length * (cellSize + gap)
+    const height = 7 * (cellSize + gap)
+
+    return (
+        <div className="overflow-x-auto pb-2">
+            <svg width={width} height={height + 20} className="block">
+                {dayLabels.map((label, i) => (
+                    <text key={`label-${i}`} x={dayLabelWidth - 4} y={i * (cellSize + gap) + cellSize - 1} textAnchor="end" className="fill-[--muted] text-[9px]">
+                        {i % 2 === 0 ? label : ""}
+                    </text>
+                ))}
+                {columns.map((col, ci) => {
+                    const firstDay = col.find(c => c !== null)
+                    if (!firstDay) return null
+                    const d = new Date(firstDay.date + "T00:00:00")
+                    if (d.getDate() <= 7) {
+                        return (
+                            <text key={`month-${ci}`} x={dayLabelWidth + ci * (cellSize + gap)} y={height + 14} className="fill-[--muted] text-[9px]">
+                                {d.toLocaleString("default", { month: "short" })}
+                            </text>
+                        )
+                    }
+                    return null
+                })}
+                {columns.map((col, ci) =>
+                    col.map((cell, ri) => {
+                        if (!cell) {
+                            return <rect key={`${ci}-${ri}`} x={dayLabelWidth + ci * (cellSize + gap)} y={ri * (cellSize + gap)} width={cellSize} height={cellSize} rx={2} className="fill-gray-800/50" />
+                        }
+                        const intensity = cell.totalActivity / maxActivity
+                        return (
+                            <rect key={`${ci}-${ri}`} x={dayLabelWidth + ci * (cellSize + gap)} y={ri * (cellSize + gap)} width={cellSize} height={cellSize} rx={2} className={getHeatmapColor(intensity)}>
+                                <title>{cell.date}: {cell.animeEpisodes} ep, {cell.mangaChapters} ch</title>
+                            </rect>
+                        )
+                    }),
+                )}
+            </svg>
+            <div className="flex items-center gap-1 mt-1 text-xs text-[--muted]">
+                <span>Less</span>
+                {[0, 0.25, 0.5, 0.75, 1].map((v, i) => (
+                    <span key={i} className={cn("inline-block w-3 h-3 rounded-sm", getHeatmapColor(v))} />
+                ))}
+                <span>More</span>
+            </div>
+        </div>
+    )
+}
+
+export function DayOfWeekChart({ patterns }: { patterns?: number[] }) {
+    if (!patterns || patterns.every(v => v === 0)) return null
+    const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    const data = dayNames.map((name, i) => ({ name, Activity: patterns[i] ?? 0 }))
+    return (
+        <div className="w-full max-w-md">
+            <p className="text-sm text-[--muted] mb-2">Activity by day of week</p>
+            <BarChart data={data} index="name" categories={["Activity"]} colors={["brand"]} />
+        </div>
+    )
+}
+
+function PersonalityCard({ personality }: { personality: ProfileStats_PersonalityResult }) {
+    return (
+        <div className="space-y-3">
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+                <LuGlobe className="text-purple-400" />
+                Your Anime Personality
+            </h2>
+            <div className="bg-gradient-to-br from-purple-900/30 via-gray-900 to-indigo-900/30 border border-purple-500/20 rounded-xl p-6 space-y-4">
+                <div className="flex items-center gap-4">
+                    {personality.iconSvg && <div className="w-12 h-12 text-purple-400" dangerouslySetInnerHTML={{ __html: personality.iconSvg }} />}
+                    <div>
+                        <h3 className="text-2xl font-bold text-purple-200">{personality.name}</h3>
+                        <p className="text-sm text-[--muted]">{personality.description}</p>
+                    </div>
+                </div>
+                {personality.traits && personality.traits.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                        {personality.traits.map((trait) => (
+                            <span key={trait} className="px-3 py-1 rounded-full text-xs bg-purple-500/20 text-purple-300 border border-purple-500/30">{trait}</span>
+                        ))}
+                    </div>
+                )}
+                {personality.topGenres && personality.topGenres.length > 0 && (
+                    <p className="text-xs text-[--muted]">Top genres: {personality.topGenres.join(", ")}</p>
+                )}
+            </div>
+        </div>
+    )
+}
+
+function AniListCharts({ stats }: { stats?: AL_Stats }) {
+    const genreData = React.useMemo(() => {
+        if (!stats?.animeStats?.genres) return []
+        return stats.animeStats.genres.map((item) => ({ name: item.genre, Count: item.count, "Avg Score": Number((item.meanScore / 10).toFixed(1)) })).sort((a, b) => b.Count - a.Count).slice(0, 15)
+    }, [stats?.animeStats?.genres])
+
+    const formatData = React.useMemo(() => {
+        if (!stats?.animeStats?.formats) return []
+        return stats.animeStats.formats.map((item) => ({ name: formatName[item.format as string] ?? item.format, count: item.count, hours: Math.round(item.minutesWatched / 60) }))
+    }, [stats?.animeStats?.formats])
+
+    const studioData = React.useMemo(() => {
+        if (!stats?.animeStats?.studios) return []
+        return [...stats.animeStats.studios].sort((a, b) => b.count - a.count).slice(0, 10).map((item) => ({ name: item.studio?.name ?? "Unknown", Count: item.count, "Avg Score": Number((item.meanScore / 10).toFixed(1)) }))
+    }, [stats?.animeStats?.studios])
+
+    const scoreData = React.useMemo(() => {
+        if (!stats?.animeStats?.scores) return []
+        return stats.animeStats.scores.map((item) => ({ name: String((item.score ?? 0) / 10), Count: item.count })).sort((a, b) => Number(a.name) - Number(b.name))
+    }, [stats?.animeStats?.scores])
+
+    const yearData = React.useMemo(() => {
+        if (!stats?.animeStats?.releaseYears) return []
+        return stats.animeStats.releaseYears.sort((a, b) => a.releaseYear! - b.releaseYear!).map((item) => ({ name: item.releaseYear, Count: item.count }))
+    }, [stats?.animeStats?.releaseYears])
+
+    const mangaGenreData = React.useMemo(() => {
+        if (!stats?.mangaStats?.genres) return []
+        return stats.mangaStats.genres.map((item) => ({ name: item.genre, Count: item.count, "Avg Score": Number((item.meanScore / 10).toFixed(1)) })).sort((a, b) => b.Count - a.Count).slice(0, 15)
+    }, [stats?.mangaStats?.genres])
+
+    return (
+        <div className="space-y-10">
+            <h2 className="text-xl font-semibold text-center">Anime Breakdown</h2>
+
+            {genreData.length > 0 && <ChartSection title="Genres"><BarChart data={genreData} index="name" categories={["Count", "Avg Score"]} colors={["brand", "blue"]} /></ChartSection>}
+            {formatData.length > 0 && (
+                <ChartSection title="Formats">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="text-center space-y-2"><DonutChart data={formatData} index="name" category="count" variant="pie" /><p className="text-sm font-medium">By count</p></div>
+                        <div className="text-center space-y-2"><DonutChart data={formatData} index="name" category="hours" variant="pie" /><p className="text-sm font-medium">By hours watched</p></div>
+                    </div>
+                </ChartSection>
+            )}
+            {studioData.length > 0 && <ChartSection title="Top Studios"><BarChart data={studioData} index="name" categories={["Count", "Avg Score"]} colors={["brand", "blue"]} /></ChartSection>}
+            {scoreData.length > 0 && <ChartSection title="Score Distribution"><BarChart data={scoreData} index="name" categories={["Count"]} colors={["brand"]} /></ChartSection>}
+            {yearData.length > 0 && <ChartSection title="Anime by Release Year"><AreaChart data={yearData} index="name" categories={["Count"]} angledLabels /></ChartSection>}
+
+            <Separator />
+
+            <h2 className="text-xl font-semibold text-center">Manga Breakdown</h2>
+            <Stats className="w-full" size="lg" items={[
+                { icon: <LuBookOpen />, name: "Total Manga", value: stats?.mangaStats?.count ?? 0 },
+                { icon: <LuHourglass />, name: "Chapters Read", value: stats?.mangaStats?.chaptersRead ?? 0 },
+                { icon: <LuStar />, name: "Mean Score", value: ((stats?.mangaStats?.meanScore ?? 0) / 10).toFixed(1) },
+            ]} />
+            {mangaGenreData.length > 0 && <ChartSection title="Manga Genres"><BarChart data={mangaGenreData} index="name" categories={["Count", "Avg Score"]} colors={["brand", "blue"]} /></ChartSection>}
+        </div>
+    )
+}
+
+function ChartSection({ title, children }: { title: string; children: React.ReactNode }) {
+    return (
+        <div className="space-y-4">
+            <h3 className="text-center text-lg font-medium">{title}</h3>
+            <div className="w-full">{children}</div>
+        </div>
+    )
+}
+
+// ─────────────────────── Achievement Sub-components ───────────────────────
+
+export function CategoryPill({ name, svg, isActive, onClick }: { name: string; svg?: string; isActive: boolean; onClick: () => void }) {
+    return (
+        <button
+            onClick={onClick}
+            className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border",
+                isActive ? "bg-brand-500 text-white border-brand-500" : "bg-[--paper] text-[--muted] border-[--border] hover:bg-[--highlight] hover:text-[--foreground]",
+            )}
+        >
+            {svg && <span className="size-4 [&>svg]:size-4" dangerouslySetInnerHTML={{ __html: svg }} />}
+            {name}
+        </button>
+    )
+}
+
+export function AchievementCard({ definition, entryMap }: { definition: Achievement_Definition; entryMap: Map<string, Achievement_Entry> }) {
+    const maxTier = definition.MaxTier || 0
+    const isOneTime = maxTier === 0
+
+    if (isOneTime) {
+        const entry = entryMap.get(`${definition.Key}:0`)
+        const isUnlocked = entry?.isUnlocked ?? false
+        return (
+            <div className={cn("relative flex items-start gap-3 p-4 rounded-xl border transition-colors", isUnlocked ? "bg-[--paper] border-yellow-500/30" : "bg-[--paper] border-[--border] opacity-60")}>
+                <AchievementIcon svg={definition.IconSVG} isUnlocked={isUnlocked} />
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm truncate">{definition.Name}</span>
+                        {isUnlocked && <Badge size="sm" intent="warning">Unlocked</Badge>}
+                    </div>
+                    <p className="text-xs text-[--muted] mt-0.5">{definition.Description}</p>
+                    {entry?.unlockedAt && <p className="text-xs text-[--muted] mt-1">{new Date(entry.unlockedAt).toLocaleDateString()}</p>}
+                </div>
+                {!isUnlocked && <LuLock className="absolute top-2 right-2 size-3 text-[--muted]" />}
+            </div>
+        )
+    }
+
+    let highestUnlockedTier = 0
+    for (let t = 1; t <= maxTier; t++) {
+        const entry = entryMap.get(`${definition.Key}:${t}`)
+        if (entry?.isUnlocked) highestUnlockedTier = t
+    }
+    const nextTier = Math.min(highestUnlockedTier + 1, maxTier)
+    const nextEntry = entryMap.get(`${definition.Key}:${nextTier}`)
+    const nextThreshold = definition.TierThresholds?.[nextTier - 1] ?? 0
+    const progress = nextEntry?.progress ?? 0
+    const progressPct = nextThreshold > 0 ? Math.min((progress / nextThreshold) * 100, 100) : 0
+    const isFullyUnlocked = highestUnlockedTier === maxTier
+
+    return (
+        <div className={cn(
+            "relative flex items-start gap-3 p-4 rounded-xl border transition-colors",
+            isFullyUnlocked ? "bg-[--paper] border-yellow-500/30" : highestUnlockedTier > 0 ? "bg-[--paper] border-brand-500/20" : "bg-[--paper] border-[--border] opacity-60",
+        )}>
+            <AchievementIcon svg={definition.IconSVG} isUnlocked={highestUnlockedTier > 0} />
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                    <span className="font-semibold text-sm truncate">{definition.Name}</span>
+                    {highestUnlockedTier > 0 && (
+                        <Badge size="sm" intent={isFullyUnlocked ? "warning" : "primary"}>
+                            {definition.TierNames?.[highestUnlockedTier - 1] ?? `Tier ${highestUnlockedTier}`}
+                        </Badge>
+                    )}
+                </div>
+                <p className="text-xs text-[--muted] mt-0.5">{definition.Description}</p>
+                <div className="flex items-center gap-1 mt-2">
+                    {Array.from({ length: maxTier }, (_, i) => (
+                        <div key={i + 1} className={cn("size-2 rounded-full", i + 1 <= highestUnlockedTier ? "bg-yellow-500" : "bg-[--border]")} title={definition.TierNames?.[i] ?? `Tier ${i + 1}`} />
+                    ))}
+                </div>
+                {!isFullyUnlocked && nextThreshold > 0 && (
+                    <div className="mt-2">
+                        <div className="flex items-center justify-between text-xs text-[--muted] mb-0.5">
+                            <span>Progress to {definition.TierNames?.[nextTier - 1] ?? `Tier ${nextTier}`}</span>
+                            <span>{Math.round(progress)} / {nextThreshold}</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-[--border] overflow-hidden">
+                            <div className="h-full rounded-full bg-brand-500 transition-all duration-500" style={{ width: `${progressPct}%` }} />
+                        </div>
+                    </div>
+                )}
+            </div>
+            {highestUnlockedTier === 0 && <LuLock className="absolute top-2 right-2 size-3 text-[--muted]" />}
+        </div>
+    )
+}
+
+export function AchievementIcon({ svg, isUnlocked }: { svg: string; isUnlocked: boolean }) {
+    return (
+        <div className={cn("size-10 min-w-[2.5rem] flex items-center justify-center rounded-lg [&>svg]:size-6", isUnlocked ? "bg-yellow-500/20 text-yellow-500" : "bg-[--highlight] text-[--muted]")}>
+            <span dangerouslySetInnerHTML={{ __html: svg }} />
+        </div>
+    )
+}
+
+export function ProgressRing({ value }: { value: number }) {
+    const r = 28, c = 2 * Math.PI * r, offset = c - (value / 100) * c
+    return (
+        <div className="relative size-16 flex items-center justify-center">
+            <svg className="size-16 -rotate-90" viewBox="0 0 64 64">
+                <circle cx="32" cy="32" r={r} fill="none" stroke="currentColor" className="text-[--border]" strokeWidth="4" />
+                <circle cx="32" cy="32" r={r} fill="none" stroke="currentColor" className="text-yellow-500 transition-all duration-700" strokeWidth="4" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={offset} />
+            </svg>
+            <span className="absolute text-xs font-bold">{Math.round(value)}%</span>
+        </div>
+    )
+}
+
+// ─────────────────────── Helpers ───────────────────────
+
+export function getHeatmapColor(intensity: number): string {
+    if (intensity <= 0) return "fill-gray-800"
+    if (intensity < 0.25) return "fill-emerald-900"
+    if (intensity < 0.5) return "fill-emerald-700"
+    if (intensity < 0.75) return "fill-emerald-500"
+    return "fill-emerald-400"
+}
+
+export function formatTimeAgo(date: Date): string {
     const now = Date.now()
     const diff = now - date.getTime()
     const mins = Math.floor(diff / 60000)
@@ -274,7 +842,7 @@ function formatTimeAgo(date: Date): string {
     return `${months}mo ago`
 }
 
-function getLevelColor(level: number): { ring: string; glow: string; label: string } {
+export function getLevelColor(level: number): { ring: string; glow: string; label: string } {
     if (level >= 40) return { ring: "stroke-yellow-400", glow: "shadow-yellow-400/50", label: "text-yellow-400" }
     if (level >= 25) return { ring: "stroke-purple-400", glow: "shadow-purple-400/50", label: "text-purple-400" }
     if (level >= 10) return { ring: "stroke-blue-400", glow: "shadow-blue-400/50", label: "text-blue-400" }

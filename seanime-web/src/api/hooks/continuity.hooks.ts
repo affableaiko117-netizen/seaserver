@@ -20,13 +20,12 @@ export function useUpdateContinuityWatchHistoryItem() {
     })
 }
 
-export function useGetContinuityWatchHistoryItem(mediaId: Nullish<number | string>) {
-    const serverStatus = useServerStatus()
+export function useGetContinuityWatchHistoryItem(mediaId: Nullish<number | string>, enabled = true, force = false) {
     return useServerQuery<Continuity_WatchHistoryItemResponse, GetContinuityWatchHistoryItem_Variables>({
-        endpoint: API_ENDPOINTS.CONTINUITY.GetContinuityWatchHistoryItem.endpoint.replace("{id}", String(mediaId)),
+        endpoint: `${API_ENDPOINTS.CONTINUITY.GetContinuityWatchHistoryItem.endpoint.replace("{id}", String(mediaId))}${force ? "?force=true" : ""}`,
         method: API_ENDPOINTS.CONTINUITY.GetContinuityWatchHistoryItem.methods[0],
-        queryKey: [API_ENDPOINTS.CONTINUITY.GetContinuityWatchHistoryItem.key, String(mediaId)],
-        enabled: serverStatus?.settings?.library?.enableWatchContinuity && !!mediaId,
+        queryKey: [API_ENDPOINTS.CONTINUITY.GetContinuityWatchHistoryItem.key, String(mediaId), force ? "force" : "default"],
+        enabled: enabled && !!mediaId,
     })
 }
 
@@ -57,12 +56,21 @@ export function getEpisodeMinutesRemaining(history: Nullish<Continuity_WatchHist
     return Math.round((item.duration - item.currentTime) / 60)
 }
 
+// Resolves effective continuity enabled state from global setting + per-player override.
+function resolveContinuityEnabled(globalEnabled: boolean | undefined, playerOverride?: "inherit" | "on" | "off"): boolean {
+    if (playerOverride === "on") return true
+    if (playerOverride === "off") return false
+    return !!globalEnabled
+}
+
 export function useHandleContinuityWithMediaPlayer(playerRef: React.RefObject<MediaPlayerInstance | HTMLVideoElement>,
     episodeNumber: Nullish<number>,
     mediaId: Nullish<number | string>,
+    playerOverride?: "inherit" | "on" | "off",
 ) {
     const serverStatus = useServerStatus()
     const qc = useQueryClient()
+    const enabled = resolveContinuityEnabled(serverStatus?.settings?.library?.enableWatchContinuity, playerOverride)
 
     React.useEffect(() => {
         (async () => {
@@ -74,7 +82,7 @@ export function useHandleContinuityWithMediaPlayer(playerRef: React.RefObject<Me
     const { mutate: updateWatchHistory } = useUpdateContinuityWatchHistoryItem()
 
     function handleUpdateWatchHistory() {
-        if (!serverStatus?.settings?.library?.enableWatchContinuity) return
+        if (!enabled) return
 
         if (playerRef.current?.duration && playerRef.current?.currentTime) {
             logger("CONTINUITY").info("Watch history updated", {
@@ -97,18 +105,19 @@ export function useHandleContinuityWithMediaPlayer(playerRef: React.RefObject<Me
     return { handleUpdateWatchHistory }
 }
 
-export function useHandleCurrentMediaContinuity(mediaId: Nullish<number | string>) {
+export function useHandleCurrentMediaContinuity(mediaId: Nullish<number | string>, playerOverride?: "inherit" | "on" | "off") {
     const serverStatus = useServerStatus()
+    const enabled = resolveContinuityEnabled(serverStatus?.settings?.library?.enableWatchContinuity, playerOverride)
 
-    const { data: watchHistory, isLoading: watchHistoryLoading } = useGetContinuityWatchHistoryItem(mediaId)
+    const { data: watchHistory, isLoading: watchHistoryLoading } = useGetContinuityWatchHistoryItem(mediaId, enabled, playerOverride === "on")
 
-    const waitForWatchHistory = watchHistoryLoading && serverStatus?.settings?.library?.enableWatchContinuity
+    const waitForWatchHistory = watchHistoryLoading && enabled
 
     function getEpisodeContinuitySeekTo(episodeNumber: Nullish<number>, playerCurrentTime: Nullish<number>, playerDuration: Nullish<number>) {
-        if (!serverStatus?.settings?.library?.enableWatchContinuity || !mediaId || !watchHistory || !playerDuration || !episodeNumber) return 0
+        if (!enabled || !mediaId || !watchHistory || !playerDuration || !episodeNumber) return 0
         const item = watchHistory?.item
         if (!item || !item.currentTime || !item.duration || item.episodeNumber !== episodeNumber) return 0
-        if (!(item.currentTime > 0 && item.currentTime < playerDuration) || (item.currentTime / item.duration) > 90) return 0
+        if (!(item.currentTime > 0 && item.currentTime < playerDuration) || (item.currentTime / item.duration) > 0.9) return 0
         logger("CONTINUITY").info("Found last watched time", {
             currentTime: item.currentTime,
             duration: item.duration,
@@ -120,7 +129,7 @@ export function useHandleCurrentMediaContinuity(mediaId: Nullish<number | string
     return {
         watchHistory,
         waitForWatchHistory,
-        shouldWaitForWatchHistory: serverStatus?.settings?.library?.enableWatchContinuity,
+        shouldWaitForWatchHistory: enabled,
         getEpisodeContinuitySeekTo,
     }
 }

@@ -409,6 +409,26 @@ func (a *App) initModulesOnce() {
 		},
 	})
 
+	// Run XP migration for all known profile databases at startup
+	go func() {
+		var dbs []*db.Database
+		// Include fallback (global) database
+		dbs = append(dbs, a.ProfileDatabaseManager.GetFallbackDatabase())
+		// Include all per-profile databases
+		if a.ProfileManager != nil {
+			profiles, err := a.ProfileManager.GetAllProfiles()
+			if err == nil {
+				for _, p := range profiles {
+					pdb, err := a.ProfileDatabaseManager.GetDatabase(p.ID)
+					if err == nil {
+						dbs = append(dbs, pdb)
+					}
+				}
+			}
+		}
+		a.AchievementEngine.RunStartupMigrations(dbs)
+	}()
+
 	// +---------------------+
 	// |   Service Runner    |
 	// +---------------------+

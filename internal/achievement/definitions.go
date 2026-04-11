@@ -1,5 +1,7 @@
 package achievement
 
+import "strings"
+
 // Category represents an achievement category for grouping and display.
 type Category string
 
@@ -64,7 +66,34 @@ type Definition struct {
 	TierThresholds []int         `json:"tierThresholds,omitempty"`
 	TierNames      []string      `json:"tierNames,omitempty"`
 	Triggers       []EvalTrigger `json:"triggers"`
-	XPReward       int           `json:"xpReward"` // Base XP per tier unlock (0 = use default)
+	XPReward       int           `json:"xpReward"`     // Base XP per tier unlock (0 = use default)
+	Difficulty     Difficulty    `json:"difficulty"`    // Difficulty rating for XP multiplier
+}
+
+// Difficulty represents how hard an achievement is to earn.
+type Difficulty string
+
+const (
+	DifficultyEasy    Difficulty = "easy"
+	DifficultyMedium  Difficulty = "medium"
+	DifficultyHard    Difficulty = "hard"
+	DifficultyExtreme Difficulty = "extreme"
+)
+
+// DifficultyMultiplier returns the XP multiplier for a given difficulty.
+func DifficultyMultiplier(d Difficulty) float64 {
+	switch d {
+	case DifficultyEasy:
+		return 1.0
+	case DifficultyMedium:
+		return 1.5
+	case DifficultyHard:
+		return 2.5
+	case DifficultyExtreme:
+		return 5.0
+	default:
+		return 1.0
+	}
 }
 
 // CategoryInfo provides display metadata for categories.
@@ -136,6 +165,104 @@ func init() {
 	AllDefinitions = make([]Definition, 0, 1200)
 	AllDefinitions = append(AllDefinitions, animeDefinitions...)
 	AllDefinitions = append(AllDefinitions, mangaDefinitions...)
+
+	// Auto-assign difficulty where not explicitly set
+	for i := range AllDefinitions {
+		if AllDefinitions[i].Difficulty == "" {
+			AllDefinitions[i].Difficulty = inferDifficulty(&AllDefinitions[i])
+		}
+	}
+}
+
+// inferDifficulty assigns a difficulty rating based on achievement properties.
+func inferDifficulty(def *Definition) Difficulty {
+	cat := string(def.Category)
+
+	// One-time achievements (MaxTier == 0)
+	if def.MaxTier == 0 {
+		key := def.Key
+
+		// Holiday/seasonal achievements are easy
+		if strings.HasSuffix(cat, "_holiday") {
+			return DifficultyEasy
+		}
+		// Special number achievements (fibonacci, palindrome, pi, nice, etc.) are easy
+		if strings.HasSuffix(cat, "_special") {
+			return DifficultyEasy
+		}
+		// First-time achievements are easy
+		if strings.Contains(key, "first_") || strings.HasSuffix(key, "_first") ||
+			strings.Contains(key, "_first_") || strings.HasSuffix(key, "_first_day") {
+			return DifficultyEasy
+		}
+		// Simple one-off achievements
+		switch {
+		case strings.Contains(key, "variety_pack") || strings.Contains(key, "cross_demographic") ||
+			strings.Contains(key, "underdog") || strings.Contains(key, "comeback") ||
+			strings.Contains(key, "rewatcher") || strings.Contains(key, "rereader") ||
+			strings.Contains(key, "theatrical") || strings.Contains(key, "source_reader") ||
+			strings.Contains(key, "childhood") || strings.Contains(key, "classic_reader") ||
+			strings.Contains(key, "random_pick") || strings.Contains(key, "new_genre"):
+			return DifficultyEasy
+
+		// Medium: require some sustained effort
+		case strings.Contains(key, "hundred_club") || strings.Contains(key, "speed_run") ||
+			strings.Contains(key, "double_feature") || strings.Contains(key, "triple_") ||
+			strings.Contains(key, "five_a_day") || strings.Contains(key, "seasonal_binge") ||
+			strings.Contains(key, "cour_crusher") || strings.Contains(key, "binge_king") ||
+			strings.Contains(key, "half_day") || strings.Contains(key, "clean_list") ||
+			strings.Contains(key, "same_day_start") || strings.Contains(key, "revival") ||
+			strings.Contains(key, "film_festival") || strings.Contains(key, "double_streak") ||
+			strings.Contains(key, "habit_formed") || strings.Contains(key, "consistent_pace") ||
+			strings.Contains(key, "morning_routine") || strings.Contains(key, "sunday_") ||
+			strings.Contains(key, "rainy_day") || strings.Contains(key, "score_sniper") ||
+			strings.Contains(key, "four_am") || strings.Contains(key, "midnight_") ||
+			strings.Contains(key, "genre_clash") || strings.Contains(key, "volume_binge"):
+			return DifficultyMedium
+
+		// Hard: require significant effort
+		case strings.Contains(key, "full_day") || strings.Contains(key, "no_sleep") ||
+			strings.Contains(key, "no_zero_days") || strings.Contains(key, "iron_will") ||
+			strings.Contains(key, "unbreakable") || strings.Contains(key, "completion_rate_75") ||
+			strings.Contains(key, "year_long") || strings.Contains(key, "score_all") ||
+			strings.Contains(key, "all_hours") || strings.Contains(key, "saga_tracker") ||
+			strings.Contains(key, "century_watcher") || strings.Contains(key, "century_reader") ||
+			strings.Contains(key, "ten_thousand") || strings.Contains(key, "five_hundred") ||
+			strings.Contains(key, "entire_season") || strings.Contains(key, "seven_day") ||
+			strings.Contains(key, "completion_spree") || strings.Contains(key, "streak_recovery") ||
+			strings.Contains(key, "annual_tradition") || strings.Contains(key, "long_commitment") ||
+			strings.Contains(key, "perfect_attendance") || strings.Contains(key, "zero_to"):
+			return DifficultyHard
+
+		// Extreme: near-impossible feats
+		case strings.Contains(key, "hundred_day") || strings.Contains(key, "complete_catalog") ||
+			strings.Contains(key, "dawn_warrior") || strings.Contains(key, "dawn_reader") ||
+			strings.Contains(key, "eternal_flame") || strings.Contains(key, "completion_rate_90") ||
+			strings.Contains(key, "thousand_complete") || strings.Contains(key, "power_level") ||
+			strings.Contains(key, "world_record") || strings.Contains(key, "community_pillar") ||
+			strings.Contains(key, "holiday_marathon") ||
+			strings.Contains(key, "twilight_zone") || strings.Contains(key, "twilight_reader"):
+			return DifficultyExtreme
+		}
+		return DifficultyMedium
+	}
+
+	// Tiered achievements — classify by the highest threshold
+	if len(def.TierThresholds) > 0 {
+		maxThreshold := def.TierThresholds[len(def.TierThresholds)-1]
+		switch {
+		case maxThreshold <= 100:
+			return DifficultyEasy
+		case maxThreshold <= 5000:
+			return DifficultyMedium
+		case maxThreshold <= 100000:
+			return DifficultyHard
+		default:
+			return DifficultyExtreme
+		}
+	}
+
+	return DifficultyMedium
 }
 
 // TotalAchievementCount returns the total number of individual achievement entries (including all tiers).

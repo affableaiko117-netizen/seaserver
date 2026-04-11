@@ -63,6 +63,9 @@ func (vc *VideoCore) setupSharedEffects() {
 				vc.settingsMu.RLock()
 				shouldUpdateProgress = vc.settings.Library.AutoUpdateProgress
 				vc.settingsMu.RUnlock()
+
+				mediaId := state.PlaybackInfo.Media.GetID()
+
 				if shouldUpdateProgress {
 					// get the list entry
 					collection, err := vc.platformRef.Get().GetAnimeCollection(context.Background(), false)
@@ -71,7 +74,6 @@ func (vc *VideoCore) setupSharedEffects() {
 						continue
 					}
 
-					mediaId := state.PlaybackInfo.Media.GetID()
 					progress := state.PlaybackInfo.Episode.GetProgressNumber()
 					totalEpisodes := state.PlaybackInfo.Media.Episodes
 
@@ -86,6 +88,11 @@ func (vc *VideoCore) setupSharedEffects() {
 						vc.logger.Error().Err(err).Msgf("videocore: Failed to update progress for media %d", mediaId)
 					}
 					vc.refreshAnimeCollectionFunc()
+				}
+
+				// Clear continuity watch history for completed episode
+				if vc.continuityManager != nil {
+					_ = vc.continuityManager.DeleteWatchHistoryItem(mediaId)
 				}
 			case *VideoTerminatedEvent:
 				if vc.discordPresence != nil && !vc.isOfflineRef.Get() {

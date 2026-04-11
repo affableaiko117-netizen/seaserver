@@ -1,21 +1,48 @@
 "use client"
 
+import { useGetUserAchievements } from "@/api/hooks/achievement.hooks"
 import { useGetUserProfile } from "@/api/hooks/community.hooks"
-import { Handlers_RecentAchievementEntry, Handlers_ShowcaseEntry, ProfileStats_StreakInfo } from "@/api/generated/types"
+import { useGetUserProfileStats } from "@/api/hooks/profile-stats.hooks"
+import {
+    Achievement_Category,
+    Achievement_CategoryInfo,
+    Achievement_Definition,
+    Achievement_Entry,
+} from "@/api/generated/types"
 import { CustomLibraryBanner } from "@/app/(main)/(library)/_containers/custom-library-banner"
 import { LevelRingAvatar } from "@/app/(main)/community/page"
-import { ActivityHeatmap } from "@/app/(main)/_features/profile/activity-heatmap"
 import { PageWrapper } from "@/components/shared/page-wrapper"
+import { tabsTriggerClass, tabsListClass } from "@/components/shared/classnames"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/components/ui/core/styling"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { useSearchParams } from "@/lib/navigation"
+import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useRouter, useSearchParams } from "@/lib/navigation"
+import {
+    ActivityMultiplierBadge,
+    ActivityTabContent,
+    StreakCard,
+    StatsActivityHeatmap,
+    DayOfWeekChart,
+    CategoryPill,
+    AchievementCard,
+    ProgressRing,
+    getLevelColor,
+} from "@/app/(main)/profile/me/page"
 import React from "react"
-import { LuTrophy, LuStar, LuArrowLeft, LuFlame, LuCalendar, LuBookOpen, LuTv, LuClock } from "react-icons/lu"
+import {
+    LuTrophy, LuStar, LuArrowLeft, LuCalendar, LuBookOpen,
+    LuTv, LuActivity, LuHourglass,
+} from "react-icons/lu"
 import { SeaLink } from "@/components/shared/sea-link"
+import { Stats } from "@/components/ui/stats"
 
 export default function Page() {
     const searchParams = useSearchParams()
+    const router = useRouter()
     const id = Number(searchParams.get("id")) || 0
+    const activeTab = searchParams.get("tab") || "activity"
 
     const { data, isLoading } = useGetUserProfile(id)
 
@@ -70,6 +97,7 @@ export default function Page() {
                     <LevelRingAvatar
                         profile={{
                             currentLevel: level?.currentLevel ?? 1,
+                            totalXP: level?.totalXP ?? 0,
                             avatarPath: profile!.avatarPath,
                             anilistAvatar: profile!.anilistAvatar,
                             name: profile!.name,
@@ -77,7 +105,12 @@ export default function Page() {
                         size={100}
                     />
                     <div className="space-y-1">
-                        <h1 className="text-2xl font-bold">{profile!.name}</h1>
+                        <div className="flex items-center gap-3">
+                            <h1 className="text-2xl font-bold">{profile!.name}</h1>
+                            {level && level.multiplier > 1 && (
+                                <ActivityMultiplierBadge multiplier={level.multiplier} />
+                            )}
+                        </div>
                         <p className={cn("text-lg font-bold", levelColors.label)}>
                             Level {level?.currentLevel ?? 1}
                         </p>
@@ -99,12 +132,6 @@ export default function Page() {
                         <span className="font-semibold">{achievementSummary?.unlockedCount ?? 0}</span>
                         <span className="text-sm">/ {achievementSummary?.totalCount ?? 0} achievements</span>
                     </div>
-                    
-                    {level && level.currentLevel < 50 && (
-                        <div className="text-sm text-[--muted]">
-                            {level.xpToNext.toLocaleString()} Experite to next level
-                        </div>
-                    )}
                 </div>
 
                 {/* Level progress bar */}
@@ -112,7 +139,7 @@ export default function Page() {
                     <div className="space-y-1">
                         <div className="flex justify-between text-xs text-[--muted]">
                             <span>Level {level.currentLevel}</span>
-                            <span>Level {Math.min(level.currentLevel + 1, 50)}</span>
+                            <span>Level {level.currentLevel + 1}</span>
                         </div>
                         <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
                             <div
@@ -120,133 +147,194 @@ export default function Page() {
                                 style={{ width: `${level.xpNeededForLevel > 0 ? (level.xpInCurrentLevel / level.xpNeededForLevel) * 100 : 100}%` }}
                             />
                         </div>
-                    </div>
-                )}
-
-                {/* Streaks */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <StreakCard label="Anime Streak" icon={<LuTv className="text-lg" />} streak={animeStreak} />
-                    <StreakCard label="Manga Streak" icon={<LuBookOpen className="text-lg" />} streak={mangaStreak} />
-                </div>
-
-                {/* Activity Heatmap */}
-                <div className="space-y-2">
-                    <h2 className="text-lg font-semibold flex items-center gap-2">
-                        <LuCalendar className="text-blue-400" />
-                        Activity (90 days)
-                    </h2>
-                    <ActivityHeatmap days={activityHeatmap} />
-                </div>
-
-                {/* Achievement Showcase */}
-                {showcase && showcase.length > 0 && (
-                    <div className="space-y-3">
-                        <h2 className="text-lg font-semibold">Showcase</h2>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                            {showcase.map((entry) => (
-                                <ShowcaseCard key={entry.slot} entry={entry} />
-                            ))}
+                        <div className="text-xs text-[--muted] text-center">
+                            {level.xpInCurrentLevel.toLocaleString()} / {level.xpNeededForLevel.toLocaleString()} XP
                         </div>
                     </div>
                 )}
 
-                {/* Recent Achievements */}
-                {recentAchievements && recentAchievements.length > 0 && (
-                    <div className="space-y-3">
-                        <h2 className="text-lg font-semibold flex items-center gap-2">
-                            <LuClock className="text-emerald-400" />
-                            Recent Achievements
-                        </h2>
-                        <div className="space-y-2">
-                            {recentAchievements.map((ach) => (
-                                <RecentAchievementRow key={`${ach.key}-${ach.tier}`} entry={ach} />
-                            ))}
-                        </div>
-                    </div>
-                )}
+                {/* Tabs */}
+                <Tabs
+                    value={activeTab}
+                    onValueChange={(v) => router.push(`/profile/user?id=${id}&tab=${v}`)}
+                >
+                    <TabsList className={tabsListClass}>
+                        <TabsTrigger value="activity" className={tabsTriggerClass}>
+                            <LuActivity className="mr-1.5" /> Activity
+                        </TabsTrigger>
+                        <TabsTrigger value="stats" className={tabsTriggerClass}>
+                            <LuStar className="mr-1.5" /> Stats
+                        </TabsTrigger>
+                        <TabsTrigger value="achievements" className={tabsTriggerClass}>
+                            <LuTrophy className="mr-1.5" /> Achievements
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="activity" className="space-y-6 mt-6">
+                        <ActivityTabContent
+                            animeStreak={animeStreak}
+                            mangaStreak={mangaStreak}
+                            activityHeatmap={activityHeatmap}
+                            showcase={showcase}
+                            recentAchievements={recentAchievements}
+                        />
+                    </TabsContent>
+
+                    <TabsContent value="stats" className="space-y-6 mt-6">
+                        <UserStatsTabContent userId={id} />
+                    </TabsContent>
+
+                    <TabsContent value="achievements" className="space-y-6 mt-6">
+                        <UserAchievementsTabContent userId={id} />
+                    </TabsContent>
+                </Tabs>
             </PageWrapper>
         </>
     )
 }
 
-function StreakCard({ label, icon, streak }: { label: string; icon: React.ReactNode; streak?: ProfileStats_StreakInfo }) {
+// ─────────────────────── Stats Tab (lazy) ───────────────────────
+
+function UserStatsTabContent({ userId }: { userId: number }) {
+    const [selectedYear, setSelectedYear] = React.useState<number | undefined>(undefined)
+    const { data: profileStats, isLoading } = useGetUserProfileStats(userId, selectedYear)
+
+    const currentYear = new Date().getFullYear()
+    const yearOptions = React.useMemo(() => {
+        const years: (number | undefined)[] = [undefined]
+        for (let y = currentYear; y >= currentYear - 5; y--) years.push(y)
+        return years
+    }, [currentYear])
+
+    if (isLoading) {
+        return <div className="flex justify-center py-12"><LoadingSpinner /></div>
+    }
+
     return (
-        <div className="bg-gray-900 border border-[--border] rounded-lg p-4 space-y-2">
-            <div className="flex items-center gap-2 text-[--muted]">
-                {icon}
-                <span className="text-sm font-medium">{label}</span>
+        <>
+            <Stats className="w-full" size="md" items={[
+                { icon: <LuTrophy />, name: "Active Days", value: profileStats?.totalActiveDays ?? 0 },
+                { icon: <LuTv />, name: "Anime Days", value: profileStats?.totalAnimeDays ?? 0 },
+                { icon: <LuBookOpen />, name: "Manga Days", value: profileStats?.totalMangaDays ?? 0 },
+            ]} />
+
+            <Separator />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <StreakCard label="Anime Watching Streak" icon={<LuTv className="text-lg" />} streak={profileStats?.animeStreak} />
+                <StreakCard label="Manga Reading Streak" icon={<LuBookOpen className="text-lg" />} streak={profileStats?.mangaStreak} />
             </div>
-            <div className="flex items-end gap-6">
+
+            <Separator />
+
+            <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold flex items-center gap-2">
+                        <LuCalendar className="text-blue-400" />
+                        Activity
+                    </h2>
+                    <select
+                        className="bg-gray-900 border border-[--border] rounded-md px-3 py-1.5 text-sm"
+                        value={selectedYear ?? ""}
+                        onChange={(e) => setSelectedYear(e.target.value ? Number(e.target.value) : undefined)}
+                    >
+                        {yearOptions.map((y) => (
+                            <option key={y ?? "rolling"} value={y ?? ""}>
+                                {y ? `${y}` : "Last 365 days"}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <StatsActivityHeatmap days={profileStats?.activityHeatmap} />
+                <DayOfWeekChart patterns={profileStats?.watchPatterns?.byDayOfWeek} />
+            </div>
+        </>
+    )
+}
+
+// ─────────────────────── Achievements Tab (lazy) ───────────────────────
+
+function UserAchievementsTabContent({ userId }: { userId: number }) {
+    const { data, isLoading } = useGetUserAchievements(userId)
+    const [selectedCategory, setSelectedCategory] = React.useState<Achievement_Category | "all">("all")
+
+    if (isLoading) {
+        return <div className="flex justify-center py-12"><LoadingSpinner /></div>
+    }
+
+    if (!data) return null
+
+    const { definitions = [], categories = [], achievements = [], summary } = data
+
+    const entryMap = new Map<string, Achievement_Entry>()
+    for (const a of achievements) {
+        entryMap.set(`${a.key}:${a.tier}`, a)
+    }
+
+    const categoryMap = new Map<Achievement_Category, Achievement_CategoryInfo>()
+    for (const cat of categories) {
+        categoryMap.set(cat.Key, cat)
+    }
+
+    const filteredDefs = selectedCategory === "all"
+        ? definitions
+        : definitions.filter(d => d.Category === selectedCategory)
+
+    const groupedDefs = new Map<Achievement_Category, Achievement_Definition[]>()
+    for (const def of filteredDefs) {
+        const list = groupedDefs.get(def.Category) || []
+        list.push(def)
+        groupedDefs.set(def.Category, list)
+    }
+
+    const unlockedCount = summary?.unlockedCount ?? 0
+    const totalCount = summary?.totalCount ?? 0
+
+    return (
+        <>
+            <div className="flex items-center gap-4">
+                <LuTrophy className="size-8 text-yellow-500" />
                 <div>
-                    <div className="flex items-center gap-2">
-                        <LuFlame className={cn("text-2xl", (streak?.current ?? 0) > 0 ? "text-orange-400" : "text-gray-600")} />
-                        <span className="text-3xl font-bold">{streak?.current ?? 0}</span>
+                    <h2 className="text-xl font-bold">Achievements</h2>
+                    <p className="text-[--muted]">{unlockedCount} / {totalCount} unlocked</p>
+                </div>
+                <div className="ml-auto">
+                    <ProgressRing value={totalCount > 0 ? (unlockedCount / totalCount) * 100 : 0} />
+                </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+                <CategoryPill name="All" isActive={selectedCategory === "all"} onClick={() => setSelectedCategory("all")} />
+                {categories.map(cat => (
+                    <CategoryPill
+                        key={cat.Key}
+                        name={cat.Name}
+                        svg={cat.IconSVG}
+                        isActive={selectedCategory === cat.Key}
+                        onClick={() => setSelectedCategory(cat.Key)}
+                    />
+                ))}
+            </div>
+
+            {Array.from(groupedDefs.entries()).map(([catKey, defs]) => {
+                const catInfo = categoryMap.get(catKey)
+                return (
+                    <div key={catKey} className="space-y-3">
+                        <div className="flex items-center gap-2">
+                            {catInfo?.IconSVG && (
+                                <span className="size-5 text-[--muted] [&>svg]:size-5" dangerouslySetInnerHTML={{ __html: catInfo.IconSVG }} />
+                            )}
+                            <h3 className="text-lg font-semibold">{catInfo?.Name ?? catKey}</h3>
+                            {catInfo?.Description && <span className="text-sm text-[--muted]">— {catInfo.Description}</span>}
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                            {defs.map(def => (
+                                <AchievementCard key={def.Key} definition={def} entryMap={entryMap} />
+                            ))}
+                        </div>
                     </div>
-                    <span className="text-xs text-[--muted]">Current</span>
-                </div>
-                <div>
-                    <span className="text-xl font-semibold text-[--muted]">{streak?.longest ?? 0}</span>
-                    <p className="text-xs text-[--muted]">Longest</p>
-                </div>
-            </div>
-        </div>
+                )
+            })}
+        </>
     )
-}
-
-function ShowcaseCard({ entry }: { entry: Handlers_ShowcaseEntry }) {
-    return (
-        <div className="p-3 rounded-lg bg-[--subtle] text-center space-y-2">
-            {entry.definition?.IconSVG && (
-                <div
-                    className="w-8 h-8 mx-auto text-brand-300"
-                    dangerouslySetInnerHTML={{ __html: entry.definition.IconSVG }}
-                />
-            )}
-            <p className="font-semibold text-sm truncate">
-                {entry.definition?.Name ?? entry.key}
-            </p>
-            {entry.tier > 0 && (
-                <p className="text-xs text-[--muted]">Tier {entry.tier}</p>
-            )}
-        </div>
-    )
-}
-
-function RecentAchievementRow({ entry }: { entry: Handlers_RecentAchievementEntry }) {
-    const timeAgo = entry.unlockedAt ? formatTimeAgo(new Date(entry.unlockedAt)) : ""
-    return (
-        <div className="flex items-center gap-3 p-3 rounded-lg bg-[--subtle]">
-            {entry.definition?.IconSVG && (
-                <div
-                    className="w-6 h-6 shrink-0 text-emerald-400"
-                    dangerouslySetInnerHTML={{ __html: entry.definition.IconSVG }}
-                />
-            )}
-            <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate">{entry.definition?.Name ?? entry.key}</p>
-                {entry.tier > 0 && <p className="text-xs text-[--muted]">Tier {entry.tier}</p>}
-            </div>
-            {timeAgo && <span className="text-xs text-[--muted] shrink-0">{timeAgo}</span>}
-        </div>
-    )
-}
-
-function formatTimeAgo(date: Date): string {
-    const now = Date.now()
-    const diff = now - date.getTime()
-    const mins = Math.floor(diff / 60000)
-    if (mins < 60) return `${mins}m ago`
-    const hours = Math.floor(mins / 60)
-    if (hours < 24) return `${hours}h ago`
-    const days = Math.floor(hours / 24)
-    if (days < 30) return `${days}d ago`
-    const months = Math.floor(days / 30)
-    return `${months}mo ago`
-}
-
-function getLevelColor(level: number): { ring: string; glow: string; label: string } {
-    if (level >= 40) return { ring: "stroke-yellow-400", glow: "shadow-yellow-400/50", label: "text-yellow-400" }
-    if (level >= 25) return { ring: "stroke-purple-400", glow: "shadow-purple-400/50", label: "text-purple-400" }
-    if (level >= 10) return { ring: "stroke-blue-400", glow: "shadow-blue-400/50", label: "text-blue-400" }
-    return { ring: "stroke-gray-400", glow: "shadow-gray-400/30", label: "text-gray-400" }
 }

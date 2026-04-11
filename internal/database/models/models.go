@@ -756,8 +756,9 @@ type ActivityLog struct {
 // LevelProgress tracks the user's XP and level for the leveling system (stored in per-profile DB).
 type LevelProgress struct {
 	BaseModel
-	TotalXP      int     `gorm:"column:total_xp;default:0" json:"totalXP"`
-	CurrentLevel int     `gorm:"column:current_level;default:1" json:"currentLevel"`
+	TotalXP      int `gorm:"column:total_xp;default:0" json:"totalXP"`
+	CurrentLevel int `gorm:"column:current_level;default:1" json:"currentLevel"`
+	XPVersion    int `gorm:"column:xp_version;default:0" json:"xpVersion"`
 }
 
 ///////////////////////////////////////////////////////////////////////////
