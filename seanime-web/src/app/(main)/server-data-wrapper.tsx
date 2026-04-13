@@ -250,6 +250,8 @@ export function ServerDataWrapper(props: ServerDataWrapperProps) {
     return children
 }
 
+export { ProfileAniListGate };
+
 function ProfileAniListGate(props: {
     profileName: string
     host: string

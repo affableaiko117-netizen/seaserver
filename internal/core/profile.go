@@ -209,10 +209,15 @@ func (pm *ProfileManager) CreateProfile(name, pin string, isAdmin bool) (*Profil
 	}
 
 	profile := &Profile{
-		Name:    name,
-		PINHash: pinHash,
-		PINSalt: pinSalt,
-		IsAdmin: isAdmin,
+		Name:            name,
+		PINHash:         pinHash,
+		PINSalt:         pinSalt,
+		IsAdmin:         isAdmin,
+		AniListUsername: "",
+		AniListAvatar:   "",
+		AvatarPath:      "",
+		Bio:             "",
+		BannerImage:     "",
 	}
 
 	if err := pm.db.Create(profile).Error; err != nil {
