@@ -737,6 +737,8 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	v1.GET("/community/profiles", h.HandleGetCommunityProfiles)
 	v1.GET("/community/feed", h.HandleGetActivityFeed)
 
+	// AniList profile sync
+	v1.POST("/profile/sync-anilist", h.HandleSyncAniListProfile)
 }
 
 func (h *Handler) JSON(c echo.Context, code int, i interface{}) error {

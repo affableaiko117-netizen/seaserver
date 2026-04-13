@@ -4,6 +4,7 @@ import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
 import React from "react"
+import { ProfileAniListGate } from "../../server-data-wrapper"
 import { BiArrowBack, BiCheck, BiPlus } from "react-icons/bi"
 import { MdBackspace } from "react-icons/md"
 
@@ -21,19 +22,28 @@ export function ProfileSelector({ profiles, onManageProfiles }: ProfileSelectorP
     const [pinError, setPinError] = React.useState("")
     const [pressedKey, setPressedKey] = React.useState<string | null>(null)
     const { mutate: login, isPending } = useProfileLogin()
+    const [showAniListModal, setShowAniListModal] = React.useState(false)
+    const [pendingProfile, setPendingProfile] = React.useState<ProfileSummary | null>(null)
 
     // Ref keeps the latest pin value so event handlers never see a stale closure
     const pinRef = React.useRef(pin)
     React.useEffect(() => { pinRef.current = pin }, [pin])
 
     const handleProfileClick = (profile: ProfileSummary) => {
+        // Always enforce AniList token modal on first login (no exceptions)
         if (!profile.hasPIN) {
-            // Auto-login for profiles without PIN
             login(
                 { profileId: profile.id, pin: "" },
                 {
-                    onError: () => {
-                        setPinError("Login failed")
+                    onError: (error: any) => {
+                        const isAniList401 = error?.response?.status === 401
+                        const isAniListMsg = error?.response?.data?.message?.includes("AniList login required for this profile")
+                        if (isAniList401 || isAniListMsg) {
+                            setPendingProfile(profile)
+                            setShowAniListModal(true)
+                        } else {
+                            setPinError("Login failed")
+                        }
                     },
                 },
             )
@@ -51,9 +61,16 @@ export function ProfileSelector({ profiles, onManageProfiles }: ProfileSelectorP
         login(
             { profileId: selectedProfile.id, pin: currentPin },
             {
-                onError: () => {
-                    setPinError("Incorrect PIN")
-                    setPin("")
+                onError: (error: any) => {
+                    const isAniList401 = error?.response?.status === 401
+                    const isAniListMsg = error?.response?.data?.message?.includes("AniList login required for this profile")
+                    if (isAniList401 || isAniListMsg) {
+                        setPendingProfile(selectedProfile)
+                        setShowAniListModal(true)
+                    } else {
+                        setPinError("Incorrect PIN")
+                        setPin("")
+                    }
                 },
             },
         )
@@ -92,22 +109,36 @@ export function ProfileSelector({ profiles, onManageProfiles }: ProfileSelectorP
 
     // Keyboard support — handlePinSubmit is stable via useCallback so no stale closure
     React.useEffect(() => {
-        if (!selectedProfile) return
-
+        if (!selectedProfile) return;
         const handler = (e: KeyboardEvent) => {
             if (e.key >= "0" && e.key <= "9") {
-                handleKeypadPress(e.key)
+                handleKeypadPress(e.key);
             } else if (e.key === "Backspace") {
-                handleKeypadPress("backspace")
+                handleKeypadPress("backspace");
             } else if (e.key === "Enter") {
-                handlePinSubmit()
+                handlePinSubmit();
             } else if (e.key === "Escape") {
-                handleBack()
+                handleBack();
             }
-        }
-        window.addEventListener("keydown", handler)
-        return () => window.removeEventListener("keydown", handler)
-    }, [selectedProfile, handlePinSubmit])
+        };
+        window.addEventListener("keydown", handler);
+        return () => window.removeEventListener("keydown", handler);
+    }, [selectedProfile, handlePinSubmit]);
+
+    // --- MAIN RENDER ---
+    // Show AniList token modal if required
+    if (showAniListModal && pendingProfile) {
+        return (
+            <ProfileAniListGate
+                profileName={pendingProfile.name}
+                host={window.location.host}
+                onManualToken={() => {
+                    setShowAniListModal(false);
+                    setPendingProfile(null);
+                }}
+            />
+        );
+    }
 
     // PIN entry screen with keypad
     if (selectedProfile) {
@@ -152,7 +183,9 @@ export function ProfileSelector({ profiles, onManageProfiles }: ProfileSelectorP
 
                     {/* 3×4 Keypad grid */}
                     <div className="grid grid-cols-3 gap-3 mt-2">
-                        {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit) => (
+                        {[
+                            "1", "2", "3", "4", "5", "6", "7", "8", "9"
+                        ].map((digit) => (
                             <KeypadButton
                                 key={digit}
                                 label={digit}
@@ -194,7 +227,7 @@ export function ProfileSelector({ profiles, onManageProfiles }: ProfileSelectorP
                     </Button>
                 </div>
             </div>
-        )
+        );
     }
 
     // Profile grid

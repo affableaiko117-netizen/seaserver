@@ -71,6 +71,11 @@ func (h *Handler) HandleProfileLogin(c echo.Context) error {
 		return h.RespondWithError(c, echo.NewHTTPError(401, err.Error()))
 	}
 
+	// Strictly block login if AniList token is missing
+	if profile.AniListUsername == "" || profile.AniListAvatar == "" {
+		return h.RespondWithError(c, echo.NewHTTPError(401, "AniList login required for this profile. Please use the Seanime AniList token flow to link your account."))
+	}
+
 	// Get client ID from context (set by cookie middleware)
 	clientID := ""
 	if cid, ok := c.Get("Seanime-Client-Id").(string); ok {
@@ -421,4 +426,60 @@ func (h *Handler) HandleSkipMigration(c echo.Context) error {
 		return h.RespondWithError(c, err)
 	}
 	return h.RespondWithData(c, true)
+}
+
+// HandleSyncAniListProfile
+//
+// @summary Sync AniList profile data for the current user.
+// @desc Fetches AniList avatar, banner, bio, and username and updates the profile.
+// @route /api/v1/profile/sync-anilist [POST]
+func (h *Handler) HandleSyncAniListProfile(c echo.Context) error {
+	profileSession := c.Get("profileSession")
+	if profileSession == nil {
+		return h.RespondWithError(c, echo.NewHTTPError(401, "Not authenticated"))
+	}
+	payload := profileSession.(*core.ProfileSessionPayload)
+	profileID := payload.ProfileID
+
+	_, err := h.App.ProfileManager.GetProfile(profileID)
+	if err != nil {
+		return h.RespondWithError(c, echo.NewHTTPError(404, "Profile not found"))
+	}
+
+	anilistClient := h.App.AnilistClientManager.GetClient(profileID)
+	if anilistClient == nil || !anilistClient.IsAuthenticated() {
+		return h.RespondWithError(c, echo.NewHTTPError(400, "AniList account not connected for this profile"))
+	}
+
+	viewer, err := anilistClient.GetViewer(c.Request().Context())
+	if err != nil || viewer == nil || viewer.Viewer == nil {
+		return h.RespondWithError(c, echo.NewHTTPError(500, "Failed to fetch AniList profile data"))
+	}
+
+	bio := ""
+	// The AniList bio is in the About field, not Description
+	if viewer.Viewer != nil {
+		// About is optional, so check for nil
+		if aboutField, ok := any(viewer.Viewer).(interface{ GetAbout() *string }); ok {
+			if about := aboutField.GetAbout(); about != nil {
+				bio = *about
+			}
+		}
+	}
+	updates := map[string]interface{}{
+		"anilist_username": viewer.Viewer.Name,
+		"anilist_avatar":   viewer.Viewer.Avatar.Large,
+		"banner_image":     "",
+		"bio":              bio,
+	}
+	if viewer.Viewer.BannerImage != nil {
+		updates["banner_image"] = *viewer.Viewer.BannerImage
+	}
+
+	updatedProfile, err := h.App.ProfileManager.UpdateProfile(profileID, updates)
+	if err != nil {
+		return h.RespondWithError(c, err)
+	}
+
+	return h.RespondWithData(c, updatedProfile.ToSummary())
 }
