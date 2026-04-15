@@ -128,6 +128,7 @@ func (s *DebridStream) LoadPlaybackInfo() (ret *nativeplayer.PlaybackInfo, err e
 			Episode:           s.episode,
 			Media:             s.media,
 			EntryListData:     entryListData,
+			FilePath:          s.streamUrl, // Remote URL — FFmpeg/ffprobe read HTTP URLs natively
 		}
 
 		// If the content type is an EBML content type, we can create a metadata parser

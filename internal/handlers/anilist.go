@@ -120,21 +120,42 @@ func (h *Handler) HandleEditAnilistListEntry(c echo.Context) error {
 		return h.RespondWithError(c, err)
 	}
 
-	err := h.App.AnilistPlatformRef.Get().UpdateEntry(
-		c.Request().Context(),
-		*p.MediaId,
-		p.Status,
-		p.Score,
-		p.Progress,
-		p.StartDate,
-		p.EndDate,
-	)
-	if err != nil {
-		return h.RespondWithError(c, err)
+	profileID := h.GetProfileID(c)
+
+	// For profile users, use their own AniList client to avoid mutating the admin account.
+	if profileID > 0 {
+		profileClient := h.GetProfileAnilistClient(c)
+		if !profileClient.IsAuthenticated() {
+			return h.RespondWithError(c, errors.New("profile AniList account not authenticated"))
+		}
+		_, err := profileClient.UpdateMediaListEntry(
+			c.Request().Context(),
+			p.MediaId,
+			p.Status,
+			p.Score,
+			p.Progress,
+			p.StartDate,
+			p.EndDate,
+		)
+		if err != nil {
+			return h.RespondWithError(c, err)
+		}
+	} else {
+		err := h.App.AnilistPlatformRef.Get().UpdateEntry(
+			c.Request().Context(),
+			*p.MediaId,
+			p.Status,
+			p.Score,
+			p.Progress,
+			p.StartDate,
+			p.EndDate,
+		)
+		if err != nil {
+			return h.RespondWithError(c, err)
+		}
 	}
 
 	// Fire achievement events for score/status changes
-	profileID := h.GetProfileID(c)
 	if p.Score != nil && *p.Score > 0 {
 		go h.App.AchievementEngine.ProcessEvent(&achievement.AchievementEvent{
 			ProfileID: profileID,
@@ -296,39 +317,105 @@ func (h *Handler) HandleDeleteAnilistListEntry(c echo.Context) error {
 		return h.RespondWithError(c, errors.New("missing parameters"))
 	}
 
-	var listEntryID int
+	profileID := h.GetProfileID(c)
 
-	switch *p.Type {
-	case "anime":
-		// Get the list entry ID
-		animeCollection, err := h.App.GetAnimeCollection(false)
+	// For profile users, use their own AniList client
+	if profileID > 0 {
+		profileClient := h.GetProfileAnilistClient(c)
+		if !profileClient.IsAuthenticated() {
+			return h.RespondWithError(c, errors.New("profile AniList account not authenticated"))
+		}
+
+		var listEntryID int
+		// Fetch the profile's collection to find the entry ID
+		viewerName := h.App.AnilistClientManager.GetUsername(profileID)
+		switch *p.Type {
+		case "anime":
+			col, err := profileClient.AnimeCollection(c.Request().Context(), &viewerName)
+			if err != nil {
+				return h.RespondWithError(c, err)
+			}
+			found := false
+			if col != nil && col.MediaListCollection != nil {
+				for _, list := range col.MediaListCollection.Lists {
+					if list.Entries != nil {
+						for _, entry := range list.Entries {
+							if entry.GetMedia().GetID() == *p.MediaId {
+								listEntryID = entry.ID
+								found = true
+								break
+							}
+						}
+					}
+					if found {
+						break
+					}
+				}
+			}
+			if !found {
+				return h.RespondWithError(c, errors.New("list entry not found in profile collection"))
+			}
+		case "manga":
+			col, err := profileClient.MangaCollection(c.Request().Context(), &viewerName)
+			if err != nil {
+				return h.RespondWithError(c, err)
+			}
+			found := false
+			if col != nil && col.MediaListCollection != nil {
+				for _, list := range col.MediaListCollection.Lists {
+					if list.Entries != nil {
+						for _, entry := range list.Entries {
+							if entry.GetMedia().GetID() == *p.MediaId {
+								listEntryID = entry.ID
+								found = true
+								break
+							}
+						}
+					}
+					if found {
+						break
+					}
+				}
+			}
+			if !found {
+				return h.RespondWithError(c, errors.New("list entry not found in profile collection"))
+			}
+		}
+
+		_, err := profileClient.DeleteEntry(c.Request().Context(), &listEntryID)
 		if err != nil {
 			return h.RespondWithError(c, err)
 		}
+	} else {
+		var listEntryID int
 
-		listEntry, found := animeCollection.GetListEntryFromAnimeId(*p.MediaId)
-		if !found {
-			return h.RespondWithError(c, errors.New("list entry not found"))
+		switch *p.Type {
+		case "anime":
+			animeCollection, err := h.App.GetAnimeCollection(false)
+			if err != nil {
+				return h.RespondWithError(c, err)
+			}
+			listEntry, found := animeCollection.GetListEntryFromAnimeId(*p.MediaId)
+			if !found {
+				return h.RespondWithError(c, errors.New("list entry not found"))
+			}
+			listEntryID = listEntry.ID
+		case "manga":
+			mangaCollection, err := h.App.GetMangaCollection(false)
+			if err != nil {
+				return h.RespondWithError(c, err)
+			}
+			listEntry, found := mangaCollection.GetListEntryFromMangaId(*p.MediaId)
+			if !found {
+				return h.RespondWithError(c, errors.New("list entry not found"))
+			}
+			listEntryID = listEntry.ID
 		}
-		listEntryID = listEntry.ID
-	case "manga":
-		// Get the list entry ID
-		mangaCollection, err := h.App.GetMangaCollection(false)
+
+		err := h.App.AnilistPlatformRef.Get().DeleteEntry(c.Request().Context(), *p.MediaId, listEntryID)
 		if err != nil {
 			return h.RespondWithError(c, err)
 		}
-
-		listEntry, found := mangaCollection.GetListEntryFromMangaId(*p.MediaId)
-		if !found {
-			return h.RespondWithError(c, errors.New("list entry not found"))
-		}
-		listEntryID = listEntry.ID
-	}
-
-	// Delete the list entry
-	err := h.App.AnilistPlatformRef.Get().DeleteEntry(c.Request().Context(), *p.MediaId, listEntryID)
-	if err != nil {
-		return h.RespondWithError(c, err)
 	}
 
 	switch *p.Type {

@@ -128,24 +128,8 @@ func (h *Handler) HandleGetMangaCollection(c echo.Context) error {
 	// Get the media map from the manga downloader
 	mediaMap := h.App.MangaDownloader.GetMediaMap()
 
+	// Planning slut merge disabled — profile users saw shared entries merged into their collection.
 	sharedOnlyMediaIds := make(map[int]struct{})
-	if h.getPlanningSlutToken() != "" && len(mediaMap) > 0 {
-		downloadedMediaIds := make(map[int]struct{})
-		for mediaID := range mediaMap {
-			if mediaID > 0 {
-				downloadedMediaIds[mediaID] = struct{}{}
-			}
-		}
-
-		if len(downloadedMediaIds) > 0 {
-			sharedCollection, sharedErr := h.getPlanningSlutMangaCollection(c.Request().Context())
-			if sharedErr != nil {
-				h.App.Logger.Debug().Err(sharedErr).Msg("manga: failed to fetch planning slut manga collection")
-			} else {
-				sharedOnlyMediaIds = mergePlanningSlutMangaCollection(animeCollection, sharedCollection, downloadedMediaIds)
-			}
-		}
-	}
 
 	collection, err := manga.NewCollection(&manga.NewCollectionOptions{
 		MangaCollection: animeCollection,
@@ -573,18 +557,42 @@ func (h *Handler) HandleUpdateMangaProgress(c echo.Context) error {
 	}
 
 	// Update the progress on AniList
-	err := h.App.AnilistPlatformRef.Get().UpdateEntryProgress(
-		c.Request().Context(),
-		b.MediaId,
-		b.ChapterNumber,
-		&b.TotalChapters,
-	)
-	if err != nil {
-		return h.RespondWithError(c, err)
+	profileID := h.GetProfileID(c)
+
+	// For profile users, use their own AniList client to avoid mutating the admin account.
+	if profileID > 0 {
+		profileClient := h.GetProfileAnilistClient(c)
+		if !profileClient.IsAuthenticated() {
+			return h.RespondWithError(c, errors.New("profile AniList account not authenticated"))
+		}
+
+		// Determine status based on progress
+		status := anilist.MediaListStatusCurrent
+		if b.TotalChapters > 0 && b.ChapterNumber >= b.TotalChapters {
+			status = anilist.MediaListStatusCompleted
+		}
+		_, err := profileClient.UpdateMediaListEntryProgress(
+			c.Request().Context(),
+			&b.MediaId,
+			&b.ChapterNumber,
+			&status,
+		)
+		if err != nil {
+			return h.RespondWithError(c, err)
+		}
+	} else {
+		err := h.App.AnilistPlatformRef.Get().UpdateEntryProgress(
+			c.Request().Context(),
+			b.MediaId,
+			b.ChapterNumber,
+			&b.TotalChapters,
+		)
+		if err != nil {
+			return h.RespondWithError(c, err)
+		}
 	}
 
 	// Fire achievement events for chapter progress
-	profileID := h.GetProfileID(c)
 	h.App.AchievementEngine.ProcessEvent(&achievement.AchievementEvent{
 		ProfileID: profileID,
 		Trigger:   achievement.TriggerChapterProgress,

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"seanime/internal/api/anilist"
 	"seanime/internal/customsource"
@@ -26,9 +27,46 @@ import (
 //	@returns anime.LibraryCollection
 func (h *Handler) HandleGetLibraryCollection(c echo.Context) error {
 
-	animeCollection, err := h.App.GetAnimeCollection(false)
-	if err != nil {
-		return h.RespondWithError(c, err)
+	profileID := h.GetProfileID(c)
+
+	var animeCollection *anilist.AnimeCollection
+	var err error
+
+	if profileID > 0 {
+		// Non-admin profile: fetch from the profile's own AniList account
+		anilistClient := h.GetProfileAnilistClient(c)
+		if !anilistClient.IsAuthenticated() {
+			return h.RespondWithData(c, &anime.LibraryCollection{})
+		}
+		// Resolve the viewer's username (cached after first call) because
+		// AniList's MediaListCollection query requires a userName parameter.
+		viewerName := h.App.AnilistClientManager.GetUsername(profileID)
+		if viewerName == "" {
+			h.App.Logger.Error().Uint("profileID", profileID).Msg("library: could not resolve AniList username for profile")
+			return h.RespondWithData(c, &anime.LibraryCollection{})
+		}
+		animeCollection, err = anilistClient.AnimeCollection(context.Background(), &viewerName)
+		if err != nil {
+			return h.RespondWithError(c, err)
+		}
+		// Filter out custom lists (lists with no status) like the platform does
+		if animeCollection != nil && animeCollection.MediaListCollection != nil {
+			animeCollection.MediaListCollection.Lists = func(lists []*anilist.AnimeCollection_MediaListCollection_Lists) []*anilist.AnimeCollection_MediaListCollection_Lists {
+				filtered := make([]*anilist.AnimeCollection_MediaListCollection_Lists, 0, len(lists))
+				for _, list := range lists {
+					if list.Status != nil {
+						filtered = append(filtered, list)
+					}
+				}
+				return filtered
+			}(animeCollection.MediaListCollection.Lists)
+		}
+	} else {
+		// Admin profile: use global platform (with caching)
+		animeCollection, err = h.App.GetAnimeCollection(false)
+		if err != nil {
+			return h.RespondWithError(c, err)
+		}
 	}
 
 	if animeCollection == nil {
@@ -168,23 +206,7 @@ func (h *Handler) HandleGetLibraryCollection(c echo.Context) error {
 	}
 
 	sharedOnlyMediaIds := make(map[int]struct{})
-	if h.getPlanningSlutToken() != "" && len(lfs) > 0 {
-		localMediaIds := make(map[int]struct{})
-		for _, lf := range lfs {
-			if lf.MediaId > 0 && !customsource.IsExtensionId(lf.MediaId) {
-				localMediaIds[lf.MediaId] = struct{}{}
-			}
-		}
-
-		if len(localMediaIds) > 0 {
-			sharedCollection, sharedErr := h.getPlanningSlutAnimeCollection(c.Request().Context())
-			if sharedErr != nil {
-				h.App.Logger.Debug().Err(sharedErr).Msg("library: failed to fetch planning slut anime collection")
-			} else {
-				sharedOnlyMediaIds = mergePlanningSlutAnimeCollection(animeCollection, sharedCollection, localMediaIds)
-			}
-		}
-	}
+	// Planning slut merge disabled — its entries should not appear in the library.
 
 	libraryCollection, err := anime.NewLibraryCollection(c.Request().Context(), &anime.NewLibraryCollectionOptions{
 		AnimeCollection:     animeCollection,

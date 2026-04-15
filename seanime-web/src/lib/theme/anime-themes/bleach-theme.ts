@@ -1,4 +1,5 @@
 import { AnimeThemeConfig } from "./types"
+import { bleachPlayerIcons } from "./player-icons"
 import {
     GiSkullCrossedBones,
     GiDragonHead,
@@ -616,4 +617,5 @@ export const bleachTheme: AnimeThemeConfig = {
         moon: { label: "Moon & Haze", maxCount: 1, defaultEnabled: true, defaultIntensity: 60 },
         lasNoches: { label: "Las Noches Silhouette", maxCount: 1, defaultEnabled: true, defaultIntensity: 50 },
     },
+    playerIconOverrides: bleachPlayerIcons,
 }

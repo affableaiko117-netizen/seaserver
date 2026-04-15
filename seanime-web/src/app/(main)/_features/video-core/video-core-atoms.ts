@@ -60,3 +60,8 @@ export const vc_skipEndingTime = atom<number | null>(null)
 
 // Shared playback info atom — synced by VideoCore from its props so menus work for all playback modes
 export const vc_playbackInfo = atom<VideoCore_VideoPlaybackInfo | null>(null)
+
+// Callback atom set by mediastream adapter to switch from direct play to transcode.
+// Audio track switching doesn't work in direct play (browser audioTracks API is unreliable),
+// so the audio menu triggers this to reload the stream in transcode/HLS mode.
+export const vc_requestTranscodeForAudio = atom<(() => void) | null>(null)

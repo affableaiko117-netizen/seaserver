@@ -1,4 +1,5 @@
 import { AnimeThemeConfig } from "./types"
+import { narutoPlayerIcons } from "./player-icons"
 import {
     GiScrollUnfurled,
     GiFlame,
@@ -624,4 +625,5 @@ export const narutoTheme: AnimeThemeConfig = {
         village: { label: "Village Silhouette", maxCount: 1, defaultEnabled: true, defaultIntensity: 50 },
         sharingan: { label: "Sharingan Watermark", maxCount: 1, defaultEnabled: true, defaultIntensity: 50 },
     },
+    playerIconOverrides: narutoPlayerIcons,
 }

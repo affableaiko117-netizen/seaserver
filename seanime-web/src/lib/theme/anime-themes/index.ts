@@ -3,6 +3,7 @@ export * from "./seanime-theme"
 export * from "./naruto-theme"
 export * from "./bleach-theme"
 export * from "./one-piece-theme"
+export * from "./player-icons"
 
 import { seanimeTheme } from "./seanime-theme"
 import { narutoTheme } from "./naruto-theme"

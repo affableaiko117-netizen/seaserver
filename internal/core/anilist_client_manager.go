@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"seanime/internal/api/anilist"
 	"sync"
@@ -14,19 +15,21 @@ import (
 //
 // Profile ID 0 (or admin) falls back to the global App.AnilistClientRef.
 type AnilistClientManager struct {
-	clients  map[uint]anilist.AnilistClient
-	mu       sync.RWMutex
-	app      *App
-	logger   *zerolog.Logger
-	cacheDir string
+	clients   map[uint]anilist.AnilistClient
+	usernames map[uint]string // cached viewer usernames per profile
+	mu        sync.RWMutex
+	app       *App
+	logger    *zerolog.Logger
+	cacheDir  string
 }
 
 func NewAnilistClientManager(app *App) *AnilistClientManager {
 	return &AnilistClientManager{
-		clients:  make(map[uint]anilist.AnilistClient),
-		app:      app,
-		logger:   app.Logger,
-		cacheDir: app.AnilistCacheDir,
+		clients:   make(map[uint]anilist.AnilistClient),
+		usernames: make(map[uint]string),
+		app:       app,
+		logger:    app.Logger,
+		cacheDir:  app.AnilistCacheDir,
 	}
 }
 
@@ -94,7 +97,42 @@ func (m *AnilistClientManager) UpdateClient(profileID uint, token string) {
 func (m *AnilistClientManager) RemoveClient(profileID uint) {
 	m.mu.Lock()
 	delete(m.clients, profileID)
+	delete(m.usernames, profileID)
 	m.mu.Unlock()
+}
+
+// GetUsername returns the cached AniList username for a profile.
+// On first call it queries the Viewer endpoint and caches the result.
+// Returns empty string on failure.
+func (m *AnilistClientManager) GetUsername(profileID uint) string {
+	if profileID == 0 {
+		return ""
+	}
+
+	m.mu.RLock()
+	if name, ok := m.usernames[profileID]; ok {
+		m.mu.RUnlock()
+		return name
+	}
+	m.mu.RUnlock()
+
+	client := m.GetClient(profileID)
+	if !client.IsAuthenticated() {
+		return ""
+	}
+
+	viewer, err := client.GetViewer(context.Background())
+	if err != nil || viewer == nil || viewer.Viewer == nil {
+		m.logger.Error().Err(err).Uint("profileID", profileID).Msg("anilist_client_manager: Failed to get viewer for profile")
+		return ""
+	}
+
+	m.mu.Lock()
+	m.usernames[profileID] = viewer.Viewer.Name
+	m.mu.Unlock()
+
+	m.logger.Debug().Uint("profileID", profileID).Str("username", viewer.Viewer.Name).Msg("anilist_client_manager: Cached username for profile")
+	return viewer.Viewer.Name
 }
 
 // IsAuthenticated checks if the given profile has an authenticated AniList client.

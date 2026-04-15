@@ -529,7 +529,7 @@ func (lc *LibraryCollection) hydrateUnmatchedGroups() {
 //----------------------------------------------------------------------------------------------------------------------
 
 // hydrateUnknownGroups identifies local files with valid MediaId that aren't in the user's AniList collection
-// and groups them by MediaId to create UnknownGroup entries for resolution.
+// or the Local list and groups them by MediaId to create UnknownGroup entries for resolution.
 func (lc *LibraryCollection) hydrateUnknownGroups(localFiles []*LocalFile, animeCollection *anilist.AnimeCollection) {
 	
 	// Get all media IDs that are in the user's AniList collection
@@ -537,6 +537,16 @@ func (lc *LibraryCollection) hydrateUnknownGroups(localFiles []*LocalFile, anime
 	for _, list := range animeCollection.GetMediaListCollection().GetLists() {
 		for _, entry := range list.GetEntries() {
 			collectionMediaIds[entry.GetMedia().GetID()] = struct{}{}
+		}
+	}
+
+	// Also include media IDs already tracked in the library lists (e.g. the Local list)
+	// so they don't appear as "unknown" needing resolution.
+	for _, list := range lc.Lists {
+		for _, entry := range list.Entries {
+			if entry.MediaId > 0 {
+				collectionMediaIds[entry.MediaId] = struct{}{}
+			}
 		}
 	}
 

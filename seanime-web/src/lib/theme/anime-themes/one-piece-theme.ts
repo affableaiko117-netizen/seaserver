@@ -1,4 +1,5 @@
 import { AnimeThemeConfig } from "./types"
+import { onePiecePlayerIcons } from "./player-icons"
 import {
     GiPirateSkull,
     GiShipWheel,
@@ -616,4 +617,5 @@ export const onePieceTheme: AnimeThemeConfig = {
         bountyPoster: { label: "Bounty Poster", maxCount: 1, defaultEnabled: true, defaultIntensity: 50 },
         jollyRoger: { label: "Jolly Roger Watermark", maxCount: 1, defaultEnabled: true, defaultIntensity: 50 },
     },
+    playerIconOverrides: onePiecePlayerIcons,
 }

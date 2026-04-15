@@ -26,6 +26,7 @@ const mediastreamSchema = defineSchema(({ z }) => z.object({
 const MEDIASTREAM_HW_ACCEL_OPTIONS = [
     { label: "CPU (Disabled)", value: "cpu" },
     { label: "NVIDIA (NVENC)", value: "nvidia" },
+    { label: "NVIDIA (Decode Only)", value: "nvidia-decode" },
     { label: "Intel (QSV)", value: "qsv" },
     { label: "VAAPI", value: "vaapi" },
     { label: "Apple VideoToolbox", value: "videotoolbox" },

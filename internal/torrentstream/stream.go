@@ -191,6 +191,7 @@ func (r *Repository) StartStream(ctx context.Context, opts *StartStreamOptions) 
 				Media:         media.ToBaseAnime(),
 				Torrent:       r.client.currentTorrent.MustGet(),
 				File:          r.client.currentFile.MustGet(),
+				DownloadDir:   r.GetDownloadDir(),
 				OnTerminate: func() {
 					_ = r.StopStream(true)
 				},

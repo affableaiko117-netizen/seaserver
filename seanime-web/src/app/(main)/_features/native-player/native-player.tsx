@@ -1,13 +1,16 @@
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
 import { MKVParser_SubtitleEvent, NativePlayer_PlaybackInfo, NativePlayer_ServerEvent } from "@/api/generated/types"
-import { vc_miniPlayer, vc_videoElement } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_miniPlayer, vc_requestTranscodeForAudio, vc_videoElement } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_subtitleManager, VideoCore } from "@/app/(main)/_features/video-core/video-core"
 import { VideoCoreLifecycleState } from "@/app/(main)/_features/video-core/video-core.atoms"
+import { useMediastreamCurrentFile } from "@/app/(main)/mediastream/_lib/mediastream.atoms"
 import { clientIdAtom } from "@/app/websocket-provider"
 import { logger } from "@/lib/helpers/debug"
+import { useRouter } from "@/lib/navigation"
 import { WSEvents } from "@/lib/server/ws-events"
 import { useQueryClient } from "@tanstack/react-query"
 import { useAtom, useAtomValue } from "jotai"
+import { useSetAtom } from "jotai/react"
 import React from "react"
 import { toast } from "sonner"
 import { useWebsocketMessageListener, useWebsocketSender } from "../../_hooks/handle-websockets"
@@ -23,11 +26,14 @@ export function NativePlayer() {
     const qc = useQueryClient()
     const clientId = useAtomValue(clientIdAtom)
     const { sendMessage } = useWebsocketSender()
+    const router = useRouter()
 
     const videoElement = useAtomValue(vc_videoElement)
     const [state, setState] = useAtom(nativePlayer_stateAtom)
     const [miniPlayer, setMiniPlayer] = useAtom(vc_miniPlayer)
     const subtitleManager = useAtomValue(vc_subtitleManager)
+    const setRequestTranscodeForAudio = useSetAtom(vc_requestTranscodeForAudio)
+    const { setFilePath: setMediastreamFilePath } = useMediastreamCurrentFile()
 
     // AniSkip
     const { data: aniSkipData } = useSkipData(state?.playbackInfo?.media?.idMal, state?.playbackInfo?.episode?.progressNumber ?? -1)
@@ -195,6 +201,37 @@ export function NativePlayer() {
             },
         })
     }
+
+    // Wire the transcode-for-audio callback so the audio menu can trigger
+    // a redirect from native player to mediastream transcode mode.
+    // This works for all native player stream types (local, torrent, debrid).
+    React.useEffect(() => {
+        const filePath = state.playbackInfo?.filePath
+        const mediaId = state.playbackInfo?.media?.id
+        const isNakama = state.playbackInfo?.isNakamaWatchParty
+
+        // Don't wire for Nakama watch parties (shared viewing, audio switch would only affect one user)
+        if (!filePath || !mediaId || isNakama) {
+            setRequestTranscodeForAudio(null)
+            return
+        }
+
+        setRequestTranscodeForAudio(() => () => {
+            log.info("Audio track switch requested — redirecting to mediastream transcode")
+            toast.info("Switching to transcode for audio track change...")
+
+            // Terminate the native player stream
+            handleTerminateStream()
+
+            // Set the file path for mediastream and navigate
+            setMediastreamFilePath(filePath)
+            React.startTransition(() => {
+                router.push(`/mediastream?id=${mediaId}`)
+            })
+        })
+
+        return () => setRequestTranscodeForAudio(null)
+    }, [state.playbackInfo?.filePath, state.playbackInfo?.media?.id, state.playbackInfo?.isNakamaWatchParty])
 
     const ps = React.useMemo<VideoCoreLifecycleState>(() => {
         return {
