@@ -5051,6 +5051,7 @@ export type NativePlayer_PlaybackInfo = {
      */
     isNakamaWatchParty: boolean
     localFile?: Anime_LocalFile
+    filePath?: string
 }
 
 /**

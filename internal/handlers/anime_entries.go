@@ -755,15 +755,40 @@ func (h *Handler) HandleUpdateAnimeEntryProgress(c echo.Context) error {
 		return h.RespondWithError(c, err)
 	}
 
-	// Update the progress on AniList
-	err := h.App.AnilistPlatformRef.Get().UpdateEntryProgress(
-		c.Request().Context(),
-		b.MediaId,
-		b.EpisodeNumber,
-		&b.TotalEpisodes,
-	)
-	if err != nil {
-		return h.RespondWithError(c, err)
+	profileID := h.GetProfileID(c)
+
+	// For profile users, use their own AniList client to avoid mutating the admin account.
+	if profileID > 0 {
+		profileClient := h.GetProfileAnilistClient(c)
+		if !profileClient.IsAuthenticated() {
+			return h.RespondWithError(c, errors.New("profile AniList account not authenticated"))
+		}
+
+		// Determine status based on progress
+		status := anilist.MediaListStatusCurrent
+		if b.TotalEpisodes > 0 && b.EpisodeNumber >= b.TotalEpisodes {
+			status = anilist.MediaListStatusCompleted
+		}
+		_, err := profileClient.UpdateMediaListEntryProgress(
+			c.Request().Context(),
+			&b.MediaId,
+			&b.EpisodeNumber,
+			&status,
+		)
+		if err != nil {
+			return h.RespondWithError(c, err)
+		}
+	} else {
+		// Admin: use platform layer (includes hooks, custom source handling, etc.)
+		err := h.App.AnilistPlatformRef.Get().UpdateEntryProgress(
+			c.Request().Context(),
+			b.MediaId,
+			b.EpisodeNumber,
+			&b.TotalEpisodes,
+		)
+		if err != nil {
+			return h.RespondWithError(c, err)
+		}
 	}
 
 	// Fire achievement event for episode progress
@@ -826,13 +851,31 @@ func (h *Handler) HandleUpdateAnimeEntryRepeat(c echo.Context) error {
 		return h.RespondWithError(c, err)
 	}
 
-	err := h.App.AnilistPlatformRef.Get().UpdateEntryRepeat(
-		c.Request().Context(),
-		b.MediaId,
-		b.Repeat,
-	)
-	if err != nil {
-		return h.RespondWithError(c, err)
+	profileID := h.GetProfileID(c)
+
+	// For profile users, use their own AniList client to avoid mutating the admin account.
+	if profileID > 0 {
+		profileClient := h.GetProfileAnilistClient(c)
+		if !profileClient.IsAuthenticated() {
+			return h.RespondWithError(c, errors.New("profile AniList account not authenticated"))
+		}
+		_, err := profileClient.UpdateMediaListEntryRepeat(
+			c.Request().Context(),
+			&b.MediaId,
+			&b.Repeat,
+		)
+		if err != nil {
+			return h.RespondWithError(c, err)
+		}
+	} else {
+		err := h.App.AnilistPlatformRef.Get().UpdateEntryRepeat(
+			c.Request().Context(),
+			b.MediaId,
+			b.Repeat,
+		)
+		if err != nil {
+			return h.RespondWithError(c, err)
+		}
 	}
 
 	//_, _ = h.App.RefreshAnimeCollection() // Refresh the AniList collection

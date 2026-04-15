@@ -171,7 +171,7 @@ func FfprobeGetInfo(ffprobePath, path, hash string) (*MediaInfo, error) {
 		ffprobe.SetFFProbeBinPath(ffprobePath)
 	}
 
-	ffprobeCtx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
+	ffprobeCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	data, err := ffprobe.ProbeURL(ffprobeCtx, path)
@@ -179,7 +179,18 @@ func FfprobeGetInfo(ffprobePath, path, hash string) (*MediaInfo, error) {
 		return nil, err
 	}
 
-	ext := filepath.Ext(path)[1:]
+	// For URLs, strip query params before extracting extension
+	extPath := path
+	if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
+		if idx := strings.IndexByte(path, '?'); idx != -1 {
+			extPath = path[:idx]
+		}
+	}
+	rawExt := filepath.Ext(extPath)
+	ext := ""
+	if len(rawExt) > 1 {
+		ext = rawExt[1:]
+	}
 
 	sizeUint64, _ := strconv.ParseUint(data.Format.Size, 10, 64)
 

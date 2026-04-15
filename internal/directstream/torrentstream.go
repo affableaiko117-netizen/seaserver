@@ -30,6 +30,7 @@ type TorrentStream struct {
 	file          *torrent.File
 	onTerminate   func()
 	streamReadyCh chan struct{} // Closed by the initiator when the stream is ready
+	downloadDir   string       // Directory where torrent files are stored
 }
 
 func (s *TorrentStream) Type() nativeplayer.StreamType {
@@ -75,6 +76,7 @@ func (s *TorrentStream) LoadPlaybackInfo() (ret *nativeplayer.PlaybackInfo, err 
 			Episode:           s.episode,
 			Media:             s.media,
 			EntryListData:     entryListData,
+			FilePath:          filepath.Join(s.downloadDir, s.torrent.InfoHash().HexString(), s.file.DisplayPath()),
 		}
 
 		// If the content type is an EBML content type, we can create a metadata parser
@@ -184,6 +186,7 @@ type PlayTorrentStreamOptions struct {
 	Torrent       *torrent.Torrent
 	File          *torrent.File
 	OnTerminate   func()
+	DownloadDir   string // Directory where torrent files are stored, for mediastream transcode fallback
 }
 
 // PlayTorrentStream is used by a module to load a new torrent stream.
@@ -210,6 +213,7 @@ func (m *Manager) PlayTorrentStream(ctx context.Context, opts PlayTorrentStreamO
 		torrent:     opts.Torrent,
 		file:        opts.File,
 		onTerminate: opts.OnTerminate,
+		downloadDir: opts.DownloadDir,
 		BaseStream: BaseStream{
 			manager:               m,
 			logger:                m.Logger,

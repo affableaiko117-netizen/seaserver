@@ -15,6 +15,7 @@ import { vc_activePlayerId } from "@/app/(main)/_features/video-core/video-core-
 import { vc_isMobile } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_isSwiping } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_swipeSeekTime } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_requestTranscodeForAudio } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_videoSize } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_realVideoSize } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_duration } from "@/app/(main)/_features/video-core/video-core-atoms"
@@ -230,6 +231,7 @@ export function VideoCoreProvider(props: { id: string, children: React.ReactNode
                 vc_isSwiping,
                 vc_isMobile,
                 vc_swipeSeekTime,
+                vc_requestTranscodeForAudio,
             ]}
         >
             {children}

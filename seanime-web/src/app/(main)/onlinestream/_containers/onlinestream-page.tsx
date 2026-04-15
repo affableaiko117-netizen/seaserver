@@ -272,43 +272,51 @@ export function OnlinestreamPage({ animeEntry, animeEntryLoading, hideBackButton
 
     // update the stream URL when the video source changes
     React.useEffect(() => {
-        (async () => {
+        if (!videoSource?.url) {
+            setUrl(null)
+            return
+        }
+
+        let cancelled = false
+
+        ;(async () => {
             setPlaybackError(null)
             log.info("Changing stream URL using videoSource", { videoSource })
-            setUrl(null)
-            log.info("Setting stream URL to undefined")
-            if (videoSource?.url) {
-                setServer(videoSource.server)
-                let _url = videoSource.url
-                if (videoSource.headers && Object.keys(videoSource.headers).length > 0) {
-                    _url = `${getServerBaseUrl()}/api/v1/proxy?url=${encodeURIComponent(videoSource?.url)}&headers=${encodeURIComponent(JSON.stringify(
-                        videoSource?.headers))}` + (await getHMACTokenQueryParam("/api/v1/proxy", "&"))
-                } else {
-                    _url = videoSource.url
-                }
-                React.startTransition(() => {
-                    // If the video source is unknown or we can't determine if it's a native video from the url,
-                    // send a HEAD request to determine the content type
-                    if (videoSource.type === "unknown" || !isValidVideoSourceType(videoSource.type) || (videoSource.type === "mp4" && !isNativeVideoExtension(
-                        _url)) || (videoSource.type === "m3u8" && !isHLSSrc(_url))) {
-                        log.warning("Verifying original video source type", videoSource)
-                        void isProbablyHls(_url).then((result) => {
-                            if (result === "hls") {
-                                log.info("Detected HLS source type")
-                                setOverrideStreamType("hls")
-                            } else {
-                                setOverrideStreamType(!isValidVideoSourceType(videoSource.type) ? "native" : null)
-                            }
-                        })
-                    }
-                    React.startTransition(() => {
-                        log.info("Setting stream URL", { url: _url, quality, server, dubbed, provider })
-                        setUrl(_url)
-                    })
-                })
+
+            let _url = videoSource.url
+            if (videoSource.headers && Object.keys(videoSource.headers).length > 0) {
+                _url = `${getServerBaseUrl()}/api/v1/proxy?url=${encodeURIComponent(videoSource?.url)}&headers=${encodeURIComponent(JSON.stringify(
+                    videoSource?.headers))}` + (await getHMACTokenQueryParam("/api/v1/proxy", "&"))
             }
+
+            // Detect stream type BEFORE setting the URL to avoid a second HLS reinit cycle
+            let detectedStreamType: VideoCore_VideoPlaybackInfo["streamType"] | null = null
+            if (videoSource.type === "unknown" || !isValidVideoSourceType(videoSource.type) || (videoSource.type === "mp4" && !isNativeVideoExtension(
+                _url)) || (videoSource.type === "m3u8" && !isHLSSrc(_url))) {
+                log.warning("Verifying original video source type", videoSource)
+                const result = await isProbablyHls(_url)
+                if (cancelled) return
+                if (result === "hls") {
+                    log.info("Detected HLS source type")
+                    detectedStreamType = "hls"
+                } else {
+                    detectedStreamType = !isValidVideoSourceType(videoSource.type) ? "native" : null
+                }
+            }
+
+            if (cancelled) return
+
+            // Set override stream type and URL atomically (within the same tick via startTransition)
+            // to avoid tearing down VideoCore with null URL then rebuilding
+            React.startTransition(() => {
+                setOverrideStreamType(detectedStreamType)
+                setUrl(_url)
+                log.info("Setting stream URL", { url: _url })
+            })
         })()
-    }, [videoSource, server, quality, dubbed, provider])
+
+        return () => { cancelled = true }
+    }, [videoSource])
 
     const { currentPlaylist, playEpisode: playPlaylistEpisode, nextPlaylistEpisode, prevPlaylistEpisode } = usePlaylistManager()
 

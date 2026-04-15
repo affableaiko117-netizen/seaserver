@@ -127,6 +127,24 @@ func GetHardwareAccelSettings(opts HwAccelOptions) HwAccelSettings {
 			ScaleFilter:   "format=nv12|cuda,hwupload,scale_cuda=%d:%d:format=nv12",
 			WithForcedIdr: true,
 		}
+	case "nvidia-decode":
+		// NVDEC decode on GPU, libx264 encode on CPU.
+		// Best for cards with strong decode but weak/incompatible encode (e.g. GTX 980).
+		return HwAccelSettings{
+			Name: "nvidia-decode",
+			DecodeFlags: []string{
+				"-hwaccel", "cuda",
+				// Do NOT use -hwaccel_output_format cuda here;
+				// output needs to stay in CPU memory for libx264 encoding.
+			},
+			EncodeFlags: []string{
+				"-c:v", "libx264",
+				"-preset", preset,
+				"-sc_threshold", "0",
+			},
+			ScaleFilter:   "scale=%d:%d",
+			WithForcedIdr: true,
+		}
 	case "videotoolbox":
 		return HwAccelSettings{
 			Name: "videotoolbox",

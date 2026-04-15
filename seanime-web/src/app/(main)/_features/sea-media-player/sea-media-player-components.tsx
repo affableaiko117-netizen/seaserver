@@ -3,6 +3,7 @@ import { nativePlayer_stateAtom } from "@/app/(main)/_features/native-player/nat
 import { submenuClass, VdsSubmenuButton } from "@/app/(main)/onlinestream/_components/onlinestream-video-addons"
 import { vc_audioManager, vc_subtitleManager } from "@/app/(main)/_features/video-core/video-core"
 import { vc_videoElement } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_requestTranscodeForAudio } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { HlsAudioTrack, vc_hlsAudioTracks, vc_hlsCurrentAudioTrack, vc_hlsSetAudioTrack } from "@/app/(main)/_features/video-core/video-core-hls"
 import { NormalizedTrackInfo } from "@/app/(main)/_features/video-core/video-core-subtitles"
 import { vc_dispatchAction } from "@/app/(main)/_features/video-core/video-core.utils"
@@ -159,13 +160,15 @@ function SeaMediaPlayerAudioTrackSubmenu() {
     const hlsAudioTracks = useAtomValue(vc_hlsAudioTracks)
     const hlsCurrentAudioTrack = useAtomValue(vc_hlsCurrentAudioTrack)
     const hlsSetAudioTrack = useAtomValue(vc_hlsSetAudioTrack)
+    const requestTranscodeForAudio = useAtomValue(vc_requestTranscodeForAudio)
 
     const [selectedTrack, setSelectedTrack] = React.useState<number | null>(null)
 
     const mkvAudioTracks = state.playbackInfo?.mkvMetadata?.audioTracks
-    // Use the audio manager's own detection — it knows whether HLS tracks were provided at construction
-    const isHls = audioManager?.isHLS ?? (!mkvAudioTracks && hlsAudioTracks.length > 0)
-    const audioTracks = isHls ? (hlsAudioTracks.length > 0 ? hlsAudioTracks : null) : (mkvAudioTracks || null)
+    // HLS tracks take priority — in transcode mode both mkvAudioTracks (synthesized)
+    // and hlsAudioTracks exist, but only the HLS setter can actually switch audio
+    const isHls = hlsAudioTracks.length > 0
+    const audioTracks = isHls ? hlsAudioTracks : (mkvAudioTracks || null)
 
     function onAudioChange() {
         setSelectedTrack(audioManager?.getSelectedTrackNumberOrNull?.() ?? null)
@@ -217,16 +220,13 @@ function SeaMediaPlayerAudioTrackSubmenu() {
                                 <button
                                     key={value}
                                     onClick={() => {
-                                        // For HLS streams, use the latest setter from the atom directly
-                                        // to avoid stale closures in AudioManager after error recovery
                                         if (isHls && hlsSetAudioTrack) {
                                             hlsSetAudioTrack(value)
-                                        } else {
-                                            audioManager?.selectTrack(value)
+                                            setSelectedTrack(value)
+                                            action({ type: "seek", payload: { time: -1 } })
+                                        } else if (requestTranscodeForAudio) {
+                                            requestTranscodeForAudio()
                                         }
-                                        // Immediately update the visual selection
-                                        setSelectedTrack(value)
-                                        action({ type: "seek", payload: { time: -1 } })
                                     }}
                                     className={cn(
                                         "w-full flex items-center gap-2 px-2 py-1.5 text-left text-sm rounded-md transition-colors",

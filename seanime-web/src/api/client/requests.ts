@@ -12,11 +12,27 @@ import { toast } from "sonner"
 
 // Sliding window: when the server emits a refreshed profile token in the response header,
 // update the in-memory atom and localStorage so the user stays logged in.
+// Also detect expired profile sessions and clear the stale token.
 axios.interceptors.response.use(response => {
     const refreshed = response.headers["x-seanime-profile-token"]
     if (refreshed && typeof refreshed === "string") {
         getDefaultStore().set(profileSessionTokenAtom, refreshed)
     }
+
+    // If the profile session expired, clear the stored token so the user
+    // falls back to admin context and can re-authenticate.
+    const expired = response.headers["x-seanime-profile-expired"]
+    if (expired === "true") {
+        const currentToken = getDefaultStore().get(profileSessionTokenAtom)
+        if (currentToken) {
+            getDefaultStore().set(profileSessionTokenAtom, undefined)
+            // Notify user — use setTimeout to avoid issues during axios interceptor chain
+            setTimeout(() => {
+                toast.error("Your profile session has expired. Please sign in again from Profile Selection.")
+            }, 0)
+        }
+    }
+
     return response
 })
 

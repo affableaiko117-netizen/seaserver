@@ -7,6 +7,7 @@ import { vc_miniPlayer } from "@/app/(main)/_features/video-core/video-core-atom
 import { vc_videoElement } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_containerElement } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { vc_playbackInfo } from "@/app/(main)/_features/video-core/video-core-atoms"
+import { vc_requestTranscodeForAudio } from "@/app/(main)/_features/video-core/video-core-atoms"
 import { VideoCoreControlButtonIcon } from "@/app/(main)/_features/video-core/video-core-control-bar"
 import { HlsAudioTrack, vc_hlsAudioTracks, vc_hlsCurrentAudioTrack, vc_hlsSetAudioTrack } from "@/app/(main)/_features/video-core/video-core-hls"
 import { VideoCoreMenu, VideoCoreMenuBody, VideoCoreMenuTitle, VideoCoreSettingSelect } from "@/app/(main)/_features/video-core/video-core-menu"
@@ -26,6 +27,7 @@ export function VideoCoreAudioMenu() {
     const containerElement = useAtomValue(vc_containerElement)
     const [selectedTrack, setSelectedTrack] = React.useState<number | null>(null)
     const setPerMediaOverrides = useSetAtom(vc_perMediaTrackOverrides)
+    const requestTranscodeForAudio = useAtomValue(vc_requestTranscodeForAudio)
 
     // Get MKV audio tracks
     const mkvAudioTracks = playbackInfo?.mkvMetadata?.audioTracks
@@ -36,8 +38,10 @@ export function VideoCoreAudioMenu() {
     const hlsSetAudioTrack = useAtomValue(vc_hlsSetAudioTrack)
 
     // Determine which audio tracks to use
-    const audioTracks = mkvAudioTracks || (hlsAudioTracks.length > 0 ? hlsAudioTracks : null)
-    const isHls = !mkvAudioTracks && hlsAudioTracks.length > 0
+    // HLS tracks take priority — in transcode mode both mkvAudioTracks (synthesized)
+    // and hlsAudioTracks exist, but only the HLS setter can actually switch audio
+    const isHls = hlsAudioTracks.length > 0
+    const audioTracks = isHls ? hlsAudioTracks : (mkvAudioTracks || null)
 
     function onAudioChange() {
         setSelectedTrack(audioManager?.getSelectedTrackNumberOrNull?.() ?? null)
@@ -113,18 +117,7 @@ export function VideoCoreAudioMenu() {
                         }
                     })}
                     onValueChange={(value: number) => {
-                        // For HLS streams, use the latest setter from the atom directly
-                        // to avoid stale closures in AudioManager after error recovery
-                        if (isHls && hlsSetAudioTrack) {
-                            hlsSetAudioTrack(value)
-                        } else {
-                            audioManager?.selectTrack(value)
-                        }
-                        // Immediately update the visual checkmark
-                        setSelectedTrack(value)
-                        action({ type: "seek", payload: { time: -1 } })
-
-                        // Save per-media audio language override
+                        // Save per-media audio language override FIRST so it persists across the stream switch
                         const mediaId = playbackInfo?.media?.id
                         if (mediaId) {
                             let lang: string | undefined
@@ -139,6 +132,19 @@ export function VideoCoreAudioMenu() {
                                     [String(mediaId)]: { ...prev[String(mediaId)], audioLanguage: lang },
                                 }))
                             }
+                        }
+
+                        if (isHls && hlsSetAudioTrack) {
+                            // HLS mode: switch audio directly via HLS.js
+                            hlsSetAudioTrack(value)
+                            setSelectedTrack(value)
+                            action({ type: "seek", payload: { time: -1 } })
+                        } else if (requestTranscodeForAudio) {
+                            // Direct play mode: browser audioTracks API is unreliable across browsers.
+                            // Switch to transcode mode where HLS.js handles multi-audio properly.
+                            // The language preference saved above will be picked up after the switch.
+                            setSelectedTrack(value)
+                            requestTranscodeForAudio()
                         }
                     }}
                     value={selectedTrack || 0}

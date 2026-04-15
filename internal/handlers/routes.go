@@ -26,6 +26,7 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 		AllowOrigins: []string{"*"},
 		AllowHeaders: []string{"Origin", "Content-Type", "Accept", "Cookie", "Authorization",
 			"X-Seanime-Token", "X-Seanime-Profile-Token", "X-Seanime-Nakama-Token", "X-Seanime-Nakama-Username", "X-Seanime-Nakama-Server-Version", "X-Seanime-Nakama-Peer-Id"},
+		ExposeHeaders:    []string{"X-Seanime-Profile-Token", "X-Seanime-Profile-Expired"},
 		AllowCredentials: true,
 	}))
 

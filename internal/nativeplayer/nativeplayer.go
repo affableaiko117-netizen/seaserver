@@ -34,6 +34,7 @@ type (
 		Media              *anilist.BaseAnime   `json:"media"`
 		IsNakamaWatchParty bool                 `json:"isNakamaWatchParty"` // Is the stream from Nakama Watch Party
 		LocalFile          *anime.LocalFile     `json:"localFile,omitempty"`
+		FilePath           string               `json:"filePath,omitempty"` // Underlying file path or URL for mediastream transcode fallback
 
 		MkvMetadataParser mo.Option[*mkvparser.MetadataParser] `json:"-"`
 	}

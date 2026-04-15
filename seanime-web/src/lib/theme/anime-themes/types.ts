@@ -7,6 +7,21 @@ export type SidebarItemOverride = {
     label: string
 }
 
+export type PlayerIconOverrides = {
+    play?: React.ComponentType<{ className?: string }>
+    pause?: React.ComponentType<{ className?: string }>
+    volumeHigh?: React.ComponentType<{ className?: string }>
+    volumeMid?: React.ComponentType<{ className?: string }>
+    volumeLow?: React.ComponentType<{ className?: string }>
+    volumeMuted?: React.ComponentType<{ className?: string }>
+    fullscreenEnter?: React.ComponentType<{ className?: string }>
+    fullscreenExit?: React.ComponentType<{ className?: string }>
+    skipForward?: React.ComponentType<{ className?: string }>
+    skipBack?: React.ComponentType<{ className?: string }>
+    pip?: React.ComponentType<{ className?: string }>
+    pipOff?: React.ComponentType<{ className?: string }>
+}
+
 export type ParticleTypeConfig = {
     /** Display name in settings UI */
     label: string
@@ -51,4 +66,6 @@ export type AnimeThemeConfig = {
     backgroundBlur?: number
     /** Per-particle-type configuration (keyed by particle type id) */
     particleTypes?: Record<string, ParticleTypeConfig>
+    /** Player icon overrides for video player controls */
+    playerIconOverrides?: PlayerIconOverrides
 }

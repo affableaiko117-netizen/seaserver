@@ -203,6 +203,8 @@ export default function Page() {
                             playNextEpisode={playNextEpisode}
                             playPreviousEpisode={playPreviousEpisode}
                             handleTerminateStream={handleTerminateStream}
+                            handleChangeStreamType={handleChangeStreamType}
+                            currentStreamType={mediaContainer?.streamType}
                         />
                     }
                     episodeList={episodes.map((episode) => (
