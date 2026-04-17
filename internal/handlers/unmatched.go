@@ -6,9 +6,14 @@ import (
 	"seanime/internal/database/db_bridge"
 	"seanime/internal/library/anime"
 	"seanime/internal/unmatched"
+	"sync"
 
 	"github.com/labstack/echo/v4"
 )
+
+// matchMu serializes unmatched-match operations so concurrent matches
+// don't race on the DB read-modify-write of local files.
+var matchMu sync.Mutex
 
 // HandleGetUnmatchedTorrents
 //
@@ -60,6 +65,10 @@ func (h *Handler) HandleGetUnmatchedTorrentContents(c echo.Context) error {
 //	@route /api/v1/unmatched/match [POST]
 //	@returns *unmatched.MatchResult
 func (h *Handler) HandleMatchUnmatchedTorrent(c echo.Context) error {
+	// Serialize match operations so concurrent requests don't race on DB local files
+	matchMu.Lock()
+	defer matchMu.Unlock()
+
 	var req unmatched.MatchRequest
 	if err := c.Bind(&req); err != nil {
 		return h.RespondWithError(c, err)

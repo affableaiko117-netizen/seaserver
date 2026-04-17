@@ -48,24 +48,12 @@ func (h *Handler) HandleGetLibraryCollection(c echo.Context) error {
 			}
 		}
 
-		// Merge planning slut's collection as the base (all media IDs)
-		var sharedOnlyIDs map[int]struct{}
-		if psCollection, psErr := h.getPlanningSlutAnimeCollectionCached(context.Background(), false); psErr == nil && psCollection != nil {
-			allPsMediaIDs := make(map[int]struct{})
-			for _, list := range psCollection.GetMediaListCollection().GetLists() {
-				for _, entry := range list.GetEntries() {
-					allPsMediaIDs[entry.GetMedia().GetID()] = struct{}{}
-				}
-			}
-			sharedOnlyIDs = mergePlanningSlutAnimeCollection(animeCollection, psCollection, allPsMediaIDs)
-		}
-
+		// NOTE: Light mode intentionally does NOT merge planning slut's collection.
+		// Light mode has no local files to filter by, so merging would surface
+		// every entry from the planning slut as unwanted planning list entries.
+		// The planning slut merge only happens in full mode where local files
+		// provide the filter.
 		lc := anime.NewLightLibraryCollection(animeCollection)
-
-		// Hide list data for entries that only come from planning slut
-		if len(sharedOnlyIDs) > 0 {
-			hideSharedOnlyAnimeListData(lc, sharedOnlyIDs)
-		}
 
 		if lc.Stats != nil {
 			lc.Stats.TotalSize = util.Bytes(h.App.TotalLibrarySize)
@@ -204,21 +192,12 @@ func (h *Handler) HandleGetLibraryCollection(c echo.Context) error {
 		}
 	}
 
-	// Merge planning slut's collection as the base.
-	// Only merge entries whose media ID matches a local file so they appear in the library.
-	var sharedOnlyAnimeIDs map[int]struct{}
-	if psCollection, psErr := h.getPlanningSlutAnimeCollectionCached(context.Background(), false); psErr == nil && psCollection != nil {
-		localFileMediaIDs := make(map[int]struct{})
-		for _, lf := range lfs {
-			if lf.MediaId > 0 {
-				localFileMediaIDs[lf.MediaId] = struct{}{}
-			}
-		}
-		sharedOnlyAnimeIDs = mergePlanningSlutAnimeCollection(animeCollection, psCollection, localFileMediaIDs)
-	}
-
 	// Use a background context so that browser refresh/navigation doesn't cancel
 	// in-flight AniList API requests (which would cause "context canceled" errors).
+	// NOTE: Planning slut entries are NOT merged into the collection here. Local files
+	// whose MediaId is not in the user's AniList collection are surfaced naturally via
+	// the LOCAL list in NewLibraryCollection (which fetches metadata from the platform),
+	// keeping the user's Planning list clean.
 	libraryCollection, err := anime.NewLibraryCollection(context.Background(), &anime.NewLibraryCollectionOptions{
 		AnimeCollection:     animeCollection,
 		PlatformRef:         h.App.AnilistPlatformRef,
@@ -227,11 +206,6 @@ func (h *Handler) HandleGetLibraryCollection(c echo.Context) error {
 	})
 	if err != nil {
 		return h.RespondWithError(c, err)
-	}
-
-	// Hide list data for entries that only come from planning slut (user hasn't touched them)
-	if len(sharedOnlyAnimeIDs) > 0 {
-		hideSharedOnlyAnimeListData(libraryCollection, sharedOnlyAnimeIDs)
 	}
 
 	// Restore the original anime collection if it was modified
