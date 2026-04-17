@@ -11,4 +11,5 @@ Plans ahead with all changes looking through the entire codebase for the request
 
 Always try to fix all memory leaks, insecurities, inefficiencies, all that can cause problems in the future, and all that can cause bugs in the future. Always try to make the codebase better than it was before, not just implement the feature. Don't worry about making things readable -- The user will always talk to the bot rather than code themselves, more than likely.
 
-Update the plan if you wish, but if you make any large changes, ask me about them beforehand, please. Each and every "migration change" -- all of them, asking me. 
+Update the plan if you wish, but if you make any changes at all. Ask all questions up-front, please. Each and every "migration change" -- all of them, EVERYTHING. 
+

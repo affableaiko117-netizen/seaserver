@@ -340,7 +340,7 @@ function ThemeBackgroundImage({ url, dim, blur }: { url: string; dim?: number; b
                 backgroundRepeat: "no-repeat",
                 opacity,
                 filter: blur ? `blur(${blur}px)` : undefined,
-                boxShadow: "inset 0 0 200px 80px rgba(0,0,0,0.85), inset 0 0 80px 40px rgba(0,0,0,0.6)",
+                boxShadow: "inset 0 0 120px 40px rgba(0,0,0,0.5), inset 0 0 40px 20px rgba(0,0,0,0.3)",
             }}
         />
     )

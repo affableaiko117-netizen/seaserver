@@ -8,6 +8,14 @@ export const DEFAULT_HOME_ITEMS: Models_HomeItem[] = [
         schemaVersion: 1,
     },
     {
+        id: "local-anime-library",
+        type: "local-anime-library",
+        schemaVersion: 2,
+        options: {
+            layout: "grid",
+        },
+    },
+    {
         id: "anime-library",
         type: "anime-library",
         schemaVersion: 1,

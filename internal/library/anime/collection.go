@@ -522,7 +522,7 @@ func (lc *LibraryCollection) hydrateContinueWatchingList(
 	}
 
 	// Create a new Entry for each media id
-	mEntryPool := pool.NewWithResults[*Entry]().WithMaxGoroutines(5)
+	mEntryPool := pool.NewWithResults[*Entry]()
 	for _, mId := range mIds {
 		mEntryPool.Go(func() *Entry {
 			me, _ := NewEntry(ctx, &NewEntryOptions{

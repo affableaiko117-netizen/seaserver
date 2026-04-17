@@ -1,4 +1,4 @@
-import { AL_ListRecentAnime_Page_AiringSchedules, Anime_LibraryCollectionList, Anime_ScheduleItem, Models_HomeItem } from "@/api/generated/types"
+import { AL_ListRecentAnime_Page_AiringSchedules, Anime_LibraryCollectionEntry, Anime_LibraryCollectionList, Anime_ScheduleItem, Models_HomeItem } from "@/api/generated/types"
 import { useAnilistListAnime, useAnilistListRecentAiringAnime } from "@/api/hooks/anilist.hooks"
 import { useGetLibraryCollection } from "@/api/hooks/anime_collection.hooks"
 import { useAnilistListManga } from "@/api/hooks/manga.hooks"
@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button"
 import { Carousel, CarouselContent, CarouselDotButtons } from "@/components/ui/carousel"
 import { cn } from "@/components/ui/core/styling"
 import { Skeleton } from "@/components/ui/skeleton"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { ThemeLibraryScreenBannerType, useThemeSettings } from "@/lib/theme/hooks"
 import { useDebounce } from "use-debounce"
 import { addDays } from "date-fns/addDays"
@@ -744,19 +745,111 @@ export function ComingSoonPlaceholder({ title }: { title: string }) {
 }
 
 function LocalAnimeLibrary(props: { libraryCollectionProps: HandleLibraryCollectionProps, item: Models_HomeItem, index: number }) {
+    const serverStatus = useServerStatus()
+    const layout = props.item?.options?.layout || "grid"
+    const PAGE_SIZE = 12
+    const collectionList = props.libraryCollectionProps.libraryCollectionList
+
+    // Use parent's data directly — light data arrives instantly, full data refines later.
+    // In full mode, the backend already excludes entries without local files from lists.
+    const localEntries: Anime_LibraryCollectionEntry[] = React.useMemo(() => {
+        if (!collectionList?.length) return []
+        const allEntries: Anime_LibraryCollectionEntry[] = collectionList.flatMap(l => l.entries ?? []).filter(Boolean)
+
+        // Deduplicate by mediaId
+        const seen = new Set<number>()
+        let filtered = allEntries.filter(e => {
+            if (seen.has(e.mediaId)) return false
+            seen.add(e.mediaId)
+            return true
+        })
+        // Filter adult content
+        if (!serverStatus?.settings?.anilist?.enableAdultContent) {
+            filtered = filtered.filter(e => !e.media?.isAdult)
+        }
+        // Sort alphabetically
+        filtered.sort((a, b) => (a.media?.title?.userPreferred ?? "").localeCompare(b.media?.title?.userPreferred ?? ""))
+        return filtered
+    }, [collectionList, serverStatus?.settings?.anilist?.enableAdultContent])
+
+    // Lazy pagination state
+    const [visibleCount, setVisibleCount] = React.useState(PAGE_SIZE)
+    const sentinelRef = React.useRef<HTMLDivElement>(null)
+
+    // Reset visible count when entries change significantly
+    React.useEffect(() => {
+        setVisibleCount(PAGE_SIZE)
+    }, [localEntries.length])
+
+    // Intersection observer to load more
+    React.useEffect(() => {
+        const sentinel = sentinelRef.current
+        if (!sentinel) return
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0]?.isIntersecting) {
+                    setVisibleCount(prev => Math.min(prev + PAGE_SIZE, localEntries.length))
+                }
+            },
+            { rootMargin: "200px" },
+        )
+        observer.observe(sentinel)
+        return () => observer.disconnect()
+    }, [localEntries.length])
+
+    const visibleEntries = localEntries.slice(0, visibleCount)
+    const hasMore = visibleCount < localEntries.length
+
+    if (props.libraryCollectionProps.isLoading) return <LoadingSpinner />
+    if (!localEntries.length) return null
+
+    if (layout === "carousel") {
+        return (
+            <PageWrapper className="px-4 space-y-8">
+                <Carousel
+                    className="w-full"
+                    gap="md"
+                    opts={{ align: "start" }}
+                >
+                    <CarouselContent>
+                        {localEntries.map(entry => (
+                            <MediaEntryCard
+                                key={entry.mediaId}
+                                media={entry.media!}
+                                listData={entry.listData}
+                                libraryData={entry.libraryData}
+                                nakamaLibraryData={entry.nakamaLibraryData}
+                                showListDataButton
+                                withAudienceScore={false}
+                                type="anime"
+                                containerClassName="basis-[200px] md:basis-[250px] mx-2 mt-8 mb-0"
+                            />
+                        ))}
+                    </CarouselContent>
+                    <CarouselDotButtons />
+                </Carousel>
+            </PageWrapper>
+        )
+    }
+
     return (
-        <>
-            <DetailedLibraryView
-                isHomeItem={true}
-                collectionList={props.libraryCollectionProps.libraryCollectionList}
-                continueWatchingList={props.libraryCollectionProps.continueWatchingList}
-                isLoading={props.libraryCollectionProps.isLoading}
-                hasEntries={props.libraryCollectionProps.hasEntries}
-                streamingMediaIds={props.libraryCollectionProps.streamingMediaIds}
-                isNakamaLibrary={props.libraryCollectionProps.isNakamaLibrary}
-                type={props.item?.options?.layout || "grid"}
-            />
-        </>
+        <PageWrapper className="px-4 space-y-8">
+            <MediaCardLazyGrid itemCount={visibleEntries.length}>
+                {visibleEntries.map(entry => (
+                    <MediaEntryCard
+                        key={entry.mediaId}
+                        media={entry.media!}
+                        listData={entry.listData}
+                        libraryData={entry.libraryData}
+                        nakamaLibraryData={entry.nakamaLibraryData}
+                        showListDataButton
+                        withAudienceScore={false}
+                        type="anime"
+                    />
+                ))}
+            </MediaCardLazyGrid>
+            {hasMore && <div ref={sentinelRef} className="h-8" />}
+        </PageWrapper>
     )
 
 }

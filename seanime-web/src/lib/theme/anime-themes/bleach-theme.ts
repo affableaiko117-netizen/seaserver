@@ -608,9 +608,9 @@ export const bleachTheme: AnimeThemeConfig = {
         accent: "#c0c8f0",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "https://w.wallhaven.cc/full/gj/wallhaven-gj6vpd.jpg",
-    backgroundDim: 0.30,
-    backgroundBlur: 30,
+    backgroundImageUrl: "https://w.wallhaven.cc/full/p9/wallhaven-p98go3.jpg",
+    backgroundDim: 0.10,
+    backgroundBlur: 4,
     particleTypes: {
         butterflies: { label: "Hell Butterflies", maxCount: 6, defaultEnabled: true, defaultIntensity: 60 },
         wisps: { label: "Reiatsu Wisps", maxCount: 8, defaultEnabled: true, defaultIntensity: 50 },
