@@ -135,13 +135,12 @@ func (h *Handler) HandleGetRawAnilistMangaCollection(c echo.Context) error {
 func (h *Handler) HandleGetMangaCollection(c echo.Context) error {
 	profileID := h.GetProfileID(c)
 
-	// Catalogue = admin/planning-slut's manga collection (media metadata source, cached)
+	// Catalogue = admin's manga collection (media metadata source, cached)
 	catalogueMangaCollection, err := h.App.GetMangaCollection(false)
 	if err != nil {
 		return h.RespondWithError(c, err)
 	}
 
-	// Determine the collection whose list data (status, score, progress) is authoritative.
 	// For profile users with their own AniList: use their personal collection.
 	// For admin or unlinked profiles: fall back to the catalogue.
 	mangaCollection := catalogueMangaCollection
@@ -155,34 +154,15 @@ func (h *Handler) HandleGetMangaCollection(c echo.Context) error {
 	// Get media map from manga downloader (downloaded chapters)
 	mediaMap := h.App.MangaDownloader.GetMediaMap()
 
-	// For profile users: inject downloaded-chapter manga from the catalogue that the profile
-	// hasn't personally tracked, so downloaded manga always shows up.
-	// Their EntryListData (planning-slut tracking) is then nulled via hideSharedOnlyMangaListData.
-	sharedOnlyMangaIds := make(map[int]struct{})
-	if profileID > 0 && mangaCollection != catalogueMangaCollection && catalogueMangaCollection != nil {
-		downloadedMediaIds := make(map[int]struct{})
-		for id := range mediaMap {
-			downloadedMediaIds[id] = struct{}{}
+	// Merge planning slut's manga collection as the base.
+	// Only merge entries whose media ID matches a downloaded manga so they appear in the collection.
+	var sharedOnlyMangaIDs map[int]struct{}
+	if psMangaCollection, psErr := h.getPlanningSlutMangaCollectionCached(context.Background(), false); psErr == nil && psMangaCollection != nil {
+		downloadedMediaIDs := make(map[int]struct{})
+		for mID := range mediaMap {
+			downloadedMediaIDs[mID] = struct{}{}
 		}
-		userTrackedIds := make(map[int]struct{})
-		if mangaCollection != nil && mangaCollection.MediaListCollection != nil {
-			for _, list := range mangaCollection.MediaListCollection.GetLists() {
-				for _, entry := range list.GetEntries() {
-					if m := entry.GetMedia(); m != nil {
-						userTrackedIds[m.GetID()] = struct{}{}
-					}
-				}
-			}
-		}
-		downloadedOnlyIds := make(map[int]struct{})
-		for id := range downloadedMediaIds {
-			if _, tracked := userTrackedIds[id]; !tracked {
-				downloadedOnlyIds[id] = struct{}{}
-			}
-		}
-		if len(downloadedOnlyIds) > 0 {
-			sharedOnlyMangaIds = mergePlanningSlutMangaCollection(mangaCollection, catalogueMangaCollection, downloadedOnlyIds)
-		}
+		sharedOnlyMangaIDs = mergePlanningSlutMangaCollection(mangaCollection, psMangaCollection, downloadedMediaIDs)
 	}
 
 	collection, err := manga.NewCollection(&manga.NewCollectionOptions{
@@ -193,7 +173,11 @@ func (h *Handler) HandleGetMangaCollection(c echo.Context) error {
 	if err != nil {
 		return h.RespondWithError(c, err)
 	}
-	hideSharedOnlyMangaListData(collection, sharedOnlyMangaIds)
+
+	// Hide list data for entries that only come from planning slut
+	if len(sharedOnlyMangaIDs) > 0 {
+		hideSharedOnlyMangaListData(collection, sharedOnlyMangaIDs)
+	}
 
 	return h.RespondWithData(c, collection)
 }

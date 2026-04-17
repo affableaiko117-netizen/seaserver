@@ -97,6 +97,86 @@ type (
 	}
 )
 
+// NewLightLibraryCollection creates a LibraryCollection from AniList data only,
+// without local file matching, continue watching, or unmatched groups.
+// This is the fast path for initial page rendering.
+func NewLightLibraryCollection(animeCollection *anilist.AnimeCollection) *LibraryCollection {
+	lc := &LibraryCollection{
+		ContinueWatchingList: make([]*Episode, 0),
+		UnmatchedLocalFiles:  make([]*LocalFile, 0),
+		UnmatchedGroups:      make([]*UnmatchedGroup, 0),
+		IgnoredLocalFiles:    make([]*LocalFile, 0),
+		UnknownGroups:        make([]*UnknownGroup, 0),
+		Stats:                &LibraryCollectionStats{},
+	}
+
+	if animeCollection == nil {
+		lc.Lists = make([]*LibraryCollectionList, 0)
+		return lc
+	}
+
+	aniLists := animeCollection.GetMediaListCollection().GetLists()
+
+	for _, list := range aniLists {
+		if list.Status == nil {
+			continue
+		}
+
+		entries := list.GetEntries()
+		collectionEntries := make([]*LibraryCollectionEntry, 0, len(entries))
+		for _, entry := range entries {
+			collectionEntries = append(collectionEntries, &LibraryCollectionEntry{
+				MediaId:          entry.Media.ID,
+				Media:            entry.Media,
+				EntryLibraryData: nil,
+				EntryListData: &EntryListData{
+					Progress:    entry.GetProgressSafe(),
+					Score:       entry.GetScoreSafe(),
+					Status:      entry.Status,
+					Repeat:      entry.GetRepeatSafe(),
+					StartedAt:   anilist.ToEntryStartDate(entry.StartedAt),
+					CompletedAt: anilist.ToEntryCompletionDate(entry.CompletedAt),
+				},
+			})
+		}
+		sort.Slice(collectionEntries, func(i, j int) bool {
+			return collectionEntries[i].Media.GetTitleSafe() < collectionEntries[j].Media.GetTitleSafe()
+		})
+
+		lc.Lists = append(lc.Lists, &LibraryCollectionList{
+			Type:    getLibraryCollectionEntryFromListStatus(*list.Status),
+			Status:  *list.Status,
+			Entries: collectionEntries,
+		})
+	}
+
+	// Merge repeating into current
+	repeatingList, ok := lo.Find(lc.Lists, func(item *LibraryCollectionList) bool {
+		return item.Status == anilist.MediaListStatusRepeating
+	})
+	if ok {
+		currentList, ok := lo.Find(lc.Lists, func(item *LibraryCollectionList) bool {
+			return item.Status == anilist.MediaListStatusCurrent
+		})
+		if len(repeatingList.Entries) > 0 && ok {
+			currentList.Entries = append(currentList.Entries, repeatingList.Entries...)
+		} else if len(repeatingList.Entries) > 0 {
+			newCurrentList := repeatingList
+			newCurrentList.Type = anilist.MediaListStatusCurrent
+			lc.Lists = append(lc.Lists, newCurrentList)
+		}
+		lc.Lists = lo.Filter(lc.Lists, func(item *LibraryCollectionList, _ int) bool {
+			return item.Status != anilist.MediaListStatusRepeating
+		})
+	}
+
+	if lc.Lists == nil {
+		lc.Lists = make([]*LibraryCollectionList, 0)
+	}
+
+	return lc
+}
+
 // NewLibraryCollection creates a new LibraryCollection.
 func NewLibraryCollection(ctx context.Context, opts *NewLibraryCollectionOptions) (lc *LibraryCollection, err error) {
 	defer util.HandlePanicInModuleWithError("entities/collection/NewLibraryCollection", &err)
@@ -442,7 +522,7 @@ func (lc *LibraryCollection) hydrateContinueWatchingList(
 	}
 
 	// Create a new Entry for each media id
-	mEntryPool := pool.NewWithResults[*Entry]()
+	mEntryPool := pool.NewWithResults[*Entry]().WithMaxGoroutines(5)
 	for _, mId := range mIds {
 		mEntryPool.Go(func() *Entry {
 			me, _ := NewEntry(ctx, &NewEntryOptions{
@@ -552,7 +632,7 @@ func (lc *LibraryCollection) hydrateUnknownGroups(localFiles []*LocalFile, anime
 
 	// Filter local files that have MediaId > 0 but aren't in the collection
 	unknownLocalFiles := lo.Filter(localFiles, func(lf *LocalFile, index int) bool {
-		return lf.MediaId > 0 && !lf.Ignored
+		return lf.MediaId > 0 && !lf.Ignored && !lf.Locked
 	})
 
 	unknownLocalFiles = lo.Filter(unknownLocalFiles, func(lf *LocalFile, index int) bool {

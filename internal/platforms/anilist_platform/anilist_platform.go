@@ -35,6 +35,7 @@ type (
 		helper                 *shared_platform.PlatformHelper
 		db                     *db.Database
 		extensionBankRef       *util.Ref[*extension.UnifiedBank]
+		anilistRateLimit       *limiter.Limiter
 		// singleflight groups prevent thundering-herd: concurrent callers that find the
 		// collection cache empty all wait on the same in-flight HTTP request instead of
 		// each firing their own.
@@ -55,6 +56,7 @@ func NewAnilistPlatform(anilistClientRef *util.Ref[anilist.AnilistClient], exten
 		extensionBankRef:   extensionBankRef,
 		helper:             shared_platform.NewPlatformHelper(extensionBankRef, db, logger),
 		db:                 db,
+		anilistRateLimit:   limiter.NewAnilistLimiter(),
 	}
 
 	return ap
@@ -200,6 +202,9 @@ func (ap *AnilistPlatform) GetAnime(ctx context.Context, mediaID int) (*anilist.
 		ap.helper.SetCachedBaseAnime(mediaID, triggeredMedia)
 		return triggeredMedia, nil
 	}
+
+	// Rate-limit before hitting AniList to prevent 429 thundering herd
+	ap.anilistRateLimit.Wait()
 
 	// Get from AniList
 	ret, err := ap.anilistClient.BaseAnimeByID(ctx, &mediaID)
@@ -354,6 +359,9 @@ func (ap *AnilistPlatform) GetManga(ctx context.Context, mediaID int) (*anilist.
 		ap.helper.SetCachedBaseManga(mediaID, triggeredMedia)
 		return triggeredMedia, nil
 	}
+
+	// Rate-limit before hitting AniList to prevent 429 thundering herd
+	ap.anilistRateLimit.Wait()
 
 	// Get from AniList
 	ret, err := ap.anilistClient.BaseMangaByID(ctx, &mediaID)

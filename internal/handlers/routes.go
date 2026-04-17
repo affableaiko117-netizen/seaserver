@@ -46,6 +46,7 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 		"/api/v1/enmasse/status",
 		"/api/v1/enmasse/manga/status",
 		"/api/v1/manga/hydrate-all/status",
+		"/api/v1/library/hydrate-all/status",
 	}
 
 	// Logging middleware
@@ -325,6 +326,10 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	v1Library.POST("/reset-all-matches", h.HandleResetAllMatches)
 
 	v1Library.POST("/unknown-media", h.HandleAddUnknownMedia)
+
+	v1Library.POST("/hydrate-all", h.HandleHydrateAllAnime)
+	v1Library.GET("/hydrate-all/status", h.HandleGetAnimeHydrationStatus)
+	v1Library.POST("/hydrate-all/cancel", h.HandleCancelAnimeHydration)
 
 	//
 	// Library Explorer

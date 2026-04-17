@@ -1,5 +1,5 @@
 import { Anime_LibraryCollectionList } from "@/api/generated/types"
-import { useGetLibraryCollection } from "@/api/hooks/anime_collection.hooks"
+import { useGetLibraryCollection, useGetLightLibraryCollection } from "@/api/hooks/anime_collection.hooks"
 import { useGetContinuityWatchHistory } from "@/api/hooks/continuity.hooks"
 import { useGetAnimeGojuuonMap } from "@/api/hooks/services.hooks"
 import { animeLibraryCollectionAtom } from "@/app/(main)/_atoms/anime-library-collection.atoms"
@@ -36,14 +36,20 @@ export function useHandleLibraryCollection() {
     const { data: animeGojuuonMap } = useGetAnimeGojuuonMap()
 
     /**
-     * Fetch the anime library collection
+     * Fetch light collection first (AniList lists only, instant),
+     * then full collection (with local files) lazily.
      */
-    const { data: _data, isLoading } = useGetLibraryCollection({
+    const { data: lightData } = useGetLightLibraryCollection()
+    const { data: fullData, isLoading: fullIsLoading } = useGetLibraryCollection({
         // Poll frequently so unmatched/ignored groups update without manual refresh
         refetchInterval: 5_000,
         staleTime: 2_000,
         refetchOnWindowFocus: "always",
     })
+
+    // Use full data when available, fall back to light data for instant rendering
+    const _data = fullData ?? lightData
+    const isLoading = !_data && fullIsLoading
 
     const data = React.useMemo(() => {
         if (!_data) return undefined

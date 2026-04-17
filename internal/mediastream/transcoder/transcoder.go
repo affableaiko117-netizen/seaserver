@@ -65,6 +65,7 @@ func NewTranscoder(opts *NewTranscoderOptions) (*Transcoder, error) {
 				Kind:           opts.HwAccelKind,
 				Preset:         opts.Preset,
 				CustomSettings: opts.HwAccelCustomSettings,
+				FfmpegPath:     opts.FfmpegPath,
 			}),
 			FfmpegPath:  opts.FfmpegPath,
 			FfprobePath: opts.FfprobePath,

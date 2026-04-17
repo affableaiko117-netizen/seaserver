@@ -84,49 +84,47 @@ func (h *Handler) HandleMatchUnmatchedTorrent(c echo.Context) error {
 
 	// Feature 3: immediately inject moved files as locked local-file DB entries so
 	// the "Resolve unmatched" step on the home page is never needed.
+	// IMPORTANT: this must complete synchronously before the background scan triggers,
+	// otherwise the scanner creates fresh unlocked entries that overwrite these.
 	if result.Success && req.AnimeID > 0 && len(result.MovedFiles) > 0 {
 		libraryPath := h.App.UnmatchedRepository.GetAnimeBasePath()
-		go func() {
-			newLFs := make([]*anime.LocalFile, 0, len(result.MovedFiles))
-			for _, name := range result.MovedFiles {
-				fullPath := result.Destination + "/" + name
-				lf := anime.NewLocalFile(fullPath, libraryPath)
-				lf.MediaId = req.AnimeID
-				lf.Locked = true
-				lf.Ignored = false
-				// Set episode type to main — the FileHydrator will refine it during the next scan
-				lf.Metadata = &anime.LocalFileMetadata{
-					Episode:      0,
-					AniDBEpisode: "",
-					Type:         anime.LocalFileTypeMain,
-				}
-				newLFs = append(newLFs, lf)
+		newLFs := make([]*anime.LocalFile, 0, len(result.MovedFiles))
+		for _, name := range result.MovedFiles {
+			fullPath := result.Destination + "/" + name
+			lf := anime.NewLocalFile(fullPath, libraryPath)
+			lf.MediaId = req.AnimeID
+			lf.Locked = true
+			lf.Ignored = false
+			lf.Metadata = &anime.LocalFileMetadata{
+				Episode:      0,
+				AniDBEpisode: "",
+				Type:         anime.LocalFileTypeMain,
 			}
+			newLFs = append(newLFs, lf)
+		}
 
-			existingLFs, lfsId, lfsErr := db_bridge.GetLocalFiles(h.App.Database)
-			if lfsErr != nil {
-				h.App.Logger.Warn().Err(lfsErr).Msg("unmatched: failed to load local files for DB injection")
+		existingLFs, lfsId, lfsErr := db_bridge.GetLocalFiles(h.App.Database)
+		if lfsErr != nil {
+			h.App.Logger.Warn().Err(lfsErr).Msg("unmatched: failed to load local files for DB injection")
+		} else {
+			merged := append(existingLFs, newLFs...)
+			if _, saveErr := db_bridge.SaveLocalFiles(h.App.Database, lfsId, merged); saveErr != nil {
+				h.App.Logger.Warn().Err(saveErr).Msg("unmatched: failed to save injected local files")
 			} else {
-				merged := append(existingLFs, newLFs...)
-				if _, saveErr := db_bridge.SaveLocalFiles(h.App.Database, lfsId, merged); saveErr != nil {
-					h.App.Logger.Warn().Err(saveErr).Msg("unmatched: failed to save injected local files")
-				} else {
-					h.App.Logger.Info().
-						Int("count", len(newLFs)).
-						Int("mediaId", req.AnimeID).
-						Msg("unmatched: injected moved files into library DB")
-				}
+				h.App.Logger.Info().
+					Int("count", len(newLFs)).
+					Int("mediaId", req.AnimeID).
+					Msg("unmatched: injected moved files into library DB")
 			}
-		}()
+		}
 	}
 
-	// High-priority: refresh library collection in background so matched items appear immediately
+	// Background: refresh collection and rescan unmatched (safe now that locked entries are in DB)
 	go func() {
 		if _, err := h.App.GetAnimeCollection(true); err != nil {
 			h.App.Logger.Warn().Err(err).Msg("unmatched: failed to refresh anime collection after match")
 		}
 
-		// Invalidate unmatched cache and trigger a rescan so UI drops matched entries
 		h.App.UnmatchedRepository.InvalidateCache()
 		h.App.UnmatchedScanner.TriggerScan()
 	}()

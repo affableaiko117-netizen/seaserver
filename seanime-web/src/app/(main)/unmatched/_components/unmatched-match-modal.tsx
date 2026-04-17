@@ -510,7 +510,6 @@ export function UnmatchedMatchModal({ torrent, onClose, onSuccess }: UnmatchedMa
                             </div>
                             <Button
                                 size="sm"
-// ...
                                 intent="gray-outline"
                                 onClick={() => {
                                     setSelectedAnime(null)
