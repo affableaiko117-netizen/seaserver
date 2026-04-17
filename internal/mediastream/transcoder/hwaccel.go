@@ -1,7 +1,9 @@
 package transcoder
 
 import (
+	"os/exec"
 	"runtime"
+	"strings"
 
 	"github.com/goccy/go-json"
 )
@@ -11,6 +13,7 @@ type (
 		Kind           string
 		Preset         string
 		CustomSettings string
+		FfmpegPath     string
 	}
 )
 
@@ -31,6 +34,19 @@ func GetHardwareAccelSettings(opts HwAccelOptions) HwAccelSettings {
 		customHwAccelSettings.Name = "custom"
 	} else if opts.CustomSettings == "" && name == "custom" {
 		name = "disabled"
+	}
+
+	// probeFFmpegFilter checks whether a given filter name is available in the ffmpeg binary.
+	probeFFmpegFilter := func(o HwAccelOptions, filterName string) bool {
+		ffmpegBin := o.FfmpegPath
+		if ffmpegBin == "" {
+			ffmpegBin = "ffmpeg"
+		}
+		out, err := exec.Command(ffmpegBin, "-hide_banner", "-filters").CombinedOutput()
+		if err != nil {
+			return false
+		}
+		return strings.Contains(string(out), filterName)
 	}
 
 	defaultOSDevice := "/dev/dri/renderD128"
@@ -109,22 +125,33 @@ func GetHardwareAccelSettings(opts HwAccelOptions) HwAccelSettings {
 			WithForcedIdr: true,
 		}
 	case "nvidia":
-		return HwAccelSettings{
-			Name: "nvidia",
-			DecodeFlags: []string{
+		// Prefer scale_cuda for full GPU pipeline when available.
+		// Fall back to CPU-memory scaling (no -hwaccel_output_format cuda) when
+		// scale_cuda is not compiled into ffmpeg — common on distro-packaged builds.
+		nvidiaScaleFilter := "format=nv12|cuda,hwupload,scale_cuda=%d:%d:format=nv12"
+		nvidiaDecodeFlags := []string{
+			"-hwaccel", "cuda",
+			"-hwaccel_output_format", "cuda",
+		}
+		if !probeFFmpegFilter(opts, "scale_cuda") {
+			streamLogger.Warn().Msg("transcoder: scale_cuda filter not available, falling back to CPU scaling with NVENC encode")
+			nvidiaScaleFilter = "scale=%d:%d"
+			nvidiaDecodeFlags = []string{
 				"-hwaccel", "cuda",
-				// this flag prevents data to go from gpu space to cpu space
-				// it forces the whole dec/enc to be on the gpu. We want that.
-				"-hwaccel_output_format", "cuda",
-			},
+			}
+		}
+		return HwAccelSettings{
+			Name:        "nvidia",
+			DecodeFlags: nvidiaDecodeFlags,
 			EncodeFlags: []string{
 				"-c:v", "h264_nvenc",
 				"-preset", preset,
-				// the exivalent of -sc_threshold on nvidia.
+				// the equivalent of -sc_threshold on nvidia.
 				"-no-scenecut", "1",
+				// Force 8-bit output — older GPUs (e.g. GTX 980 / Maxwell) don't support 10-bit NVENC.
+				"-pix_fmt", "yuv420p",
 			},
-			// see note on ScaleFilter of the vaapi HwAccel, this is the same filter but adapted to cuda
-			ScaleFilter:   "format=nv12|cuda,hwupload,scale_cuda=%d:%d:format=nv12",
+			ScaleFilter:   nvidiaScaleFilter,
 			WithForcedIdr: true,
 		}
 	case "nvidia-decode":

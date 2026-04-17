@@ -23,6 +23,17 @@ export function useGetLibraryCollection({ enabled, refetchInterval, staleTime, r
     })
 }
 
+export function useGetLightLibraryCollection({ enabled }: { enabled?: boolean } = { enabled: true }) {
+    return useServerQuery<Anime_LibraryCollection>({
+        endpoint: API_ENDPOINTS.ANIME_COLLECTION.GetLibraryCollection.endpoint,
+        method: API_ENDPOINTS.ANIME_COLLECTION.GetLibraryCollection.methods[0],
+        queryKey: [API_ENDPOINTS.ANIME_COLLECTION.GetLibraryCollection.key, "light"],
+        params: { light: "true" },
+        enabled: enabled,
+        staleTime: 60_000,
+    })
+}
+
 export function useAddUnknownMedia() {
     const queryClient = useQueryClient()
     const { mutate } = useRefreshAnimeCollection()
@@ -48,5 +59,71 @@ export function useGetAnimeCollectionSchedule({ enabled }: { enabled?: boolean }
         method: API_ENDPOINTS.ANIME_COLLECTION.GetAnimeCollectionSchedule.methods[0],
         queryKey: [API_ENDPOINTS.ANIME_COLLECTION.GetAnimeCollectionSchedule.key],
         enabled: enabled,
+    })
+}
+
+// Anime metadata hydration
+
+export type AnimeHydrationDetail = {
+    timestamp: string
+    mediaId: number
+    title: string
+    action: string
+    message?: string
+}
+
+export type AnimeHydrationStatus = {
+    isRunning: boolean
+    cancelRequested: boolean
+    wasCancelled: boolean
+    total: number
+    processed: number
+    hydrated: number
+    skipped: number
+    failed: number
+    progress: number
+    startedAt?: string
+    finishedAt?: string
+    lastUpdatedAt?: string
+    details: AnimeHydrationDetail[]
+}
+
+export function useHydrateAllAnime() {
+    const queryClient = useQueryClient()
+
+    return useServerMutation<boolean>({
+        endpoint: "/api/v1/library/hydrate-all",
+        method: "POST",
+        mutationKey: ["ANIME-hydrate-all"],
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ["ANIME-hydrate-all-status"] })
+            await queryClient.invalidateQueries({ queryKey: [API_ENDPOINTS.ANIME_COLLECTION.GetLibraryCollection.key] })
+            toast.success("Anime hydration started")
+        },
+    })
+}
+
+export function useCancelAnimeHydration() {
+    const queryClient = useQueryClient()
+
+    return useServerMutation<boolean>({
+        endpoint: "/api/v1/library/hydrate-all/cancel",
+        method: "POST",
+        mutationKey: ["ANIME-hydrate-all-cancel"],
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ["ANIME-hydrate-all-status"] })
+            toast.success("Hydration cancellation requested")
+        },
+    })
+}
+
+export function useGetAnimeHydrationStatus() {
+    return useServerQuery<AnimeHydrationStatus>({
+        endpoint: "/api/v1/library/hydrate-all/status",
+        method: "GET",
+        queryKey: ["ANIME-hydrate-all-status"],
+        refetchInterval: query => query.state.data?.isRunning ? 1200 : 5000,
+        enabled: true,
+        muteError: true,
     })
 }

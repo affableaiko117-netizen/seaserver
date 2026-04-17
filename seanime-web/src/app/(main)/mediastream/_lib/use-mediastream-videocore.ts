@@ -38,6 +38,10 @@ export function useMediastreamVideoCore(props: UseMediastreamVideoCoreProps) {
     const [playbackErrored, setPlaybackErrored] = React.useState(false)
     const prevUrlRef = React.useRef<string | undefined>(undefined)
 
+    // When true, the auto-switch logic won't revert transcode back to direct play.
+    // Set when the user explicitly requests transcode (e.g. for audio switching).
+    const userForcedTranscodeRef = React.useRef(false)
+
     // Per-tab session ID for multi-client stream isolation
     const mediastreamSessionId = React.useMemo(() => getMediastreamSessionId(), [])
     const vcWatchContinuity = useAtomValue(vc_watchContinuityAtom)
@@ -97,30 +101,36 @@ export function useMediastreamVideoCore(props: UseMediastreamVideoCoreProps) {
 
         // Auto-switch to direct play if codec is supported
         if (mediaContainer?.streamType === "transcode") {
-            if (!codecSupported && mediastreamSettings.directPlayOnly) {
-                log.warning("Codec not supported for direct play")
-                toast.warning("Codec not supported for direct play")
-                changeUrl(undefined)
-                return
-            }
-            if (!mediastreamSettings.disableAutoSwitchToDirectPlay && !mediastreamSettings.directPlayOnly) {
-                if (codecSupported) {
-                    log.info("Auto-switching to direct play")
-                    setStreamType("direct")
-                    changeUrl(undefined)
-                    return
-                }
-            } else if (mediastreamSettings.directPlayOnly) {
-                if (codecSupported) {
-                    log.info("Direct play only mode, switching to direct play")
-                    setStreamType("direct")
-                    changeUrl(undefined)
-                    return
-                } else {
-                    log.warning("Direct play only mode but codec not supported")
+            // If the user explicitly forced transcode (e.g. for audio switching),
+            // skip auto-switching back to direct play.
+            if (userForcedTranscodeRef.current) {
+                log.info("User forced transcode, skipping auto-switch to direct play")
+            } else {
+                if (!codecSupported && mediastreamSettings.directPlayOnly) {
+                    log.warning("Codec not supported for direct play")
                     toast.warning("Codec not supported for direct play")
                     changeUrl(undefined)
                     return
+                }
+                if (!mediastreamSettings.disableAutoSwitchToDirectPlay && !mediastreamSettings.directPlayOnly) {
+                    if (codecSupported) {
+                        log.info("Auto-switching to direct play")
+                        setStreamType("direct")
+                        changeUrl(undefined)
+                        return
+                    }
+                } else if (mediastreamSettings.directPlayOnly) {
+                    if (codecSupported) {
+                        log.info("Direct play only mode, switching to direct play")
+                        setStreamType("direct")
+                        changeUrl(undefined)
+                        return
+                    } else {
+                        log.warning("Direct play only mode but codec not supported")
+                        toast.warning("Codec not supported for direct play")
+                        changeUrl(undefined)
+                        return
+                    }
                 }
             }
         }
@@ -172,6 +182,7 @@ export function useMediastreamVideoCore(props: UseMediastreamVideoCoreProps) {
 
     const onPlayFile = React.useCallback((filepath: string) => {
         log.info("Playing file", filepath)
+        userForcedTranscodeRef.current = false
         changeUrl(undefined)
         setFilePath(filepath)
     }, [])
@@ -315,6 +326,11 @@ export function useMediastreamVideoCore(props: UseMediastreamVideoCoreProps) {
 
     const handleChangeStreamType = React.useCallback((type: Mediastream_StreamType) => {
         log.info("Changing stream type to", type)
+        if (type === "transcode") {
+            userForcedTranscodeRef.current = true
+        } else {
+            userForcedTranscodeRef.current = false
+        }
         setStreamType(type)
         changeUrl(undefined)
     }, [])

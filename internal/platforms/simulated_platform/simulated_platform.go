@@ -288,6 +288,9 @@ func (sp *SimulatedPlatform) GetAnime(ctx context.Context, mediaID int) (*anilis
 		return triggeredMedia, nil
 	}
 
+	// Rate-limit before hitting AniList to prevent 429 thundering herd
+	sp.anilistRateLimit.Wait()
+
 	// Get anime from anilist
 	resp, err := sp.client.BaseAnimeByID(ctx, &mediaID)
 	if err != nil {
@@ -420,6 +423,9 @@ func (sp *SimulatedPlatform) GetManga(ctx context.Context, mediaID int) (*anilis
 
 		return triggeredMedia, nil
 	}
+
+	// Rate-limit before hitting AniList to prevent 429 thundering herd
+	sp.anilistRateLimit.Wait()
 
 	// Get manga from anilist
 	resp, err := sp.client.BaseMangaByID(ctx, &mediaID)

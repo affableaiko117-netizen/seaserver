@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"seanime/internal/api/anilist"
 	"seanime/internal/customsource"
 	"seanime/internal/database/db_bridge"
@@ -10,6 +12,7 @@ import (
 	"seanime/internal/torrentstream"
 	"seanime/internal/util"
 	"seanime/internal/util/result"
+	"sync"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -28,19 +31,57 @@ func (h *Handler) HandleGetLibraryCollection(c echo.Context) error {
 
 	profileID := h.GetProfileID(c)
 
+	// Light mode: return only the profile's AniList lists (no local files, no planning slut).
+	// The frontend fetches this first for instant rendering, then fetches full data lazily.
+	if c.QueryParam("light") == "true" {
+		var animeCollection *anilist.AnimeCollection
+		var err error
+		if profileID > 0 {
+			animeCollection, err = h.App.AnilistClientManager.GetAnimeCollection(profileID)
+			if err != nil || animeCollection == nil {
+				return h.RespondWithData(c, &anime.LibraryCollection{})
+			}
+		} else {
+			animeCollection, err = h.App.GetAnimeCollection(false)
+			if err != nil {
+				return h.RespondWithError(c, err)
+			}
+		}
+
+		// Merge planning slut's collection as the base (all media IDs)
+		var sharedOnlyIDs map[int]struct{}
+		if psCollection, psErr := h.getPlanningSlutAnimeCollectionCached(context.Background(), false); psErr == nil && psCollection != nil {
+			allPsMediaIDs := make(map[int]struct{})
+			for _, list := range psCollection.GetMediaListCollection().GetLists() {
+				for _, entry := range list.GetEntries() {
+					allPsMediaIDs[entry.GetMedia().GetID()] = struct{}{}
+				}
+			}
+			sharedOnlyIDs = mergePlanningSlutAnimeCollection(animeCollection, psCollection, allPsMediaIDs)
+		}
+
+		lc := anime.NewLightLibraryCollection(animeCollection)
+
+		// Hide list data for entries that only come from planning slut
+		if len(sharedOnlyIDs) > 0 {
+			hideSharedOnlyAnimeListData(lc, sharedOnlyIDs)
+		}
+
+		if lc.Stats != nil {
+			lc.Stats.TotalSize = util.Bytes(h.App.TotalLibrarySize)
+		}
+		return h.RespondWithData(c, lc)
+	}
+
 	var animeCollection *anilist.AnimeCollection
 	var err error
 
 	if profileID > 0 {
-		// Non-admin profile: use the manager cache (5-min TTL + singleflight).
-		// Multiple concurrent page loads for the same profile collapse into one
-		// AniList request instead of each firing their own.
 		animeCollection, err = h.App.AnilistClientManager.GetAnimeCollection(profileID)
 		if err != nil || animeCollection == nil {
 			return h.RespondWithData(c, &anime.LibraryCollection{})
 		}
 	} else {
-		// Admin profile: use global platform (with caching)
 		animeCollection, err = h.App.GetAnimeCollection(false)
 		if err != nil {
 			return h.RespondWithError(c, err)
@@ -51,24 +92,15 @@ func (h *Handler) HandleGetLibraryCollection(c echo.Context) error {
 		return h.RespondWithData(c, &anime.LibraryCollection{})
 	}
 
-	// For non-admin profiles: fetch the catalogue (admin/planning-slut) collection so local-file-only
-	// items can always be shown even when the profile hasn't personally tracked them.
-	var catalogueCollection *anilist.AnimeCollection
-	if profileID > 0 {
-		catalogueCollection, _ = h.App.GetAnimeCollection(false)
-	}
-
 	originalAnimeCollection := animeCollection
 
 	var lfs []*anime.LocalFile
 	// If using Nakama's library, fetch it
 	nakamaLibrary, fromNakama := h.App.NakamaManager.GetHostAnimeLibrary(c.Request().Context())
 	if fromNakama {
-		// Save the original anime collection to restore it later
 		originalAnimeCollection = animeCollection.Copy()
 		lfs = nakamaLibrary.LocalFiles
 
-		// Store all media from the user's collection
 		userMediaIds := make(map[int]struct{})
 		userCustomSourceMedia := make(map[string]map[int]struct{})
 		for _, list := range animeCollection.MediaListCollection.GetLists() {
@@ -76,13 +108,10 @@ func (h *Handler) HandleGetLibraryCollection(c echo.Context) error {
 				mId := entry.GetMedia().GetID()
 				userMediaIds[mId] = struct{}{}
 
-				// Add all user custom source media to a map
-				// This will be used to avoid duplicates
 				if customsource.IsExtensionId(mId) {
 					_, localId := customsource.ExtractExtensionData(mId)
 					extensionId, ok := customsource.GetCustomSourceExtensionIdFromSiteUrl(entry.GetMedia().GetSiteURL())
 					if !ok {
-						// couldn't figure out the extension, skip it
 						continue
 					}
 					if _, ok := userCustomSourceMedia[extensionId]; !ok {
@@ -93,7 +122,6 @@ func (h *Handler) HandleGetLibraryCollection(c echo.Context) error {
 			}
 		}
 
-		// Store all custom source media from the Nakama host
 		nakamaCustomSourceMediaIds := make(map[int]struct{})
 		for _, lf := range lfs {
 			if lf.MediaId > 0 {
@@ -103,7 +131,6 @@ func (h *Handler) HandleGetLibraryCollection(c echo.Context) error {
 			}
 		}
 
-		// Find media entries that are missing from the user's collection
 		userMissingAnilistMediaIds := make(map[int]struct{})
 		for _, lf := range lfs {
 			if lf.MediaId > 0 {
@@ -118,12 +145,10 @@ func (h *Handler) HandleGetLibraryCollection(c echo.Context) error {
 
 		nakamaCustomSourceMedia := make(map[int]*anilist.AnimeListEntry)
 
-		// Add missing AniList entries to the user's collection as "Planning"
 		for _, list := range nakamaLibrary.AnimeCollection.MediaListCollection.GetLists() {
 			for _, entry := range list.GetEntries() {
 				mId := entry.GetMedia().GetID()
 				if _, ok := userMissingAnilistMediaIds[mId]; ok {
-					// create a new entry with blank list data
 					newEntry := &anilist.AnimeListEntry{
 						ID:     entry.GetID(),
 						Media:  entry.GetMedia(),
@@ -131,39 +156,29 @@ func (h *Handler) HandleGetLibraryCollection(c echo.Context) error {
 					}
 					animeCollection.MediaListCollection.AddEntryToList(newEntry, anilist.MediaListStatusPlanning)
 				}
-				// Check if the media from a custom source
 				if _, ok := nakamaCustomSourceMediaIds[mId]; ok {
 					nakamaCustomSourceMedia[mId] = entry
 				}
 			}
 		}
 
-		// Add missing custom source entries to the user's collection as "Planning"
-		// We'll find the equivalent
 		if len(nakamaCustomSourceMedia) > 0 {
-			// Go through all custom source media,
-			// For each one, find the extension and replace the generated ID
 			for mId, entry := range nakamaCustomSourceMedia {
-				//extensionIdentifier, localId := customsource.ExtractExtensionData(mId)
 				extensionId, ok := customsource.GetCustomSourceExtensionIdFromSiteUrl(entry.GetMedia().GetSiteURL())
 				if !ok {
-					// couldn't figure out the extension, skip it
 					continue
 				}
 
 				_, localId := customsource.ExtractExtensionData(mId)
 
-				// Find the same extension, if it's not installed, skip it
 				customSource, ok := h.App.ExtensionRepository.GetCustomSourceExtensionByID(extensionId)
 				if !ok {
 					continue
 				}
 
-				// Generate a new ID for the custom source media
 				newId := customsource.GenerateMediaId(customSource.GetExtensionIdentifier(), localId)
 				entry.GetMedia().ID = newId
 
-				// Add the entry if the user doesn't already have it
 				if _, ok := userCustomSourceMedia[extensionId][localId]; !ok {
 					newEntry := &anilist.AnimeListEntry{
 						ID:     entry.GetID(),
@@ -173,7 +188,6 @@ func (h *Handler) HandleGetLibraryCollection(c echo.Context) error {
 					animeCollection.MediaListCollection.AddEntryToList(newEntry, anilist.MediaListStatusPlanning)
 				}
 
-				// Update the local files
 				for _, lf := range lfs {
 					if lf.MediaId == mId {
 						lf.MediaId = newId
@@ -190,38 +204,22 @@ func (h *Handler) HandleGetLibraryCollection(c echo.Context) error {
 		}
 	}
 
-	// For profile users: inject local-file-only items from the catalogue so all local files always show.
-	// Their EntryListData (planning-slut status/score) is then nulled via hideSharedOnlyAnimeListData.
-	sharedOnlyMediaIds := make(map[int]struct{})
-	if !fromNakama && profileID > 0 && catalogueCollection != nil {
-		localMediaIds := make(map[int]struct{})
+	// Merge planning slut's collection as the base.
+	// Only merge entries whose media ID matches a local file so they appear in the library.
+	var sharedOnlyAnimeIDs map[int]struct{}
+	if psCollection, psErr := h.getPlanningSlutAnimeCollectionCached(context.Background(), false); psErr == nil && psCollection != nil {
+		localFileMediaIDs := make(map[int]struct{})
 		for _, lf := range lfs {
 			if lf.MediaId > 0 {
-				localMediaIds[lf.MediaId] = struct{}{}
+				localFileMediaIDs[lf.MediaId] = struct{}{}
 			}
 		}
-		userTrackedIds := make(map[int]struct{})
-		if animeCollection != nil && animeCollection.MediaListCollection != nil {
-			for _, list := range animeCollection.MediaListCollection.GetLists() {
-				for _, entry := range list.GetEntries() {
-					if m := entry.GetMedia(); m != nil {
-						userTrackedIds[m.GetID()] = struct{}{}
-					}
-				}
-			}
-		}
-		localOnlyIds := make(map[int]struct{})
-		for id := range localMediaIds {
-			if _, tracked := userTrackedIds[id]; !tracked {
-				localOnlyIds[id] = struct{}{}
-			}
-		}
-		if len(localOnlyIds) > 0 {
-			sharedOnlyMediaIds = mergePlanningSlutAnimeCollection(animeCollection, catalogueCollection, localOnlyIds)
-		}
+		sharedOnlyAnimeIDs = mergePlanningSlutAnimeCollection(animeCollection, psCollection, localFileMediaIDs)
 	}
 
-	libraryCollection, err := anime.NewLibraryCollection(c.Request().Context(), &anime.NewLibraryCollectionOptions{
+	// Use a background context so that browser refresh/navigation doesn't cancel
+	// in-flight AniList API requests (which would cause "context canceled" errors).
+	libraryCollection, err := anime.NewLibraryCollection(context.Background(), &anime.NewLibraryCollectionOptions{
 		AnimeCollection:     animeCollection,
 		PlatformRef:         h.App.AnilistPlatformRef,
 		LocalFiles:          lfs,
@@ -230,7 +228,11 @@ func (h *Handler) HandleGetLibraryCollection(c echo.Context) error {
 	if err != nil {
 		return h.RespondWithError(c, err)
 	}
-	hideSharedOnlyAnimeListData(libraryCollection, sharedOnlyMediaIds)
+
+	// Hide list data for entries that only come from planning slut (user hasn't touched them)
+	if len(sharedOnlyAnimeIDs) > 0 {
+		hideSharedOnlyAnimeListData(libraryCollection, sharedOnlyAnimeIDs)
+	}
 
 	// Restore the original anime collection if it was modified
 	if fromNakama {
@@ -332,12 +334,15 @@ func (h *Handler) HandleAddUnknownMedia(c echo.Context) error {
 		return h.RespondWithError(c, err)
 	}
 
-	// Add non-added media entries to AniList collection
-	if err := h.App.AnilistPlatformRef.Get().AddMediaToCollection(c.Request().Context(), b.MediaIds); err != nil {
+	// Add non-added media entries to planning slut's AniList collection (the shared base)
+	if err := h.addMediaToPlanningSlutBatch(c.Request().Context(), b.MediaIds); err != nil {
 		return h.RespondWithError(c, errors.New("error: Anilist responded with an error, this is most likely a rate limit issue"))
 	}
 
-	// Bypass the cache and refresh the collection
+	// Invalidate planning slut collection cache so the newly added entries are visible
+	invalidatePlanningSlutCollectionCaches()
+
+	// Bypass the cache and refresh the admin collection
 	animeCollection, err := h.App.GetAnimeCollection(true)
 	if err != nil {
 		return h.RespondWithError(c, errors.New("error: Anilist responded with an error, wait one minute before refreshing"))
@@ -370,4 +375,276 @@ func (h *Handler) HandleAddUnknownMedia(c echo.Context) error {
 
 	return h.RespondWithData(c, animeCollection)
 
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// Anime metadata hydration
+//----------------------------------------------------------------------------------------------------------------------
+
+type AnimeHydrationDetail struct {
+	Timestamp time.Time `json:"timestamp"`
+	MediaID   int       `json:"mediaId"`
+	Title     string    `json:"title"`
+	Action    string    `json:"action"`
+	Message   string    `json:"message,omitempty"`
+}
+
+type AnimeHydrationStatus struct {
+	IsRunning       bool                   `json:"isRunning"`
+	CancelRequested bool                   `json:"cancelRequested"`
+	WasCancelled    bool                   `json:"wasCancelled"`
+	Total           int                    `json:"total"`
+	Processed       int                    `json:"processed"`
+	Hydrated        int                    `json:"hydrated"`
+	Skipped         int                    `json:"skipped"`
+	Failed          int                    `json:"failed"`
+	Progress        float64                `json:"progress"`
+	StartedAt       *time.Time             `json:"startedAt,omitempty"`
+	FinishedAt      *time.Time             `json:"finishedAt,omitempty"`
+	LastUpdatedAt   *time.Time             `json:"lastUpdatedAt,omitempty"`
+	Details         []AnimeHydrationDetail `json:"details"`
+}
+
+var (
+	animeHydrationMu sync.RWMutex
+	animeHydration   = AnimeHydrationStatus{Details: make([]AnimeHydrationDetail, 0)}
+)
+
+func setAnimeHydrationStatus(status AnimeHydrationStatus) {
+	animeHydrationMu.Lock()
+	defer animeHydrationMu.Unlock()
+	if status.Details == nil {
+		status.Details = make([]AnimeHydrationDetail, 0)
+	}
+	animeHydration = status
+}
+
+func updateAnimeHydrationStatus(update func(*AnimeHydrationStatus)) {
+	animeHydrationMu.Lock()
+	defer animeHydrationMu.Unlock()
+	update(&animeHydration)
+}
+
+func getAnimeHydrationStatusSnapshot() AnimeHydrationStatus {
+	animeHydrationMu.RLock()
+	defer animeHydrationMu.RUnlock()
+	copyDetails := make([]AnimeHydrationDetail, len(animeHydration.Details))
+	copy(copyDetails, animeHydration.Details)
+	ret := animeHydration
+	ret.Details = copyDetails
+	return ret
+}
+
+func isAnimeHydrationCancelled() bool {
+	animeHydrationMu.RLock()
+	defer animeHydrationMu.RUnlock()
+	return animeHydration.CancelRequested
+}
+
+func appendAnimeHydrationDetail(status *AnimeHydrationStatus, detail AnimeHydrationDetail) {
+	status.Details = append(status.Details, detail)
+	if len(status.Details) > 100 {
+		status.Details = status.Details[len(status.Details)-100:]
+	}
+}
+
+func updateAnimeHydrationProgress(status *AnimeHydrationStatus) {
+	if status.Total <= 0 {
+		status.Progress = 0
+		return
+	}
+	status.Progress = (float64(status.Processed) / float64(status.Total)) * 100
+	if status.Progress > 100 {
+		status.Progress = 100
+	}
+}
+
+// HandleHydrateAllAnime
+//
+//	@summary hydrates all anime entries by re-fetching metadata from AniList for every unique media ID in local files.
+//	@route /api/v1/library/hydrate-all [POST]
+//	@returns bool
+func (h *Handler) HandleHydrateAllAnime(c echo.Context) error {
+	current := getAnimeHydrationStatusSnapshot()
+	if current.IsRunning {
+		return h.RespondWithData(c, true)
+	}
+
+	now := time.Now()
+	setAnimeHydrationStatus(AnimeHydrationStatus{
+		IsRunning:     true,
+		StartedAt:     &now,
+		LastUpdatedAt: &now,
+		Details:       make([]AnimeHydrationDetail, 0),
+	})
+
+	go h.runAnimeHydrationJob()
+
+	return h.RespondWithData(c, true)
+}
+
+// HandleCancelAnimeHydration
+//
+//	@summary requests cancellation for anime metadata hydration.
+//	@route /api/v1/library/hydrate-all/cancel [POST]
+//	@returns bool
+func (h *Handler) HandleCancelAnimeHydration(c echo.Context) error {
+	updateAnimeHydrationStatus(func(s *AnimeHydrationStatus) {
+		if !s.IsRunning {
+			return
+		}
+		now := time.Now()
+		s.CancelRequested = true
+		s.LastUpdatedAt = &now
+		appendAnimeHydrationDetail(s, AnimeHydrationDetail{Timestamp: now, Action: "cancelled", Message: "cancellation requested"})
+	})
+	return h.RespondWithData(c, true)
+}
+
+// HandleGetAnimeHydrationStatus
+//
+//	@summary returns metadata hydration progress for anime.
+//	@route /api/v1/library/hydrate-all/status [GET]
+//	@returns handlers.AnimeHydrationStatus
+func (h *Handler) HandleGetAnimeHydrationStatus(c echo.Context) error {
+	return h.RespondWithData(c, getAnimeHydrationStatusSnapshot())
+}
+
+func (h *Handler) runAnimeHydrationJob() {
+	defer func() {
+		if r := recover(); r != nil {
+			updateAnimeHydrationStatus(func(s *AnimeHydrationStatus) {
+				now := time.Now()
+				s.IsRunning = false
+				s.Failed++
+				s.FinishedAt = &now
+				s.LastUpdatedAt = &now
+				appendAnimeHydrationDetail(s, AnimeHydrationDetail{Timestamp: now, Action: "failed", Message: "panic recovered during hydration"})
+			})
+		}
+	}()
+
+	// Get local files from DB — NOT from any planning slut or AniList collection
+	lfs, _, err := db_bridge.GetLocalFiles(h.App.Database)
+	if err != nil {
+		updateAnimeHydrationStatus(func(s *AnimeHydrationStatus) {
+			now := time.Now()
+			s.IsRunning = false
+			s.Failed++
+			s.FinishedAt = &now
+			s.LastUpdatedAt = &now
+			appendAnimeHydrationDetail(s, AnimeHydrationDetail{Timestamp: now, Action: "failed", Message: err.Error()})
+		})
+		return
+	}
+
+	// Collect unique media IDs from local files
+	seen := make(map[int]struct{})
+	var mediaIDs []int
+	for _, lf := range lfs {
+		if lf.MediaId <= 0 {
+			continue
+		}
+		if _, ok := seen[lf.MediaId]; ok {
+			continue
+		}
+		seen[lf.MediaId] = struct{}{}
+		mediaIDs = append(mediaIDs, lf.MediaId)
+	}
+
+	updateAnimeHydrationStatus(func(s *AnimeHydrationStatus) {
+		now := time.Now()
+		s.Total = len(mediaIDs)
+		s.LastUpdatedAt = &now
+	})
+
+	for _, mID := range mediaIDs {
+		if isAnimeHydrationCancelled() {
+			updateAnimeHydrationStatus(func(s *AnimeHydrationStatus) {
+				now := time.Now()
+				s.IsRunning = false
+				s.WasCancelled = true
+				s.FinishedAt = &now
+				s.LastUpdatedAt = &now
+				appendAnimeHydrationDetail(s, AnimeHydrationDetail{Timestamp: now, Action: "cancelled", Message: "hydration cancelled"})
+			})
+			return
+		}
+
+		// Use cache-first: GetAnime returns cached data if available,
+		// otherwise fetches fresh from AniList.
+		media, fetchErr := h.App.AnilistPlatformRef.Get().GetAnime(context.Background(), mID)
+		if fetchErr != nil {
+			updateAnimeHydrationStatus(func(s *AnimeHydrationStatus) {
+				s.Processed++
+				s.Failed++
+				updateAnimeHydrationProgress(s)
+				now := time.Now()
+				s.LastUpdatedAt = &now
+				appendAnimeHydrationDetail(s, AnimeHydrationDetail{Timestamp: now, MediaID: mID, Action: "failed", Message: fetchErr.Error()})
+			})
+			h.App.Logger.Warn().Err(fetchErr).Int("mediaId", mID).Msg("anime: failed to hydrate AniList anime")
+			continue
+		}
+
+		title := ""
+		if media != nil {
+			title = media.GetTitleSafe()
+		}
+
+		updateAnimeHydrationStatus(func(s *AnimeHydrationStatus) {
+			s.Processed++
+			s.Hydrated++
+			updateAnimeHydrationProgress(s)
+			now := time.Now()
+			s.LastUpdatedAt = &now
+			appendAnimeHydrationDetail(s, AnimeHydrationDetail{Timestamp: now, MediaID: mID, Title: title, Action: "hydrated"})
+		})
+	}
+
+	// After hydrating metadata, add any media IDs that aren't already in the planning
+	// slut's AniList collection to its planning list so they persist across refreshes.
+	animeCollection, collErr := h.getPlanningSlutAnimeCollectionCached(context.Background(), true)
+	if collErr == nil && animeCollection != nil {
+		collectionMediaIds := make(map[int]struct{})
+		for _, list := range animeCollection.GetMediaListCollection().GetLists() {
+			for _, entry := range list.GetEntries() {
+				collectionMediaIds[entry.GetMedia().GetID()] = struct{}{}
+			}
+		}
+
+		var missingIDs []int
+		for _, mID := range mediaIDs {
+			if _, ok := collectionMediaIds[mID]; !ok {
+				missingIDs = append(missingIDs, mID)
+			}
+		}
+
+		if len(missingIDs) > 0 {
+			updateAnimeHydrationStatus(func(s *AnimeHydrationStatus) {
+				now := time.Now()
+				s.LastUpdatedAt = &now
+				appendAnimeHydrationDetail(s, AnimeHydrationDetail{
+					Timestamp: now,
+					Action:    "hydrated",
+					Message:   fmt.Sprintf("adding %d entries to AniList planning list", len(missingIDs)),
+				})
+			})
+
+			if addErr := h.addMediaToPlanningSlutBatch(context.Background(), missingIDs); addErr != nil {
+				h.App.Logger.Warn().Err(addErr).Msg("anime: failed to add hydrated media to planning slut collection")
+			}
+		}
+	}
+
+	// Invalidate planning slut collection caches so the newly added entries are picked up
+	invalidatePlanningSlutCollectionCaches()
+
+	updateAnimeHydrationStatus(func(s *AnimeHydrationStatus) {
+		now := time.Now()
+		s.IsRunning = false
+		s.FinishedAt = &now
+		s.LastUpdatedAt = &now
+		appendAnimeHydrationDetail(s, AnimeHydrationDetail{Timestamp: now, Action: "completed", Message: "hydration finished"})
+	})
 }

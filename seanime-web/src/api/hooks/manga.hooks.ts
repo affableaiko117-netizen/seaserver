@@ -35,7 +35,7 @@ export type MangaHydrationDetail = {
     source: string
     mediaId: number
     title: string
-    action: "hydrated" | "skipped" | "failed"
+    action: "hydrated" | "skipped" | "failed" | "cancelled"
     message?: string
 }
 

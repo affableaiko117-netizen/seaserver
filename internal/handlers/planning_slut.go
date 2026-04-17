@@ -6,12 +6,21 @@ import (
 	"seanime/internal/api/anilist"
 	"seanime/internal/core"
 	"seanime/internal/database/db"
+	"seanime/internal/util/limiter"
+	"seanime/internal/util/result"
 	libanime "seanime/internal/library/anime"
 	libmanga "seanime/internal/manga"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/samber/lo"
+)
+
+var (
+	planningSlutAnimeCollectionCache = result.NewCache[int, *anilist.AnimeCollection]()
+	planningSlutMangaCollectionCache = result.NewCache[int, *anilist.MangaCollection]()
 )
 
 // HandleSavePlanningSlutToken
@@ -156,7 +165,7 @@ func (h *Handler) HandleGetPlanningSlutInfo(c echo.Context) error {
 	}
 
 	info := map[string]interface{}{
-		"name":     viewer.Viewer.Name,
+		"name":     "Global Library",
 	}
 	if viewer.Viewer.Avatar != nil {
 		info["avatar"] = viewer.Viewer.Avatar.Large
@@ -250,6 +259,78 @@ func (h *Handler) addAnimeToPlanningSlutPlanning(ctx context.Context, mediaID in
 	status := anilist.MediaListStatusPlanning
 	_, err = client.UpdateMediaListEntry(ctx, &mediaID, &status, nil, nil, nil, nil)
 	return err
+}
+
+// getPlanningSlutAnimeCollectionCached returns the planning slut's anime collection,
+// using a 5-minute in-memory cache to avoid hammering AniList on every page load.
+func (h *Handler) getPlanningSlutAnimeCollectionCached(ctx context.Context, bypassCache bool) (*anilist.AnimeCollection, error) {
+	if !bypassCache {
+		if cached, ok := planningSlutAnimeCollectionCache.Get(1); ok {
+			return cached, nil
+		}
+	}
+	col, err := h.getPlanningSlutAnimeCollection(ctx)
+	if err != nil {
+		return nil, err
+	}
+	planningSlutAnimeCollectionCache.SetT(1, col, 5*time.Minute)
+	return col, nil
+}
+
+// getPlanningSlutMangaCollectionCached returns the planning slut's manga collection,
+// using a 5-minute in-memory cache.
+func (h *Handler) getPlanningSlutMangaCollectionCached(ctx context.Context, bypassCache bool) (*anilist.MangaCollection, error) {
+	if !bypassCache {
+		if cached, ok := planningSlutMangaCollectionCache.Get(1); ok {
+			return cached, nil
+		}
+	}
+	col, err := h.getPlanningSlutMangaCollection(ctx)
+	if err != nil {
+		return nil, err
+	}
+	planningSlutMangaCollectionCache.SetT(1, col, 5*time.Minute)
+	return col, nil
+}
+
+// invalidatePlanningSlutCollectionCaches clears both anime and manga caches
+// so the next request fetches fresh data from AniList.
+func invalidatePlanningSlutCollectionCaches() {
+	planningSlutAnimeCollectionCache.Clear()
+	planningSlutMangaCollectionCache.Clear()
+}
+
+// addMediaToPlanningSlutBatch adds multiple media IDs to the planning slut's
+// AniList PLANNING list with rate limiting (1 req/sec).
+func (h *Handler) addMediaToPlanningSlutBatch(ctx context.Context, mediaIDs []int) error {
+	if len(mediaIDs) == 0 {
+		return nil
+	}
+	client, err := h.getPlanningSlutClient()
+	if err != nil {
+		return err
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	rateLimiter := limiter.NewLimiter(1*time.Second, 1)
+	status := anilist.MediaListStatusPlanning
+
+	wg := sync.WaitGroup{}
+	for _, _id := range mediaIDs {
+		wg.Add(1)
+		go func(id int) {
+			rateLimiter.Wait()
+			defer wg.Done()
+			_, err := client.UpdateMediaListEntry(ctx, &id, &status, lo.ToPtr(0), lo.ToPtr(0), nil, nil)
+			if err != nil {
+				h.App.Logger.Error().Err(err).Int("mediaId", id).Msg("planning slut: failed to add media to planning list")
+			}
+		}(_id)
+	}
+	wg.Wait()
+	return nil
 }
 
 func mergePlanningSlutAnimeCollection(target *anilist.AnimeCollection, shared *anilist.AnimeCollection, mediaIDs map[int]struct{}) map[int]struct{} {
