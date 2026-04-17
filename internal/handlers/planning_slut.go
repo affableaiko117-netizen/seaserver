@@ -387,15 +387,16 @@ func hideSharedOnlyAnimeListData(collection *libanime.LibraryCollection, mediaID
 	}
 }
 
-// stripSharedOnlyFromPlanningList removes entries that exist ONLY because of
-// the planning slut merge from the PLANNING list. These entries have local
-// files (so they appear in the "Local" list already) but should not create
-// visible "Planning" entries.
-func stripSharedOnlyFromPlanningList(collection *libanime.LibraryCollection, mediaIDs map[int]struct{}) {
+// relocatePlanningSlutEntriesToLocal moves entries that exist ONLY because of
+// the planning slut merge out of the PLANNING list and into the LOCAL list.
+// This keeps the PS metadata (title, images) while showing them as local files.
+func relocatePlanningSlutEntriesToLocal(collection *libanime.LibraryCollection, mediaIDs map[int]struct{}) {
 	if collection == nil || len(mediaIDs) == 0 {
 		return
 	}
 
+	// Collect entries to relocate and strip them from PLANNING
+	var relocated []*libanime.LibraryCollectionEntry
 	for _, list := range collection.Lists {
 		if list.Status != anilist.MediaListStatusPlanning {
 			continue
@@ -403,12 +404,37 @@ func stripSharedOnlyFromPlanningList(collection *libanime.LibraryCollection, med
 		filtered := make([]*libanime.LibraryCollectionEntry, 0, len(list.Entries))
 		for _, entry := range list.Entries {
 			if _, isShared := mediaIDs[entry.MediaId]; isShared {
-				continue // Drop: this entry only exists because of the planning slut merge
+				entry.EntryListData = nil
+				relocated = append(relocated, entry)
+				continue
 			}
 			filtered = append(filtered, entry)
 		}
 		list.Entries = filtered
 	}
+
+	if len(relocated) == 0 {
+		return
+	}
+
+	// Find or create the LOCAL list
+	var localList *libanime.LibraryCollectionList
+	for _, list := range collection.Lists {
+		if list.Status == libanime.MediaListStatusLocal {
+			localList = list
+			break
+		}
+	}
+	if localList == nil {
+		localList = &libanime.LibraryCollectionList{
+			Type:    libanime.MediaListStatusLocal,
+			Status:  libanime.MediaListStatusLocal,
+			Entries: make([]*libanime.LibraryCollectionEntry, 0),
+		}
+		collection.Lists = append([]*libanime.LibraryCollectionList{localList}, collection.Lists...)
+	}
+
+	localList.Entries = append(localList.Entries, relocated...)
 }
 
 // stripSharedOnlyFromMangaPlanningList is the manga equivalent.

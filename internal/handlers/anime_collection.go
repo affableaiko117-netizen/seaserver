@@ -80,13 +80,14 @@ func (h *Handler) HandleGetLibraryCollection(c echo.Context) error {
 		return h.RespondWithData(c, &anime.LibraryCollection{})
 	}
 
-	originalAnimeCollection := animeCollection
+	// Copy the anime collection so that PS and Nakama mutations don't corrupt
+	// the AnilistClientManager's cached pointer.
+	animeCollection = animeCollection.Copy()
 
 	var lfs []*anime.LocalFile
 	// If using Nakama's library, fetch it
 	nakamaLibrary, fromNakama := h.App.NakamaManager.GetHostAnimeLibrary(c.Request().Context())
 	if fromNakama {
-		originalAnimeCollection = animeCollection.Copy()
 		lfs = nakamaLibrary.LocalFiles
 
 		userMediaIds := make(map[int]struct{})
@@ -192,12 +193,21 @@ func (h *Handler) HandleGetLibraryCollection(c echo.Context) error {
 		}
 	}
 
+	// Merge planning slut's collection as the base.
+	// Only merge entries whose media ID matches a local file so metadata (title, images) is available.
+	var sharedOnlyAnimeIDs map[int]struct{}
+	if psCollection, psErr := h.getPlanningSlutAnimeCollectionCached(context.Background(), false); psErr == nil && psCollection != nil {
+		localFileMediaIDs := make(map[int]struct{})
+		for _, lf := range lfs {
+			if lf.MediaId > 0 {
+				localFileMediaIDs[lf.MediaId] = struct{}{}
+			}
+		}
+		sharedOnlyAnimeIDs = mergePlanningSlutAnimeCollection(animeCollection, psCollection, localFileMediaIDs)
+	}
+
 	// Use a background context so that browser refresh/navigation doesn't cancel
 	// in-flight AniList API requests (which would cause "context canceled" errors).
-	// NOTE: Planning slut entries are NOT merged into the collection here. Local files
-	// whose MediaId is not in the user's AniList collection are surfaced naturally via
-	// the LOCAL list in NewLibraryCollection (which fetches metadata from the platform),
-	// keeping the user's Planning list clean.
 	libraryCollection, err := anime.NewLibraryCollection(context.Background(), &anime.NewLibraryCollectionOptions{
 		AnimeCollection:     animeCollection,
 		PlatformRef:         h.App.AnilistPlatformRef,
@@ -208,10 +218,13 @@ func (h *Handler) HandleGetLibraryCollection(c echo.Context) error {
 		return h.RespondWithError(c, err)
 	}
 
-	// Restore the original anime collection if it was modified
-	if fromNakama {
-		*animeCollection = *originalAnimeCollection
+	// Move PS-only entries from PLANNING into the LOCAL list so they appear
+	// as local files with metadata, not as planning list entries.
+	if len(sharedOnlyAnimeIDs) > 0 {
+		relocatePlanningSlutEntriesToLocal(libraryCollection, sharedOnlyAnimeIDs)
 	}
+
+
 
 	if !fromNakama {
 		if (h.App.SecondarySettings.Torrentstream != nil && h.App.SecondarySettings.Torrentstream.Enabled && h.App.SecondarySettings.Torrentstream.IncludeInLibrary) ||
