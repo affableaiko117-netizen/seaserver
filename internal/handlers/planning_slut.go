@@ -387,6 +387,51 @@ func hideSharedOnlyAnimeListData(collection *libanime.LibraryCollection, mediaID
 	}
 }
 
+// stripSharedOnlyFromPlanningList removes entries that exist ONLY because of
+// the planning slut merge from the PLANNING list. These entries have local
+// files (so they appear in the "Local" list already) but should not create
+// visible "Planning" entries.
+func stripSharedOnlyFromPlanningList(collection *libanime.LibraryCollection, mediaIDs map[int]struct{}) {
+	if collection == nil || len(mediaIDs) == 0 {
+		return
+	}
+
+	for _, list := range collection.Lists {
+		if list.Status != anilist.MediaListStatusPlanning {
+			continue
+		}
+		filtered := make([]*libanime.LibraryCollectionEntry, 0, len(list.Entries))
+		for _, entry := range list.Entries {
+			if _, isShared := mediaIDs[entry.MediaId]; isShared {
+				continue // Drop: this entry only exists because of the planning slut merge
+			}
+			filtered = append(filtered, entry)
+		}
+		list.Entries = filtered
+	}
+}
+
+// stripSharedOnlyFromMangaPlanningList is the manga equivalent.
+func stripSharedOnlyFromMangaPlanningList(collection *libmanga.Collection, mediaIDs map[int]struct{}) {
+	if collection == nil || len(mediaIDs) == 0 {
+		return
+	}
+
+	for _, list := range collection.Lists {
+		if list.Status != anilist.MediaListStatusPlanning {
+			continue
+		}
+		filtered := make([]*libmanga.CollectionEntry, 0, len(list.Entries))
+		for _, entry := range list.Entries {
+			if _, isShared := mediaIDs[entry.MediaId]; isShared {
+				continue
+			}
+			filtered = append(filtered, entry)
+		}
+		list.Entries = filtered
+	}
+}
+
 func mergePlanningSlutMangaCollection(target *anilist.MangaCollection, shared *anilist.MangaCollection, mediaIDs map[int]struct{}) map[int]struct{} {
 	added := make(map[int]struct{})
 	if target == nil || shared == nil || len(mediaIDs) == 0 {
