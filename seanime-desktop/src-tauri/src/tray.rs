@@ -16,7 +16,7 @@ pub fn create_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
         true,
         None::<&str>,
     )?;
-    let accessory_mode_i = MenuItem::with_id(
+    let _accessory_mode_i = MenuItem::with_id(
         app,
         "accessory_mode",
         "Remove from dock",
@@ -30,19 +30,17 @@ pub fn create_tray<R: Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<()> {
         true,
         None::<&str>,
     )?;
-    let mut items: Vec<&dyn tauri::menu::IsMenuItem<R>> = vec![&toggle_visibility_i, &change_server_i, &quit_i];
+    let items: Vec<&dyn tauri::menu::IsMenuItem<R>> = vec![&toggle_visibility_i, &change_server_i, &quit_i];
 
     #[cfg(target_os = "macos")]
-    {
-        items = vec![&toggle_visibility_i, &change_server_i, &accessory_mode_i, &quit_i];
-    }
+    let items: Vec<&dyn tauri::menu::IsMenuItem<R>> = vec![&toggle_visibility_i, &change_server_i, &_accessory_mode_i, &quit_i];
 
     let menu = Menu::with_items(app, &items)?;
 
     let _ = TrayIconBuilder::with_id("tray")
         .icon(app.default_window_icon().unwrap().clone())
         .menu(&menu)
-        .menu_on_left_click(false)
+        .show_menu_on_left_click(false)
         .on_menu_event(move |app, event| match event.id.as_ref() {
             "quit" => {
                 app.exit(0);
