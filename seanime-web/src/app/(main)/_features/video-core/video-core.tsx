@@ -321,6 +321,7 @@ const PlayerContent = React.memo<PlayerContentProps>(({
     const [autoPlay] = useAtom(vc_autoPlayVideoAtom)
     const [muted] = useAtom(vc_storedMutedAtom)
     const showStats = useAtomValue(vc_showStatsForNerdsAtom)
+    const fullscreen = useAtomValue(vc_isFullscreen)
 
     return (
         <>
@@ -362,7 +363,7 @@ const PlayerContent = React.memo<PlayerContentProps>(({
                 onMouseEnter={handleContainerMouseEnter}
                 onMouseLeave={handleContainerMouseLeave}
             >
-                {state.playbackInfo?.media?.coverImage?.extraLarge && (
+                {state.playbackInfo?.media?.coverImage?.extraLarge && !fullscreen && (
                     <div
                         data-vc-element="background-blur"
                         className="absolute inset-0 z-[0] overflow-hidden pointer-events-none"
@@ -1594,7 +1595,7 @@ export function VideoCore(props: VideoCoreProps) {
                     className={cn(
                         "relative w-full h-full",
                         inlineClassName,
-                        fullscreen && "fixed z-[99999] inset-0",
+                        fullscreen && "fixed z-[99999] inset-0 bg-black",
                     )}
                 >
                     <PlayerContent

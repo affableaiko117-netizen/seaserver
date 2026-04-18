@@ -158,7 +158,7 @@ export function VideoCoreControlBar(props: {
                     "pointer-events-none",
                     "absolute bottom-0 left-0 right-0 w-full z-[5] h-28 transition-opacity duration-300 opacity-0",
                     "bg-gradient-to-t to-transparent",
-                    !isMiniPlayer ? "from-black/40" : "from-black/80 via-black/40",
+                    !isMiniPlayer ? "from-black/70" : "from-black/80 via-black/40",
                     isMiniPlayer && "h-20",
                     !hideShadow && "opacity-100",
                 )}
