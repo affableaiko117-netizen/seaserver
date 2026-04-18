@@ -72,10 +72,13 @@ pub fn run() {
     ));
     let server_process_for_setup = Arc::clone(&server_process);
     let server_process_for_restart = Arc::clone(&server_process);
+    let server_process_for_exit = Arc::clone(&server_process);
+    let server_process_for_exit_inner = Arc::clone(&server_process);
     //
     let is_shutdown = Arc::new(Mutex::new(false));
     let is_shutdown_for_setup = Arc::clone(&is_shutdown);
     let is_shutdown_for_restart = Arc::clone(&is_shutdown);
+    let is_shutdown_for_exit = Arc::clone(&is_shutdown);
 
     let server_started = Arc::new(Mutex::new(false));
     let server_started_for_setup = Arc::clone(&server_started);
@@ -185,26 +188,26 @@ pub fn run() {
                 );
             });
 
-            let app_handle_1 = app.handle().clone();
-            let main_window_clone = main_window.clone();
+            let _app_handle_1 = app.handle().clone();
+            let _main_window_clone = main_window.clone();
             main_window.listen("macos-activation-policy-accessory", move |_| {
                 println!("EVENT macos-activation-policy-accessory");
                 #[cfg(target_os = "macos")]
                 {
-                    if let Err(e) = app_handle_1.set_activation_policy(tauri::ActivationPolicy::Accessory) {
+                    if let Err(e) = _app_handle_1.set_activation_policy(tauri::ActivationPolicy::Accessory) {
                         eprintln!("Failed to set activation policy to accessory: {}", e);
                     } else {
-                        if let Err(e) = main_window_clone.show() {
+                        if let Err(e) = _main_window_clone.show() {
                             eprintln!("Failed to show main window: {}", e);
                         }
-                        if let Err(e) = main_window_clone.set_fullscreen(true) {
+                        if let Err(e) = _main_window_clone.set_fullscreen(true) {
                             eprintln!("Failed to set fullscreen: {}", e);
                         } else {
                             std::thread::sleep(std::time::Duration::from_millis(150));
-                            if let Err(e) = main_window_clone.set_focus() {
+                            if let Err(e) = _main_window_clone.set_focus() {
                                 eprintln!("Failed to set focus after fullscreen: {}", e);
                             }
-                            main_window_clone.emit("macos-activation-policy-accessory-done", "").unwrap();
+                            _main_window_clone.emit("macos-activation-policy-accessory-done", "").unwrap();
                         }
                     }
                 }
@@ -212,11 +215,11 @@ pub fn run() {
 
             // main_window.on_window_event()
 
-            let app_handle_2 = app.handle().clone();
+            let _app_handle_2 = app.handle().clone();
             main_window.listen("macos-activation-policy-regular", move |_| {
                 println!("EVENT macos-activation-policy-regular");
                 #[cfg(target_os = "macos")]
-                app_handle_2
+                _app_handle_2
                     .set_activation_policy(tauri::ActivationPolicy::Regular)
                     .unwrap();
             });
@@ -226,10 +229,8 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while running tauri application")
         .run({
-            let server_process_for_exit = Arc::clone(&server_process);
-            let is_shutdown_for_exit = Arc::clone(&is_shutdown);
             move |app, event| {
-                let server_process_for_exit_ = Arc::clone(&server_process);
+                let server_process_for_exit_ = Arc::clone(&server_process_for_exit_inner);
                 app.listen("kill-server", move |_| {
                     let mut child_guard = server_process_for_exit_.lock().unwrap();
                     if let Some(child) = child_guard.take() {
