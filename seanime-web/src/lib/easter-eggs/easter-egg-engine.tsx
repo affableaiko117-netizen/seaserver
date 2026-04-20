@@ -1,6 +1,7 @@
 "use client"
 
 import React, { createContext, useCallback, useContext, useEffect, useRef } from "react"
+import { usePathname } from "next/navigation"
 import { toast } from "sonner"
 import { useServerMutation } from "@/api/client/requests"
 import { API_ENDPOINTS } from "@/api/generated/endpoints"
@@ -74,7 +75,21 @@ export function EasterEggEngine({ children }: { children: React.ReactNode }) {
         discoverEgg({ eggId })
     }, [discoverEgg])
 
+    const pathname = usePathname()
+
     // ── Global listeners ───────────────────────────────────────────────────────
+
+    // Page-visit triggers — fire whenever pathname changes
+    useEffect(() => {
+        if (!pathname) return
+        const PAGE_EGGS = EASTER_EGG_DEFINITIONS.filter(e => e.trigger === "page-visit")
+        for (const egg of PAGE_EGGS) {
+            if (egg.pagePath && pathname.startsWith(egg.pagePath)) {
+                trigger(egg.id)
+            }
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [pathname])
 
     // Sequence buffer for keyboard-based triggers
     const keyBufferRef = useRef<string[]>([])
@@ -133,15 +148,12 @@ export function EasterEggEngine({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         const now = new Date()
         const hour = now.getHours()
-        const dayOfWeek = now.getDay() // 0=Sun, 5=Fri
+        const dayOfWeek = now.getDay()
 
         for (const egg of EASTER_EGG_DEFINITIONS) {
             if (egg.trigger !== "time-of-day") continue
             let matches = egg.hour === hour
-            // Friday night: must also be Friday
-            if (egg.id === "friday-night") matches = matches && dayOfWeek === 5
-            // Monday morning: must also be Monday
-            if (egg.id === "monday-morning") matches = matches && dayOfWeek === 1
+            if (egg.dayOfWeek !== undefined) matches = matches && egg.dayOfWeek === dayOfWeek
             if (matches) trigger(egg.id)
         }
     }, [trigger])

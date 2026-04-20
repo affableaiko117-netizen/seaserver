@@ -606,6 +606,288 @@ export const narutoTheme: AnimeThemeConfig = {
         "m_world_record": "Personal Scroll Record",
         "m_genre_clash": "Genre Clash Scroll",
         "m_time_traveler": "Scroll Time Traveler",
+
+        // ── ANIME MILESTONES (additions) ──
+        "a_five_thousand_eps": "Five Thousand Shadow Clones",
+        "a_ten_completed": "Ten Missions Accomplished",
+        "a_fifty_completed": "Fifty-Mission Jonin",
+        "a_five_hundred_completed": "Five Hundred Jutsu Victories",
+        "a_mean_score_tracker": "Average Mission Rating",
+        "a_unique_studios": "Allied Village Count",
+        "a_days_spent_watching": "Days in Hidden Leaf",
+        "a_all_status": "All Ninja Status Logged",
+        "a_first_favorite": "First Comrade Seal",
+        "a_favorites_collector": "Bonds of the Leaf Village",
+
+        // ── ANIME BINGE (additions) ──
+        "a_genre_binge": "Cross-Style Jutsu Binge",
+        "a_studio_binge": "Allied Village Marathon",
+        "a_season_sweep": "Season Sweep Jutsu",
+        "a_forty_eight_hour": "Forty-Eight Hour Endurance",
+        "a_ep_counter_day": "Daily Episode Mission Count",
+        "a_multi_series_binge": "Multi-Front Ninja Training",
+        "a_midnight_binge": "Midnight Chakra Surge",
+        "a_new_year_binge": "New Year's Rasengan Burst",
+
+        // ── ANIME GENRES (additions) ──
+        "a_tag_isekai": "Summoned to Another Dimension",
+        "a_tag_harem": "Konoha Fan Club",
+        "a_tag_bl": "Brothers in Arms Bond",
+        "a_tag_gl": "Kunoichi Sisters Bond",
+        "a_tag_historical": "First Hokage's Legacy",
+        "a_tag_military": "Shinobi Military Tactics",
+        "a_tag_school": "Ninja Academy",
+        "a_tag_martial_arts": "Taijutsu Specialist",
+        "a_tag_vampire": "Jashin Curse Blood",
+        "a_tag_samurai": "Land of Iron Blade",
+        "a_tag_space": "Kaguya's Dimension",
+        "a_tag_parody": "Konohamaru Sexy Jutsu",
+        "a_tag_idol": "Hidden Leaf Idol",
+        "a_tag_post_apocalyptic": "Post-Fourth Ninja War",
+        "a_tag_cyberpunk": "Scientific Ninja Tools",
+        "a_tag_shounen": "This is My Nindo",
+        "a_tag_seinen": "Mature Shinobi Reality",
+        "a_tag_shoujo": "Sakura's Inner Fire",
+        "a_tag_josei": "Kunoichi's World View",
+        "a_tag_survival": "Shinobi World Survival",
+
+        // ── ANIME COMPLETION (additions) ──
+        "a_multi_rewatch": "Multi-Shadow Clone Rewatch",
+        "a_dropped_recovery": "Mission Revival Jutsu",
+        "a_ten_perfect_scores": "Ten Perfect Mission Scores",
+        "a_seasonal_clear": "Seasonal Arc Cleared",
+        "a_complete_genre_span": "All Jutsu Style Mastery",
+        "a_monthly_completions": "Monthly Mission Completions",
+        "a_yearly_completions": "Yearly Ninja Campaign",
+        "a_rapid_complete": "Shunshin Speed Clear",
+
+        // ── ANIME DEDICATION (additions) ──
+        "a_genre_master": "Jutsu Genre Mastery",
+        "a_staff_follower": "Sensei Roster Tracker",
+        "a_multi_season_fan": "Multi-Season Ninja Fan",
+        "a_format_diversity": "All Jutsu Format Diversity",
+        "a_year_dedication": "Year of Nindo Dedication",
+        "a_season_dedication": "Season of Ninja Devotion",
+
+        // ── ANIME DISCOVERY (additions) ──
+        "a_top_rated_viewer": "Top-Ranked Mission Intel",
+        "a_source_variety": "Source Material Diversity",
+        "a_low_score_brave": "D-Rank Scroll Bravery",
+        "a_upcoming_watcher": "Upcoming Mission Scouting",
+        "a_short_series_explorer": "Short Mission Explorer",
+        "a_long_series_explorer": "Long Campaign Explorer",
+
+        // ── ANIME TIME (additions) ──
+        "a_weekend_binge_hours": "Weekend Training Marathon",
+        "a_late_night_regular": "Late Night ANBU Regular",
+        "a_sunrise_watcher": "Sunrise Over Konoha",
+        "a_holiday_watcher": "Leaf Village Festival Watch",
+        "a_every_day_of_week": "Every Day a Shinobi",
+        "a_monthly_hours": "Monthly Training Hours",
+
+        // ── ANIME SOCIAL (additions) ──
+        "a_genre_party": "Cross-Style Squad Formation",
+        "a_weekly_party": "Weekly Comrades Gathering",
+        "a_silent_viewer": "Silent Sasuke Watcher",
+        "a_recommendation_giver": "Sensei's Recommendation",
+        "a_party_completionist": "Squad Mission Completionist",
+        "a_social_scorer": "Alliance Combat Scorer",
+
+        // ── ANIME SPECIAL (additions) ──
+        "a_double_digits": "Double Digit Hand Seals",
+        "a_one_two_three": "Ichi Ni San Jutsu",
+        "a_lucky_seven": "Seven Lucky Ninja",
+        "a_all_tens": "All Tens Jutsu Score",
+        "a_exact_hundred_eps": "Hundred Episode Milestone",
+        "a_year_match_count": "Year Match Chakra Count",
+
+        // ── ANIME FORMATS (additions) ──
+        "a_cm_watcher": "Commercial Break Watcher",
+        "a_pv_collector": "Preview Jutsu Collector",
+        "a_format_balance": "Balanced Jutsu Formats",
+        "a_episodic_master": "Episodic Mission Master",
+        "a_sequel_movie": "Sequel Film Jutsu",
+        "a_recap_watcher": "Recap Briefing Watcher",
+
+        // ── ANIME STREAKS (additions) ──
+        "a_completion_streak": "Mission Completion Chain",
+        "a_rating_streak": "Rating Mission Streak",
+        "a_multi_ep_streak": "Multi-Episode Offensive",
+        "a_genre_streak": "Genre Streak Training",
+        "a_studio_streak": "Studio Village Loyalty",
+        "a_perfect_week": "Perfect Week of Training",
+
+        // ── ANIME SCORING (additions) ──
+        "a_masterpiece_hunter": "Masterpiece Jutsu Hunter",
+        "a_contrarian": "Contrarian Ninja Path",
+        "a_optimist": "Undying Leaf Optimism",
+        "a_score_distributor": "Score Distributor Hokage",
+        "a_genre_critic": "Genre Mission Critic",
+        "a_mean_above_8": "Elite Jutsu Average",
+
+        // ── ANIME HOLIDAY (additions) ──
+        "a_earth_day": "Protect the Ninja World",
+        "a_labor_day": "Genin Corps Labor Day",
+        "a_winter_solstice": "Winter Training Ground",
+        "a_anime_birthday": "Series Anniversary Ninja",
+        "a_every_holiday": "Every Festival Watcher",
+        "a_consecutive_holidays": "Consecutive Festival Missions",
+
+        // ── ANIME META ──
+        "a_meta_first_unlock": "First Jutsu Unlocked",
+        "a_meta_collector": "Achievement Badge Collector",
+        "a_meta_category_starter": "Category Initiation Seal",
+        "a_meta_tier_climber": "Rank Promotion",
+        "a_meta_tier_max": "Hokage-Class Achiever",
+        "a_meta_xp_earner": "XP from Chakra Training",
+        "a_meta_difficulty_easy": "Easy D-Rank Mission",
+        "a_meta_difficulty_hard": "Legendary S-Rank Challenge",
+        "a_meta_unlock_spree": "Achievement Burst Jutsu",
+        "a_meta_completionist": "Meta Completionist Hokage",
+        "a_meta_diverse": "Diverse Ninja Portfolio",
+        "a_meta_dominator": "Meta Dominator Shinobi",
+
+        // ── MANGA MILESTONES (additions) ──
+        "m_five_thousand_ch": "Five Thousand Seal Chapters",
+        "m_ten_completed": "Ten Scroll Missions Done",
+        "m_fifty_completed": "Fifty Scroll Completions",
+        "m_five_hundred_completed": "Five Hundred Scroll Victories",
+        "m_mean_score_tracker": "Average Scroll Grade",
+        "m_unique_authors": "Unique Sensei Counted",
+        "m_all_status": "All Scroll Statuses",
+        "m_first_favorite": "First Scroll Favorite",
+        "m_favorites_collector": "Scroll Favorites Sealed",
+        "m_days_spent_reading": "Days in the Scroll Archives",
+
+        // ── MANGA BINGE (additions) ──
+        "m_genre_binge": "Cross-Genre Scroll Binge",
+        "m_author_binge": "Sensei Author Deep Dive",
+        "m_chapter_counter_day": "Daily Seal Chapter Count",
+        "m_multi_series_binge": "Multi-Series Scroll Front",
+        "m_midnight_binge": "Midnight Scroll Immersion",
+        "m_new_year_binge": "New Year's Scroll Burst",
+        "m_forty_eight_hour": "Forty-Eight Hour Scroll Read",
+        "m_oneshot_binge": "Oneshot Jutsu Blitz",
+
+        // ── MANGA GENRES (additions) ──
+        "m_tag_isekai_new": "Summoning Scroll World",
+        "m_tag_harem": "Fan Club Scroll",
+        "m_tag_bl": "Brotherly Scroll Bond",
+        "m_tag_gl": "Kunoichi Scroll Sisters",
+        "m_tag_historical": "Senju History Scroll",
+        "m_tag_military": "Military Ninja Scroll",
+        "m_tag_school": "Academy Scroll",
+        "m_tag_martial_arts": "Taijutsu Combat Scroll",
+        "m_tag_vampire": "Jashin Cult Scroll",
+        "m_tag_samurai": "Land of Iron Scroll",
+        "m_tag_space": "Dimension Rift Scroll",
+        "m_tag_parody": "Chibi Leaf Scroll Parody",
+        "m_tag_idol": "Village Pop Idol Scroll",
+        "m_tag_post_apocalyptic": "Post-War Scroll",
+        "m_tag_cyberpunk": "Sci-Ninja Tool Scroll",
+        "m_tag_shoujo": "Sakura's Inner Scroll",
+        "m_tag_survival": "Survival Scroll Arc",
+        "m_tag_cooking": "Choji's Cookbook Scroll",
+        "m_tag_medical": "Medical Nin Scroll",
+        "m_tag_villainess": "Root Operative Scroll",
+
+        // ── MANGA COMPLETION (additions) ──
+        "m_multi_reread": "Multi-Pass Scroll Session",
+        "m_dropped_recovery": "Scroll Comeback Jutsu",
+        "m_ten_perfect_scores": "Ten Perfect Seal Grades",
+        "m_complete_genre_span": "All Genre Scroll Scout",
+        "m_monthly_completions": "Monthly Scroll Victories",
+        "m_yearly_completions": "Yearly Scroll Campaign",
+        "m_rapid_complete": "Shunshin Scroll Clear",
+        "m_author_complete": "Sensei's Full Works Read",
+
+        // ── MANGA DEDICATION (additions) ──
+        "m_genre_master": "Genre Scroll Mastery",
+        "m_multi_series_author": "Multi-Series Sensei Fan",
+        "m_format_diversity": "Diverse Scroll Formats",
+        "m_year_dedication": "Year of Scroll Dedication",
+        "m_ongoing_follower": "Ongoing Scroll Follower",
+        "m_genre_loyalty_50": "Fifty Chapter Genre Loyalty",
+
+        // ── MANGA DISCOVERY (additions) ──
+        "m_top_rated_reader": "Top-Ranked Scroll Source",
+        "m_source_variety": "Source Scroll Diversity",
+        "m_low_score_brave": "Low-Rank Scroll Courage",
+        "m_short_manga_explorer": "Short Mission Scroll",
+        "m_long_manga_explorer": "Long Campaign Scroll",
+        "m_serialization_explorer": "Serialization Scroll Explorer",
+
+        // ── MANGA TIME (additions) ──
+        "m_weekend_binge_hours": "Weekend Scroll Training Ops",
+        "m_late_night_regular": "Late Night Scroll Sentinel",
+        "m_sunrise_reader": "Sunrise Over the Leaf Reader",
+        "m_every_day_of_week": "Every Day Scroll Duty",
+        "m_monthly_hours": "Monthly Scroll Hours Logged",
+        "m_bedtime_reader": "Bedtime Barracks Scroll",
+
+        // ── MANGA CREATIVE (additions) ──
+        "m_vertical_scroll": "Vertical Scroll Format",
+        "m_traditional_format": "Traditional Manga Format",
+        "m_cross_media": "Cross-Media Ninja Intel",
+        "m_spinoff_reader": "Spinoff Scroll Arc",
+        "m_remake_reader": "Remake Scroll Mission",
+        "m_collaboration_reader": "Joint Operation Scroll",
+
+        // ── MANGA STREAKS (additions) ──
+        "m_completion_streak": "Scroll Completion Chain",
+        "m_rating_streak": "Scroll Rating Filed",
+        "m_multi_ch_streak": "Multi-Chapter Streak",
+        "m_author_streak": "Sensei Dedication Streak",
+        "m_perfect_week_manga": "Perfect Scroll Reading Week",
+        "m_diverse_streak": "Diverse Scroll Streak",
+
+        // ── MANGA SCORING (additions) ──
+        "m_masterpiece_hunter": "Masterpiece Scroll Hunt",
+        "m_contrarian": "Contrarian Scroll Opinion",
+        "m_optimist": "Leaf Village Scroll Optimist",
+        "m_score_distributor": "Score Distributor Sensei",
+        "m_genre_critic": "Genre Scroll Critic",
+        "m_mean_above_8": "Elite Scroll Average",
+
+        // ── MANGA HOLIDAY (additions) ──
+        "m_earth_day": "Earth Day Scroll Read",
+        "m_labor_day": "Genin Labor Scroll Day",
+        "m_winter_solstice": "Winter Solstice Scroll",
+        "m_manga_birthday": "Manga Anniversary Ninja",
+        "m_every_holiday_reader": "Every Festival Reader",
+        "m_consecutive_holidays": "Consecutive Festival Reads",
+
+        // ── MANGA SPECIAL (additions) ──
+        "m_double_digits": "Double Digit Seal Read",
+        "m_one_two_three": "Three Seals Pattern",
+        "m_lucky_seven": "Seven Lucky Scroll Signs",
+        "m_exact_hundred_ch": "Exactly One Hundred Scrolls",
+        "m_year_match_count": "Year Match Seal Count",
+        "m_chapter_match_date": "Chapter Date Alignment",
+
+        // ── MANGA FORMATS ──
+        "m_manga_format": "Manga Format Specialist",
+        "m_manhwa_format": "Korean Scroll Style",
+        "m_manhua_format": "Chinese Scroll Style",
+        "m_ln_format": "Light Novel Scroll",
+        "m_oneshot_format": "Oneshot Seal Format",
+        "m_doujin_format": "Underground Doujin Scroll",
+        "m_novel_format": "Novel Scroll Format",
+        "m_format_master_manga": "Format Master Scribe",
+
+        // ── MANGA META ──
+        "m_meta_first_unlock": "First Scroll Power Unlocked",
+        "m_meta_collector": "Scroll Badge Collector",
+        "m_meta_category_starter": "Category Seal Initiation",
+        "m_meta_tier_climber": "Scroll Rank Promotion",
+        "m_meta_tier_max": "Kage-Rank Reading Level",
+        "m_meta_xp_earner": "XP from Scroll Training",
+        "m_meta_difficulty_easy": "Easy D-Rank Scroll",
+        "m_meta_difficulty_hard": "S-Rank Scroll Challenge",
+        "m_meta_unlock_spree": "Scroll Achievement Burst",
+        "m_meta_completionist": "Meta Scroll Completionist",
+        "m_meta_diverse": "Diverse Scroll Arsenal",
+        "m_meta_dominator": "Scroll Meta Dominator",
     },
     musicUrl: "/public/themes/naruto-opening.mp3",
     previewColors: {

@@ -43,6 +43,7 @@ import { AdminAnnouncementsBanner } from "../admin-announcements"
 import { Announcements } from "../announcements"
 import { AnimeThemeProvider } from "@/lib/theme/anime-themes/anime-theme-provider"
 import { CursorProvider } from "@/lib/cursors/cursor-provider"
+import { RewardProvider } from "@/lib/rewards/reward-provider"
 import { EasterEggEngine } from "@/lib/easter-eggs/easter-egg-engine"
 import { NakamaManager } from "../nakama/nakama-manager"
 import { NakamaWatchPartyChat, NakamaWatchPartyChatProvider } from "../nakama/nakama-watch-party-chat"
@@ -56,6 +57,7 @@ export const MainLayout = ({ children }: { children: React.ReactNode }) => {
             <AnimeThemeProvider>
             <EasterEggEngine>
             <CursorProvider>
+            <RewardProvider>
             <Loader />
             <ScanProgressBar />
             <MangaHydrationProgressBar />
@@ -98,6 +100,7 @@ export const MainLayout = ({ children }: { children: React.ReactNode }) => {
                     </AppLayout>
                 </AppLayout>
             </AppSidebarProvider>
+            </RewardProvider>
             </CursorProvider>
             </EasterEggEngine>
             </AnimeThemeProvider>

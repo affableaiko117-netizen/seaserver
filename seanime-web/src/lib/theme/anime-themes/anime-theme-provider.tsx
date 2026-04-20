@@ -8,6 +8,38 @@ import type { AnimeThemeId, AnimeThemeConfig, ParticleTypeConfig } from "@/lib/t
 import { ThemeAnimatedOverlay } from "@/lib/theme/anime-themes/animated-elements"
 
 // ─────────────────────────────────────────────────────────────────
+// Milestone name utility
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Returns the milestone rank name for a given level under the current theme.
+ * Picks the highest defined threshold that is ≤ the user's level.
+ */
+export function getMilestoneName(
+    level: number,
+    milestoneNames?: Record<number, string>,
+): string | null {
+    if (!milestoneNames) return null
+    const thresholds = Object.keys(milestoneNames)
+        .map(Number)
+        .sort((a, b) => a - b)
+    let name: string | null = null
+    for (const t of thresholds) {
+        if (level >= t) name = milestoneNames[t]
+    }
+    return name
+}
+
+/**
+ * Hook to get the milestone name for the current theme + level.
+ */
+export function useThemeMilestoneName(level: number): string | null {
+    const ctx = React.useContext(AnimeThemeContext)
+    if (!ctx) return null
+    return getMilestoneName(level, ctx.config.milestoneNames)
+}
+
+// ─────────────────────────────────────────────────────────────────
 // Context
 // ─────────────────────────────────────────────────────────────────
 
