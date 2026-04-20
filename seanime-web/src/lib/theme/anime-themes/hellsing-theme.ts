@@ -866,7 +866,8 @@ export const hellsingTheme: AnimeThemeConfig = {
         accent: "#e07878",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/hellsing.jpg",
+    particleColor: "#c02020",
     backgroundDim: 0.3,
     backgroundBlur: 20,
     particleTypes: {

@@ -862,7 +862,8 @@ export const serialExperimentsLainTheme: AnimeThemeConfig = {
         accent: "#00e5cc",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/serial-experiments-lain.jpg",
+    particleColor: "#5870a0",
     backgroundDim: 0.55,
     backgroundBlur: 0,
     particleTypes: {

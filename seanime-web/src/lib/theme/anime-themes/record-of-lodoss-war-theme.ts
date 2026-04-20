@@ -867,7 +867,8 @@ export const recordOfLodossWarTheme: AnimeThemeConfig = {
         accent: "#6e5820",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/record-of-lodoss-war.jpg",
+    particleColor: "#806040",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

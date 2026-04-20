@@ -848,6 +848,11 @@ export const mushokuTenseiTheme: AnimeThemeConfig = {
         secondary: "#c09040",
         accent:    "#3a7560",
     },
+    hasAnimatedElements: true,
+    backgroundImageUrl: "/themes/mushoku-tensei.jpg",
+    particleColor: "#4890d8",
+    backgroundDim: 0.30,
+    backgroundBlur: 30,
     milestoneNames: {
         1:   "Beginner Mage",
         5:   "Intermediate Mage",

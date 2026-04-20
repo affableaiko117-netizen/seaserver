@@ -869,7 +869,8 @@ export const bladeOfTheImmortalTheme: AnimeThemeConfig = {
         accent: "#d23030",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/blade-of-the-immortal.jpg",
+    particleColor: "#808070",
     backgroundDim: 0.3,
     backgroundBlur: 20,
     particleTypes: {

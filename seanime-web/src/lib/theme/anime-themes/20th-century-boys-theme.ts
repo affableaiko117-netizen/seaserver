@@ -864,7 +864,8 @@ export const twentyCenturyBoysTheme: AnimeThemeConfig = {
         accent: "#1a3050",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/20th-century-boys.jpg",
+    particleColor: "#d09040",
     backgroundDim: 0.25,
     backgroundBlur: 20,
     particleTypes: {

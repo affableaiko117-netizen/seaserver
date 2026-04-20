@@ -848,6 +848,11 @@ export const spyXFamilyTheme: AnimeThemeConfig = {
         secondary: "#f07090",
         accent:    "#6080c0",
     },
+    hasAnimatedElements: true,
+    backgroundImageUrl: "/themes/spy-x-family.png",
+    particleColor: "#c87090",
+    backgroundDim: 0.30,
+    backgroundBlur: 30,
     milestoneNames: {
         1:   "Civilian",
         5:   "WISE Recruit",

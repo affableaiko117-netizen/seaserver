@@ -864,7 +864,8 @@ export const ghostInTheShellTheme: AnimeThemeConfig = {
         accent: "#00e5e5",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/ghost-in-the-shell.jpg",
+    particleColor: "#3890b8",
     backgroundDim: 0.3,
     backgroundBlur: 20,
     particleTypes: {

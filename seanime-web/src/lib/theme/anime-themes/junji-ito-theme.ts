@@ -864,7 +864,8 @@ export const junjiItoTheme: AnimeThemeConfig = {
         accent: "#8b2060",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/junji-ito.jpg",
+    particleColor: "#505050",
     backgroundDim: 0.3,
     backgroundBlur: 30,
     particleTypes: {

@@ -848,6 +848,11 @@ export const tokyoGhoulTheme: AnimeThemeConfig = {
         secondary: "#e03030",
         accent:    "#4a4a5a",
     },
+    hasAnimatedElements: true,
+    backgroundImageUrl: "/themes/tokyo-ghoul.jpg",
+    particleColor: "#303050",
+    backgroundDim: 0.30,
+    backgroundBlur: 30,
     milestoneNames: {
         1:   "Human",
         5:   "Ghoul Awakened",

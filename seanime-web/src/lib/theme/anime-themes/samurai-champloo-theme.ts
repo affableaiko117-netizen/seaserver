@@ -867,7 +867,8 @@ export const samuraiChamplooTheme: AnimeThemeConfig = {
         accent: "#d4a040",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/samurai-champloo.jpg",
+    particleColor: "#d86830",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

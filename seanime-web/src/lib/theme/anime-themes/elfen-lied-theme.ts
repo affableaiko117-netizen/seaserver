@@ -867,7 +867,8 @@ export const elfenLiedTheme: AnimeThemeConfig = {
         accent: "#eba0af",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/elfen-lied.jpg",
+    particleColor: "#d04060",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

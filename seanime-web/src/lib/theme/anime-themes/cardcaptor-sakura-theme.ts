@@ -864,7 +864,8 @@ export const cardcaptorSakuraTheme: AnimeThemeConfig = {
         accent: "#f8c800",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/cardcaptor-sakura.jpg",
+    particleColor: "#e850a8",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

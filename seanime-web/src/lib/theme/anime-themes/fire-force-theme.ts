@@ -837,7 +837,8 @@ export const fireForceTheme: AnimeThemeConfig = {
         accent: "#ff8800",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/fire-force.png",
+    particleColor: "#e86030",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

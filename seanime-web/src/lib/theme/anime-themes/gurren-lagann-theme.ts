@@ -867,7 +867,8 @@ export const gurrenLagannTheme: AnimeThemeConfig = {
         accent: "#ff6030",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "https://w.wallhaven.cc/full/p9/wallhaven-p9gr12.jpg",
+    backgroundImageUrl: "/themes/gurren-lagann.jpg",
+    particleColor: "#d83020",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

@@ -848,6 +848,11 @@ export const reZeroTheme: AnimeThemeConfig = {
         secondary: "#6699ee",
         accent:    "#c8a0f0",
     },
+    hasAnimatedElements: true,
+    backgroundImageUrl: "/themes/re-zero.jpg",
+    particleColor: "#2d5fc8",
+    backgroundDim: 0.30,
+    backgroundBlur: 30,
     milestoneNames: {
         1:   "Isekai'd",
         5:   "Roswaal Manor Guest",

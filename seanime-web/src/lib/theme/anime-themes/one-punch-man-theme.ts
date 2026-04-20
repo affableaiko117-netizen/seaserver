@@ -848,6 +848,11 @@ export const onePunchManTheme: AnimeThemeConfig = {
         secondary: "#ffe030",
         accent:    "#e03020",
     },
+    hasAnimatedElements: true,
+    backgroundImageUrl: "/themes/one-punch-man.jpg",
+    particleColor: "#f0d020",
+    backgroundDim: 0.30,
+    backgroundBlur: 30,
     milestoneNames: {
         1:   "Unregistered",
         5:   "C-Class Hero",

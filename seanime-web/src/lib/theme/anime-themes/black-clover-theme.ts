@@ -868,7 +868,8 @@ export const blackCloverTheme: AnimeThemeConfig = {
         accent: "#c83030",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "https://w.wallhaven.cc/full/4g/wallhaven-4gml63.jpg",
+    backgroundImageUrl: "/themes/black-clover.jpg",
+    particleColor: "#404080",
     backgroundDim: 0.30,
     backgroundBlur: 28,
     particleTypes: {

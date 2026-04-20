@@ -837,7 +837,8 @@ export const parasiteTheme: AnimeThemeConfig = {
         accent: "#8090a0",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/parasyte.jpg",
+    particleColor: "#38a848",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

@@ -1,4 +1,4 @@
-import { GradientBackground } from "@/components/shared/gradient-background"
+import { SeanimeGradientBackground } from "@/components/shared/gradient-background"
 import { TextGenerateEffect } from "@/components/shared/text-generate-effect"
 import { Button } from "@/components/ui/button"
 import { LoadingOverlay } from "@/components/ui/loading-spinner"
@@ -16,7 +16,7 @@ export function LoadingOverlayWithLogo({ refetch, title }: { refetch?: () => voi
             height={100}
             className="animate-pulse z-[1]"
         />
-        <GradientBackground />
+        <SeanimeGradientBackground />
         {/*<div className="absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 [background:radial-gradient(125%_125%_at_50%_10%,#000_40%,#63e_100%)] opacity-10"></div>*/}
         <TextGenerateEffect className="text-lg mt-2 text-[--muted] animate-pulse z-[1]" words={title ?? "S e a n i m e"} />
 

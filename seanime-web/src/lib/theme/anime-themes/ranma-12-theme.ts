@@ -864,7 +864,8 @@ export const ranma12Theme: AnimeThemeConfig = {
         accent: "#0055cc",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/ranma-12.jpg",
+    particleColor: "#e85050",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

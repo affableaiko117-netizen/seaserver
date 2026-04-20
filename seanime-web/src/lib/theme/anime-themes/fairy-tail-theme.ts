@@ -868,7 +868,8 @@ export const fairyTailTheme: AnimeThemeConfig = {
         accent: "#ff80c0",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "https://w.wallhaven.cc/full/4d/wallhaven-4dlgy9.png",
+    backgroundImageUrl: "/themes/fairy-tail.jpg",
+    particleColor: "#e05030",
     backgroundDim: 0.28,
     backgroundBlur: 26,
     particleTypes: {

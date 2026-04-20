@@ -867,7 +867,8 @@ export const nanaTheme: AnimeThemeConfig = {
         accent: "#e096b9",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/nana.png",
+    particleColor: "#c050a0",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

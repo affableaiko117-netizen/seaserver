@@ -865,7 +865,8 @@ export const bocchiTheRockTheme: AnimeThemeConfig = {
         accent: "#b8a0d0",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/bocchi-the-rock.jpg",
+    particleColor: "#e8407a",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

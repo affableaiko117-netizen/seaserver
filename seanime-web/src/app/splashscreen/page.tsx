@@ -1,7 +1,7 @@
 "use client"
 
 import { LoadingOverlayWithLogo } from "@/components/shared/loading-overlay-with-logo"
-import { GradientBackground } from "@/components/shared/gradient-background"
+import { SeanimeGradientBackground } from "@/components/shared/gradient-background"
 import { TextGenerateEffect } from "@/components/shared/text-generate-effect"
 import { SeaImage as Image } from "@/components/shared/sea-image"
 import { LoadingOverlay } from "@/components/ui/loading-spinner"
@@ -146,7 +146,7 @@ export default function Page() {
             <LoadingOverlay showSpinner={false}>
                 <LuCircleCheck className="text-green-400 text-4xl mb-2 animate-pulse z-[1]" />
                 <TextGenerateEffect className="text-lg mt-2 text-[--muted] z-[1]" words="Connected" />
-                <GradientBackground />
+                <SeanimeGradientBackground />
             </LoadingOverlay>
         )
     }
@@ -154,7 +154,7 @@ export default function Page() {
     // Setup screen: choose local or remote
     return (
         <div className="fixed inset-0 bg-[#04060a] flex flex-col items-center justify-center text-white">
-            <GradientBackground />
+            <SeanimeGradientBackground />
 
             <div className="z-[1] flex flex-col items-center">
                 <Image

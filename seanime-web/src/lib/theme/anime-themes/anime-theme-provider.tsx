@@ -6,6 +6,7 @@ import { currentProfileAtom } from "@/app/(main)/_atoms/server-status.atoms"
 import { ANIME_THEMES, ANIME_THEME_LIST } from "@/lib/theme/anime-themes"
 import type { AnimeThemeId, AnimeThemeConfig, ParticleTypeConfig } from "@/lib/theme/anime-themes"
 import { ThemeAnimatedOverlay } from "@/lib/theme/anime-themes/animated-elements"
+import { buildThemeCursorCSS } from "@/lib/theme/anime-themes/cursor-svgs"
 
 // ─────────────────────────────────────────────────────────────────
 // Milestone name utility
@@ -292,6 +293,24 @@ export function AnimeThemeProvider({ children }: { children: React.ReactNode }) 
         return () => { delete document.documentElement.dataset.animeTheme }
     }, [config.id])
 
+    // ── Themed cursor CSS injection ──
+    React.useEffect(() => {
+        const prevStyle = document.getElementById("anime-theme-cursors")
+        if (prevStyle) prevStyle.remove()
+        if (config.id === "seanime") return
+
+        const color = config.particleColor ?? "#ffffff"
+        const style = document.createElement("style")
+        style.id = "anime-theme-cursors"
+        style.textContent = buildThemeCursorCSS(color)
+        document.head.appendChild(style)
+
+        return () => {
+            const el = document.getElementById("anime-theme-cursors")
+            if (el) el.remove()
+        }
+    }, [config.id, config.particleColor])
+
     const value = React.useMemo<AnimeThemeContextValue>(() => ({
         themeId,
         config,
@@ -312,7 +331,7 @@ export function AnimeThemeProvider({ children }: { children: React.ReactNode }) 
             {children}
             <AnimeThemeMusicPlayer />
             {config.backgroundImageUrl && <ThemeBackgroundImage url={config.backgroundImageUrl} dim={config.backgroundDim} blur={config.backgroundBlur} />}
-            {config.hasAnimatedElements && <ThemeAnimatedOverlay themeId={themeId} intensity={animatedIntensity} particleSettings={particleSettings} />}
+            {config.id !== "seanime" && <ThemeAnimatedOverlay themeId={themeId} intensity={animatedIntensity} particleSettings={particleSettings} particleColor={config.particleColor} />}
         </AnimeThemeContext.Provider>
     )
 }

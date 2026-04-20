@@ -129,7 +129,7 @@ import {
     __torrentSearch_selectionEpisodeAtom,
 } from "@/app/(main)/entry/_containers/torrent-search/torrent-search-drawer"
 import { TorrentStreamOverlay } from "@/app/(main)/entry/_containers/torrent-stream/torrent-stream-overlay"
-import { GradientBackground } from "@/components/shared/gradient-background"
+import { SeanimeGradientBackground } from "@/components/shared/gradient-background"
 import { LuffyError } from "@/components/shared/luffy-error"
 import { Button, IconButton } from "@/components/ui/button"
 import { cn } from "@/components/ui/core/styling"
@@ -602,7 +602,7 @@ const PlayerContent = React.memo<PlayerContentProps>(({
                         )}
                         {!isMiniPlayer && !inline && (
                             <div className="opacity-50 absolute inset-0 z-[0] overflow-hidden" data-vc-element="loading-overlay-gradient">
-                                <GradientBackground duration={10} breathingRange={5} />
+                                <SeanimeGradientBackground />
                             </div>
                         )}
                     </div>

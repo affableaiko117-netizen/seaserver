@@ -864,7 +864,8 @@ export const akiraTheme: AnimeThemeConfig = {
         accent: "#ff6644",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/akira.jpg",
+    particleColor: "#d03020",
     backgroundDim: 0.3,
     backgroundBlur: 20,
     particleTypes: {

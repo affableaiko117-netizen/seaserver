@@ -868,7 +868,8 @@ export const flclTheme: AnimeThemeConfig = {
         accent: "#aa3c78",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/flcl.jpg",
+    particleColor: "#e87040",
     backgroundDim: 0.3,
     backgroundBlur: 20,
     particleTypes: {

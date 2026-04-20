@@ -867,7 +867,8 @@ export const battleAngelAlitaTheme: AnimeThemeConfig = {
         accent: "#5a4614",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/battle-angel-alita.jpg",
+    particleColor: "#506080",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

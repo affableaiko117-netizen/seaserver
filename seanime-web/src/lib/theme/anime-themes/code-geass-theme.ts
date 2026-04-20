@@ -821,7 +821,11 @@ export const codeGeassTheme: AnimeThemeConfig = {
         secondary: "#c050ff",
         accent:    "#ff2020",
     },
-    hasAnimatedElements: false,
+    hasAnimatedElements: true,
+    backgroundImageUrl: "/themes/code-geass.jpg",
+    particleColor: "#8228dc",
+    backgroundDim: 0.30,
+    backgroundBlur: 30,
     milestoneNames: {
         1:   "Honorary Britannian",
         8:   "Black Knight Recruit",

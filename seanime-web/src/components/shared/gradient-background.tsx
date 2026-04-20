@@ -141,3 +141,29 @@ export const GradientBackground: React.FC<GradientBackgroundProps> = ({
         </motion.div>
     )
 }
+
+/**
+ * Seanime-branded dark gradient background.
+ * Used in the splashscreen, loading overlays, and video player loading state.
+ * Replaces the generic GradientBackground for non-theme-specific screens.
+ */
+export function SeanimeGradientBackground({ className = "" }: { className?: string }) {
+    return (
+        <div
+            aria-hidden
+            className={`absolute inset-0 z-[0] overflow-hidden ${className}`}
+            style={{
+                background:
+                    "radial-gradient(ellipse 120% 100% at 50% -10%, #1a0a3a 0%, #0d1438 28%, #070d24 55%, #04060a 80%)",
+                animation: "seanime-bg-breathe 9s ease-in-out infinite",
+            }}
+        >
+            <style>{`
+                @keyframes seanime-bg-breathe {
+                    0%, 100% { opacity: 0.75; background-size: 100% 100%; }
+                    50%       { opacity: 0.90; background-size: 110% 110%; }
+                }
+            `}</style>
+        </div>
+    )
+}

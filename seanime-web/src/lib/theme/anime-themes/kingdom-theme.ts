@@ -867,7 +867,8 @@ export const kingdomTheme: AnimeThemeConfig = {
         accent: "#d4a050",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/kingdom.jpg",
+    particleColor: "#906040",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

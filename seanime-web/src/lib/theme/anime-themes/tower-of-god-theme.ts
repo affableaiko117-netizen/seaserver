@@ -864,7 +864,8 @@ export const towerOfGodTheme: AnimeThemeConfig = {
         accent: "#c89b3c",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/tower-of-god.jpg",
+    particleColor: "#3890a8",
     backgroundDim: 0.3,
     backgroundBlur: 20,
     particleTypes: {

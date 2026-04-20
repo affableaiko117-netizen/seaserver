@@ -867,7 +867,8 @@ export const tokyoGhoulReTheme: AnimeThemeConfig = {
         accent: "#2a5a73",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/tokyo-ghoul-re.jpg",
+    particleColor: "#404060",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

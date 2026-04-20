@@ -794,7 +794,8 @@ export const spiritedAwayTheme: AnimeThemeConfig = {
         accent: "#2266aa",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/spirited-away.png",
+    particleColor: "#d88838",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

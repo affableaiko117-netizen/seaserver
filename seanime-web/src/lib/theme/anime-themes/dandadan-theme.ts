@@ -837,7 +837,8 @@ export const dandadanTheme: AnimeThemeConfig = {
         accent: "#f0d000",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/dandadan.png",
+    particleColor: "#5080c0",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

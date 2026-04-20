@@ -862,7 +862,8 @@ export const goodnightPunpunTheme: AnimeThemeConfig = {
         accent: "#7a6040",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/goodnight-punpun.png",
+    particleColor: "#505050",
     backgroundDim: 0.3,
     backgroundBlur: 30,
     particleTypes: {

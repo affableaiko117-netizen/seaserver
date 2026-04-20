@@ -867,7 +867,8 @@ export const berserkOfGluttonyTheme: AnimeThemeConfig = {
         accent: "#6e1694",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/berserk-of-gluttony.jpg",
+    particleColor: "#803030",
     backgroundDim: 0.3,
     backgroundBlur: 25,
     particleTypes: {

@@ -864,7 +864,8 @@ export const trigunTheme: AnimeThemeConfig = {
         accent: "#8b4513",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/trigun.jpg",
+    particleColor: "#d89040",
     backgroundDim: 0.3,
     backgroundBlur: 20,
     particleTypes: {

@@ -864,7 +864,8 @@ export const plutoTheme: AnimeThemeConfig = {
         accent: "#8a6530",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/pluto.jpg",
+    particleColor: "#607090",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

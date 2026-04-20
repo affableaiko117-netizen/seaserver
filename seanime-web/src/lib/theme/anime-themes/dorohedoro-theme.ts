@@ -864,7 +864,8 @@ export const dorohedoroTheme: AnimeThemeConfig = {
         accent: "#2a9090",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/dorohedoro.jpg",
+    particleColor: "#5c7838",
     backgroundDim: 0.35,
     backgroundBlur: 20,
     particleTypes: {

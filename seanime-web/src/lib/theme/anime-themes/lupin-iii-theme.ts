@@ -864,7 +864,8 @@ export const lupinIiiTheme: AnimeThemeConfig = {
         accent: "#d4a843",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/lupin-iii.jpg",
+    particleColor: "#c04030",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

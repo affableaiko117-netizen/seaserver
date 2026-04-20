@@ -175,6 +175,8 @@ export type AnimeThemeConfig = {
     backgroundBlur?: number
     /** Per-particle-type configuration (keyed by particle type id) */
     particleTypes?: Record<string, ParticleTypeConfig>
+    /** Hex color for canvas particle effect (e.g. "#ff6600"). Falls back to white. */
+    particleColor?: string
     /** Player icon overrides for video player controls */
     playerIconOverrides?: PlayerIconOverrides
     /**

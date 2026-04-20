@@ -864,7 +864,8 @@ export const cowboyBebopTheme: AnimeThemeConfig = {
         accent: "#f5c88c",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "https://w.wallhaven.cc/full/yx/wallhaven-yxrx6k.jpg",
+    backgroundImageUrl: "/themes/cowboy-bebop.jpg",
+    particleColor: "#d0802a",
     backgroundDim: 0.3,
     backgroundBlur: 25,
     particleTypes: {

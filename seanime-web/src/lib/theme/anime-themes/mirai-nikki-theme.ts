@@ -867,7 +867,8 @@ export const miraiNikkiTheme: AnimeThemeConfig = {
         accent: "#ff6b8a",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/mirai-nikki.png",
+    particleColor: "#d040a0",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

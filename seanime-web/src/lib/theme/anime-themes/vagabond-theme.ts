@@ -865,7 +865,8 @@ export const vagabondTheme: AnimeThemeConfig = {
         accent: "#a08050",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/vagabond.png",
+    particleColor: "#806040",
     backgroundDim: 0.3,
     backgroundBlur: 20,
     particleTypes: {

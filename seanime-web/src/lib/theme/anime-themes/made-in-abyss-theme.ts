@@ -837,7 +837,8 @@ export const madeInAbyssTheme: AnimeThemeConfig = {
         accent: "#40a840",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/made-in-abyss.jpg",
+    particleColor: "#3068a0",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

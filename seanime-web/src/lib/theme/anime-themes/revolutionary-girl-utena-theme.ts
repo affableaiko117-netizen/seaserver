@@ -864,7 +864,8 @@ export const revolutionaryGirlUtenaTheme: AnimeThemeConfig = {
         accent: "#f8f0e8",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/revolutionary-girl-utena.jpg",
+    particleColor: "#e060c0",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

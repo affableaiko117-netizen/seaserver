@@ -867,7 +867,8 @@ export const claymoreTheme: AnimeThemeConfig = {
         accent: "#464e5a",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/claymore.png",
+    particleColor: "#8080a0",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

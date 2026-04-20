@@ -867,7 +867,8 @@ export const angelBeatsTheme: AnimeThemeConfig = {
         accent: "#a0d0ff",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/angel-beats.jpg",
+    particleColor: "#6888d0",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

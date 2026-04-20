@@ -838,7 +838,8 @@ export const berserkTheme: AnimeThemeConfig = {
         accent: "#f0e8d0",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/berserk.png",
+    particleColor: "#a82020",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

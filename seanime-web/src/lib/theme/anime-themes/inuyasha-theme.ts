@@ -864,7 +864,8 @@ export const inuyashaTheme: AnimeThemeConfig = {
         accent: "#4466cc",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/inuyasha.jpg",
+    particleColor: "#c05068",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

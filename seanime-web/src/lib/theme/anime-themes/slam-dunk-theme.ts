@@ -864,7 +864,8 @@ export const slamDunkTheme: AnimeThemeConfig = {
         accent: "#ff4422",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/slam-dunk.png",
+    particleColor: "#d04030",
     backgroundDim: 0.3,
     backgroundBlur: 20,
     particleTypes: {

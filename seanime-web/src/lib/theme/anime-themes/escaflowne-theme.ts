@@ -867,7 +867,8 @@ export const escaflowneTheme: AnimeThemeConfig = {
         accent: "#6a5019",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/escaflowne.jpg",
+    particleColor: "#9060c0",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

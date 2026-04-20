@@ -868,7 +868,8 @@ export const deathNoteTheme: AnimeThemeConfig = {
         accent: "#f04040",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "https://w.wallhaven.cc/full/gp/wallhaven-gpk2d7.jpg",
+    backgroundImageUrl: "/themes/death-note.jpg",
+    particleColor: "#b8a030",
     backgroundDim: 0.28,
     backgroundBlur: 26,
     particleTypes: {

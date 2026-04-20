@@ -867,7 +867,8 @@ export const fateGrandOrderTheme: AnimeThemeConfig = {
         accent: "#b496e8",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/fate-grand-order.jpg",
+    particleColor: "#c0a030",
     backgroundDim: 0.3,
     backgroundBlur: 25,
     particleTypes: {

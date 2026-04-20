@@ -867,7 +867,8 @@ export const homunculusTheme: AnimeThemeConfig = {
         accent: "#6c5e40",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/homunculus.jpg",
+    particleColor: "#605050",
     backgroundDim: 0.3,
     backgroundBlur: 20,
     particleTypes: {

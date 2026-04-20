@@ -867,7 +867,8 @@ export const higurashiTheme: AnimeThemeConfig = {
         accent: "#d42020",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/higurashi.png",
+    particleColor: "#b03060",
     backgroundDim: 0.3,
     backgroundBlur: 20,
     particleTypes: {

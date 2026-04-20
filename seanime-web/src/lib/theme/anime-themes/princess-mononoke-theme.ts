@@ -867,7 +867,8 @@ export const princessMononokeTheme: AnimeThemeConfig = {
         accent: "#7cfc00",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/princess-mononoke.jpg",
+    particleColor: "#386828",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

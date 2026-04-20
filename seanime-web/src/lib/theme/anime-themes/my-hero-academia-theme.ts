@@ -867,7 +867,8 @@ export const myHeroAcademiaTheme: AnimeThemeConfig = {
         accent: "#00b894",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "https://w.wallhaven.cc/full/57/wallhaven-57e393.jpg",
+    backgroundImageUrl: "/themes/my-hero-academia.jpg",
+    particleColor: "#24a840",
     backgroundDim: 0.30,
     backgroundBlur: 28,
     particleTypes: {
