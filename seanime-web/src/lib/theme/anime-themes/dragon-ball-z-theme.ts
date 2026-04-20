@@ -882,4 +882,15 @@ export const dragonBallZTheme: AnimeThemeConfig = {
         nimbus_clouds: { label: "Nimbus Clouds", maxCount: 5, defaultEnabled: true, defaultIntensity: 40 },
     },
     playerIconOverrides: dragonBallZPlayerIcons,
+    milestoneNames: {
+        1:   "Earthling",
+        8:   "Saiyan",
+        18:  "Super Saiyan",
+        28:  "Super Saiyan 2",
+        38:  "Super Saiyan 3",
+        50:  "Super Saiyan God",
+        62:  "Super Saiyan Blue",
+        76:  "Ultra Instinct Sign",
+        100: "Mastered Ultra Instinct",
+    },
 }

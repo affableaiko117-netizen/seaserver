@@ -879,4 +879,14 @@ export const attackOnTitanTheme: AnimeThemeConfig = {
         crimson_mist: { label: "Crimson Mist", maxCount: 6, defaultEnabled: true, defaultIntensity: 40 },
     },
     playerIconOverrides: attackOnTitanPlayerIcons,
+    milestoneNames: {
+        1:   "104th Cadet",
+        5:   "Scout",
+        15:  "Squad Leader",
+        30:  "Section Leader",
+        45:  "Captain",
+        60:  "Commander",
+        80:  "Survey Corps Veteran",
+        100: "Founding Titan",
+    },
 }

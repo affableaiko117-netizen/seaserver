@@ -879,4 +879,15 @@ export const swordArtOnlineTheme: AnimeThemeConfig = {
         nervegear_pulse: { label: "NerveGear Pulse", maxCount: 10, defaultEnabled: true, defaultIntensity: 50 },
     },
     playerIconOverrides: swordArtOnlinePlayerIcons,
+    milestoneNames: {
+        1:   "Beta Tester",
+        8:   "Starting City Survivor",
+        18:  "Floor Clearer",
+        30:  "KoB Member",
+        44:  "Beater",
+        58:  "ALfheim Flyer",
+        70:  "Integrity Knight",
+        84:  "Alicization Veteran",
+        100: "Administrator Realm",
+    },
 }

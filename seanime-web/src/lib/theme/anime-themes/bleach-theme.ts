@@ -618,4 +618,15 @@ export const bleachTheme: AnimeThemeConfig = {
         lasNoches: { label: "Las Noches Silhouette", maxCount: 1, defaultEnabled: true, defaultIntensity: 50 },
     },
     playerIconOverrides: bleachPlayerIcons,
+    milestoneNames: {
+        1:   "Unseated",
+        5:   "20th Seat",
+        15:  "9th Seat",
+        25:  "3rd Seat",
+        35:  "Lieutenant",
+        50:  "Captain",
+        65:  "Visored",
+        80:  "Royal Guard",
+        100: "Soul King",
+    },
 }

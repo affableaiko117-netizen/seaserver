@@ -878,4 +878,16 @@ export const demonSlayerTheme: AnimeThemeConfig = {
         demon_mist: { label: "Demon Mist", maxCount: 12, defaultEnabled: true, defaultIntensity: 45 },
     },
     playerIconOverrides: demonSlayerPlayerIcons,
+    milestoneNames: {
+        1:   "Mizunoto",
+        8:   "Mizunoe",
+        18:  "Kanoto",
+        28:  "Kanoe",
+        38:  "Tsuchinoto",
+        50:  "Tsuchinoe",
+        62:  "Hinoto",
+        74:  "Hinoe",
+        85:  "Kinoe (Hashira)",
+        100: "Upper Moon Vanquisher",
+    },
 }

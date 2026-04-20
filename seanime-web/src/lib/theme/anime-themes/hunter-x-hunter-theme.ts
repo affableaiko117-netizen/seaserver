@@ -878,4 +878,15 @@ export const hunterXHunterTheme: AnimeThemeConfig = {
         hatsu_flares: { label: "Hatsu Flares", maxCount: 10, defaultEnabled: true, defaultIntensity: 45 },
     },
     playerIconOverrides: hunterXHunterPlayerIcons,
+    milestoneNames: {
+        1:   "Beginner",
+        8:   "Novice Hunter",
+        18:  "Single Star Hunter",
+        30:  "Double Star Hunter",
+        44:  "Triple Star Hunter",
+        58:  "Gold Star Hunter",
+        72:  "Zodiac",
+        86:  "Netero Level",
+        100: "Dark Continent Traveler",
+    },
 }

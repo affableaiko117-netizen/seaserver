@@ -626,4 +626,15 @@ export const narutoTheme: AnimeThemeConfig = {
         sharingan: { label: "Sharingan Watermark", maxCount: 1, defaultEnabled: true, defaultIntensity: 50 },
     },
     playerIconOverrides: narutoPlayerIcons,
+    milestoneNames: {
+        1:   "Academy Student",
+        5:   "Genin",
+        15:  "Chunin",
+        25:  "Tokubetsu Jonin",
+        35:  "Jonin",
+        45:  "ANBU",
+        60:  "Kage",
+        80:  "Sage Mode",
+        100: "Otsutsuki",
+    },
 }

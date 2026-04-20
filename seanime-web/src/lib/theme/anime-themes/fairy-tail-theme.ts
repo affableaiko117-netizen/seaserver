@@ -879,4 +879,15 @@ export const fairyTailTheme: AnimeThemeConfig = {
         heaven_light: { label: "Heaven's Light", maxCount: 16, defaultEnabled: true, defaultIntensity: 60 },
     },
     playerIconOverrides: fairyTailPlayerIcons,
+    milestoneNames: {
+        1:   "Apprentice Mage",
+        8:   "Mage",
+        20:  "S-Class Candidate",
+        32:  "S-Class Mage",
+        46:  "Wizard Saint",
+        60:  "Spriggan 12",
+        75:  "Etherion",
+        90:  "Fairy King",
+        100: "Dragon Slayer Legend",
+    },
 }

@@ -618,4 +618,15 @@ export const onePieceTheme: AnimeThemeConfig = {
         jollyRoger: { label: "Jolly Roger Watermark", maxCount: 1, defaultEnabled: true, defaultIntensity: 50 },
     },
     playerIconOverrides: onePiecePlayerIcons,
+    milestoneNames: {
+        1:   "Cabin Boy",
+        5:   "Pirate Rookie",
+        15:  "Supernova",
+        25:  "Captain",
+        40:  "Shichibukai",
+        55:  "Yonko Commander",
+        70:  "Yonko",
+        85:  "Fleet Admiral",
+        100: "King of the Pirates",
+    },
 }
