@@ -132,8 +132,9 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	v1.Use(h.FeaturesMiddleware)
 	v1.Use(h.ProfileSessionMiddleware)
 
-	// CSRF protection for state-changing requests
-	v1.Use(CSRFMiddleware)
+	// Auth
+	v1.POST("/auth/login", h.HandleLogin)
+	v1.POST("/auth/logout", h.HandleLogout)
 
 	imageProxy := &util.ImageProxy{}
 	v1.GET("/image-proxy", imageProxy.ProxyImage)
@@ -163,10 +164,6 @@ func InitRoutes(app *core.App, e *echo.Echo) {
 	v1.POST("/memory/gc", h.HandleForceGC)
 
 	v1.POST("/announcements", h.HandleGetAnnouncements)
-
-	// Auth
-	v1.POST("/auth/login", h.HandleLogin)
-	v1.POST("/auth/logout", h.HandleLogout)
 
 	// Settings
 	v1.GET("/settings", h.HandleGetSettings)
