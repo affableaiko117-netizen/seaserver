@@ -62,6 +62,54 @@ export type AnimeThemeId =
     | "akira"
     | "gantz"
     | "dorohedoro"
+    // ── Retro / Classic ──
+    | "serial-experiments-lain"
+    | "trigun"
+    | "rurouni-kenshin"
+    | "sailor-moon"
+    | "cardcaptor-sakura"
+    | "inuyasha"
+    | "yuyu-hakusho"
+    | "initial-d"
+    | "ranma-12"
+    | "revolutionary-girl-utena"
+    | "outlaw-star"
+    | "great-teacher-onizuka"
+    | "perfect-blue"
+    | "princess-mononoke"
+    | "spirited-away"
+    | "lupin-iii"
+    | "grave-of-the-fireflies"
+    | "samurai-champloo"
+    | "flcl"
+    | "gurren-lagann"
+    | "haruhi-suzumiya"
+    | "elfen-lied"
+    | "clannad"
+    | "angel-beats"
+    | "nana"
+    | "escaflowne"
+    | "claymore"
+    | "mirai-nikki"
+    | "higurashi"
+    | "record-of-lodoss-war"
+    // ── Additional ──
+    | "no-game-no-life"
+    | "fate-grand-order"
+    // ── Manga (extra to reach 100) ──
+    | "tokyo-ghoul-re"
+    | "blue-lock"
+    | "kingdom"
+    | "blame"
+    | "junji-ito"
+    | "uzumaki"
+    | "pluto"
+    | "battle-angel-alita"
+    | "blade-of-the-immortal"
+    | "hellsing"
+    | "homunculus"
+    | "holyland"
+    | "berserk-of-gluttony"
 
 export type SidebarItemOverride = {
     icon: React.ComponentType<{ className?: string }>
@@ -134,4 +182,11 @@ export type AnimeThemeConfig = {
      * Example: { 1: "Genin", 15: "Chunin", 30: "Jonin" }
      */
     milestoneNames?: Record<number, string>
+}
+
+export type HiddenThemeCondition = {
+    themeId: AnimeThemeId
+    requireActiveTheme: AnimeThemeId
+    requireMangaCompletedIds: number[]
+    hint?: string
 }

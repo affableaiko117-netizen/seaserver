@@ -43,9 +43,9 @@ import { Separator } from "@/components/ui/separator"
 import { Stats } from "@/components/ui/stats"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useRouter, useSearchParams } from "@/lib/navigation"
-import { useAnimeTheme } from "@/lib/theme/anime-themes/anime-theme-provider"
-import { CursorShop } from "@/app/(main)/profile/me/_components/cursor-shop"
-import { LuMousePointer2 } from "react-icons/lu"
+import { useAnimeTheme, useThemeMilestoneName } from "@/lib/theme/anime-themes/anime-theme-provider"
+import { RewardShop } from "@/app/(main)/profile/me/_components/reward-shop"
+import { LuGift } from "react-icons/lu"
 import { useEasterEggs } from "@/lib/easter-eggs/easter-egg-engine"
 import { EASTER_EGG_DEFINITIONS } from "@/lib/easter-eggs/easter-egg-definitions"
 import * as React from "react"
@@ -103,6 +103,9 @@ export default function Page() {
 
     const { profile, level, showcase, achievementSummary, activityHeatmap, animeStreak, mangaStreak, recentAchievements } = data
     const levelColors = getLevelColor(level?.currentLevel ?? 1)
+    const currentLevel = level?.currentLevel ?? 1
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const milestoneName = useThemeMilestoneName(currentLevel)
 
     return (
         <>
@@ -137,8 +140,11 @@ export default function Page() {
                                 <span className="text-[--muted] font-normal"> ({profile!.anilistUsername})</span>
                             )}</h1>
                             <span className={cn("text-lg font-bold", levelColors.label)}>
-                                Level {level?.currentLevel ?? 1}
+                                {milestoneName ?? `Level ${currentLevel}`}
                             </span>
+                            {milestoneName && (
+                                <span className="text-sm text-[--muted]">Lv. {currentLevel}</span>
+                            )}
                             {level && level.multiplier > 1 && (
                                 <ActivityBuffBadge multiplier={level.multiplier} />
                             )}
@@ -206,7 +212,7 @@ export default function Page() {
                 {level && (
                     <div className="space-y-1">
                         <div className="flex justify-between text-xs text-[--muted]">
-                            <span>Level {level.currentLevel}</span>
+                            <span>{milestoneName ?? `Level ${level.currentLevel}`}</span>
                             <span>Level {level.currentLevel + 1}</span>
                         </div>
                         <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
@@ -238,8 +244,8 @@ export default function Page() {
                         <TabsTrigger value="favorites" className={tabsTriggerClass}>
                             <LuHeart className="mr-1.5" /> Favorites
                         </TabsTrigger>
-                        <TabsTrigger value="cursors" className={tabsTriggerClass}>
-                            <LuMousePointer2 className="mr-1.5" /> Cursors
+                        <TabsTrigger value="rewards" className={tabsTriggerClass}>
+                            <LuGift className="mr-1.5" /> Rewards
                         </TabsTrigger>
                         <TabsTrigger value="secrets" className={tabsTriggerClass}>
                             🥚 Secrets
@@ -270,8 +276,8 @@ export default function Page() {
                     <TabsContent value="favorites" className="space-y-6 mt-6">
                         <FavoritesTabContent />
                     </TabsContent>
-                    <TabsContent value="cursors" className="space-y-6 mt-6">
-                        <CursorShop currentLevel={level?.currentLevel ?? 1} />
+                    <TabsContent value="rewards" className="space-y-6 mt-6">
+                        <RewardShop currentLevel={level?.currentLevel ?? 1} />
                     </TabsContent>
                     <TabsContent value="secrets" className="space-y-6 mt-6">
                         <EasterEggSecrets />

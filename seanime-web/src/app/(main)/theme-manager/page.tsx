@@ -3,6 +3,8 @@ import React from "react"
 import { useAnimeTheme } from "@/lib/theme/anime-themes/anime-theme-provider"
 import { ANIME_THEME_LIST } from "@/lib/theme/anime-themes"
 import type { AnimeThemeId } from "@/lib/theme/anime-themes"
+import { HIDDEN_THEMES, HIDDEN_THEME_IDS } from "@/lib/theme/anime-themes/hidden-themes"
+import { useGetRawAnilistMangaCollection } from "@/api/hooks/manga.hooks"
 import { cn } from "@/components/ui/core/styling"
 import { PageWrapper } from "@/components/shared/page-wrapper"
 
@@ -22,6 +24,26 @@ export default function ThemeManagerPage() {
         setParticleTypeIntensity,
     } = useAnimeTheme()
 
+    // Fetch manga collection for hidden theme unlock detection
+    const { data: mangaCollection } = useGetRawAnilistMangaCollection()
+
+    const unlockedHiddenThemes = React.useMemo(() => {
+        const ids = new Set<AnimeThemeId>()
+        if (!mangaCollection?.lists) return ids
+        const userMangaIds = new Set<number>()
+        for (const list of mangaCollection.lists ?? []) {
+            for (const entry of list?.entries ?? []) {
+                if (entry?.media?.id) userMangaIds.add(entry.media.id)
+            }
+        }
+        for (const req of HIDDEN_THEMES) {
+            if (req.requiredMangaIds.some((id) => userMangaIds.has(id))) {
+                ids.add(req.themeId)
+            }
+        }
+        return ids
+    }, [mangaCollection])
+
     return (
         <PageWrapper className="p-4 sm:p-8 max-w-5xl mx-auto space-y-10">
             <div>
@@ -37,7 +59,31 @@ export default function ThemeManagerPage() {
             {/* Theme Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {ANIME_THEME_LIST.map((theme) => {
+                    const isHidden = HIDDEN_THEME_IDS.has(theme.id)
+                    const isUnlocked = !isHidden || unlockedHiddenThemes.has(theme.id)
                     const isActive = theme.id === themeId
+
+                    if (isHidden && !isUnlocked) {
+                        const req = HIDDEN_THEMES.find((h) => h.themeId === theme.id)
+                        return (
+                            <div
+                                key={theme.id}
+                                className="relative rounded-2xl p-5 text-left border-2 border-[--border] bg-[--paper] opacity-60 cursor-not-allowed select-none"
+                            >
+                                <div className="flex gap-1.5 mb-3">
+                                    {[1, 2, 3].map((i) => (
+                                        <div
+                                            key={i}
+                                            className="w-5 h-5 rounded-full bg-[--color-gray-700]"
+                                        />
+                                    ))}
+                                </div>
+                                <div className="font-bold text-lg text-[--muted]">???</div>
+                                <p className="text-[--muted] text-xs mt-1">{req?.hint ?? "Unlock this hidden theme."}</p>
+                            </div>
+                        )
+                    }
+
                     return (
                         <button
                             key={theme.id}

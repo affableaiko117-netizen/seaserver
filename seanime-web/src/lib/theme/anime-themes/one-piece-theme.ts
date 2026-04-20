@@ -598,6 +598,288 @@ export const onePieceTheme: AnimeThemeConfig = {
         "m_world_record": "Personal Sea Record",
         "m_genre_clash": "Genre Clash of Seas Read",
         "m_time_traveler": "Sea Time Traveler",
+
+        // ── ANIME MILESTONES (additions) ──
+        "a_five_thousand_eps": "Five Thousand Sea Miles",
+        "a_ten_completed": "Ten Arcs Completed",
+        "a_fifty_completed": "Fifty Islands Conquered",
+        "a_five_hundred_completed": "Five Hundred Victories at Sea",
+        "a_mean_score_tracker": "Average Bounty Rating",
+        "a_unique_studios": "Allied Crew Count",
+        "a_days_spent_watching": "Days on the Grand Line",
+        "a_all_status": "All Voyage Statuses",
+        "a_first_favorite": "First Crewmate Bond",
+        "a_favorites_collector": "Straw Hat Crew Bonds",
+
+        // ── ANIME BINGE (additions) ──
+        "a_genre_binge": "Cross-Genre Sea Binge",
+        "a_studio_binge": "Allied Crew Marathon",
+        "a_season_sweep": "Arc Sweep Campaign",
+        "a_forty_eight_hour": "Forty-Eight Hour Grand Line",
+        "a_ep_counter_day": "Daily Island Count",
+        "a_multi_series_binge": "Multi-Crew Sea Binge",
+        "a_midnight_binge": "Midnight Grand Line Voyage",
+        "a_new_year_binge": "New Year's Gear Fifth Burst",
+
+        // ── ANIME GENRES (additions) ──
+        "a_tag_isekai": "Sent to Another Sea",
+        "a_tag_harem": "Straw Hat Admirers",
+        "a_tag_bl": "Brotherly Sea Bond",
+        "a_tag_gl": "Sister Pirate Bond",
+        "a_tag_historical": "Void Century Archives",
+        "a_tag_military": "Marine Corps Tactics",
+        "a_tag_school": "Marine Training Academy",
+        "a_tag_martial_arts": "Sea Martial Arts Expert",
+        "a_tag_vampire": "Thriller Bark Monster",
+        "a_tag_samurai": "Wano Country Blade",
+        "a_tag_space": "Enel's Space Voyage",
+        "a_tag_parody": "Buggy's Sea Circus",
+        "a_tag_idol": "Sea Idol Performance",
+        "a_tag_post_apocalyptic": "Post-Great War Sea",
+        "a_tag_cyberpunk": "Egghead Island Tech",
+        "a_tag_shounen": "I Will Be Pirate King",
+        "a_tag_seinen": "Mature Sea Battles",
+        "a_tag_shoujo": "Nami's Sea Dream",
+        "a_tag_josei": "Robin's World View",
+        "a_tag_survival": "Blue Sea Survival",
+
+        // ── ANIME COMPLETION (additions) ──
+        "a_multi_rewatch": "Multiple Arc Voyages Relived",
+        "a_dropped_recovery": "Recovered from Marooning",
+        "a_ten_perfect_scores": "Ten Perfect Bounties",
+        "a_seasonal_clear": "Seasonal Arc Cleared",
+        "a_complete_genre_span": "All Sea Genre Mastery",
+        "a_monthly_completions": "Monthly Arc Victories",
+        "a_yearly_completions": "Yearly Sea Campaign",
+        "a_rapid_complete": "Gear Second Speed Clear",
+
+        // ── ANIME DEDICATION (additions) ──
+        "a_genre_master": "Sea Genre Mastery",
+        "a_staff_follower": "Crew Roster Tracker",
+        "a_multi_season_fan": "Multi-Arc Pirate Fan",
+        "a_format_diversity": "Diverse Sea Formats",
+        "a_year_dedication": "Year of Pirate Dedication",
+        "a_season_dedication": "Arc Season Devotion",
+
+        // ── ANIME DISCOVERY (additions) ──
+        "a_top_rated_viewer": "Top-Bounty Viewer",
+        "a_source_variety": "Sea Source Diversity",
+        "a_low_score_brave": "East Blue Starter Brave",
+        "a_upcoming_watcher": "Upcoming Island Scout",
+        "a_short_series_explorer": "Short Island Explorer",
+        "a_long_series_explorer": "New World Long Campaign",
+
+        // ── ANIME TIME (additions) ──
+        "a_weekend_binge_hours": "Weekend Grand Line Hours",
+        "a_late_night_regular": "Late Night Watch Regular",
+        "a_sunrise_watcher": "Sunrise on the Grand Line",
+        "a_holiday_watcher": "Sea Festival Watcher",
+        "a_every_day_of_week": "Every Day on the Sea",
+        "a_monthly_hours": "Monthly Sea Hours",
+
+        // ── ANIME SOCIAL (additions) ──
+        "a_genre_party": "Cross-Crew Genre Party",
+        "a_weekly_party": "Weekly Crew Gathering",
+        "a_silent_viewer": "Silent Robin Observer",
+        "a_recommendation_giver": "Captain's Recommendation",
+        "a_party_completionist": "Crew Mission Completionist",
+        "a_social_scorer": "Alliance Bounty Scorer",
+
+        // ── ANIME SPECIAL (additions) ──
+        "a_double_digits": "Double Digit Sea Miles",
+        "a_one_two_three": "East West South Sea",
+        "a_lucky_seven": "Seven Warlords Count",
+        "a_all_tens": "All Tens Bounty Score",
+        "a_exact_hundred_eps": "Exact Hundred Episodes",
+        "a_year_match_count": "Year Match Bounty Count",
+
+        // ── ANIME FORMATS (additions) ──
+        "a_cm_watcher": "Commercial Break Watcher",
+        "a_pv_collector": "Preview Log Collector",
+        "a_format_balance": "Balanced Sea Formats",
+        "a_episodic_master": "Episodic Arc Master",
+        "a_sequel_movie": "Sequel Film Adventure",
+        "a_recap_watcher": "Recap Island Briefing",
+
+        // ── ANIME STREAKS (additions) ──
+        "a_completion_streak": "Arc Completion Chain",
+        "a_rating_streak": "Bounty Rating Streak",
+        "a_multi_ep_streak": "Multi-Episode Sea Streak",
+        "a_genre_streak": "Genre Sea Streak",
+        "a_studio_streak": "Studio Crew Loyalty",
+        "a_perfect_week": "Perfect Week at Sea",
+
+        // ── ANIME SCORING (additions) ──
+        "a_masterpiece_hunter": "Masterpiece Treasure Hunt",
+        "a_contrarian": "Contrarian Sea Captain",
+        "a_optimist": "Luffy's Eternal Optimism",
+        "a_score_distributor": "Bounty Score Distributor",
+        "a_genre_critic": "Sea Genre Critic",
+        "a_mean_above_8": "Elite Bounty Average",
+
+        // ── ANIME HOLIDAY (additions) ──
+        "a_earth_day": "Protect the Blue Sea Day",
+        "a_labor_day": "Marine Labor Day",
+        "a_winter_solstice": "Winter Solstice at Sea",
+        "a_anime_birthday": "Series Anniversary Pirate",
+        "a_every_holiday": "Every Holiday Voyage",
+        "a_consecutive_holidays": "Consecutive Holiday Arcs",
+
+        // ── ANIME META ──
+        "a_meta_first_unlock": "First Devil Fruit Unlocked",
+        "a_meta_collector": "Pirate Badge Collector",
+        "a_meta_category_starter": "Category Initiation Arc",
+        "a_meta_tier_climber": "Bounty Rank Promotion",
+        "a_meta_tier_max": "Yonko-Class Achiever",
+        "a_meta_xp_earner": "XP from Sea Battles",
+        "a_meta_difficulty_easy": "East Blue Starter",
+        "a_meta_difficulty_hard": "Final Sea Emperor Challenge",
+        "a_meta_unlock_spree": "Achievement Gear Burst",
+        "a_meta_completionist": "Meta Pirate King Completionist",
+        "a_meta_diverse": "Diverse Sea Portfolio",
+        "a_meta_dominator": "Meta Sea Dominator",
+
+        // ── MANGA MILESTONES (additions) ──
+        "m_five_thousand_ch": "Five Thousand Sea Chapters",
+        "m_ten_completed": "Ten Island Logs Done",
+        "m_fifty_completed": "Fifty Sea Voyages Complete",
+        "m_five_hundred_completed": "Five Hundred Log Victories",
+        "m_mean_score_tracker": "Average Sea Chapter Score",
+        "m_unique_authors": "Unique Sea Authors",
+        "m_all_status": "All Reading Sea Statuses",
+        "m_first_favorite": "First Sea Favorite",
+        "m_favorites_collector": "Favorite Sea Log Archive",
+        "m_days_spent_reading": "Days on the Reading Sea",
+
+        // ── MANGA BINGE (additions) ──
+        "m_genre_binge": "Cross-Genre Sea Binge",
+        "m_author_binge": "Oda-Focused Deep Dive",
+        "m_chapter_counter_day": "Daily Chapter Sea Count",
+        "m_multi_series_binge": "Multi-Crew Reading Front",
+        "m_midnight_binge": "Midnight Sea Reading Session",
+        "m_new_year_binge": "New Year's Sea Reading Burst",
+        "m_forty_eight_hour": "Forty-Eight Hour Sea Read",
+        "m_oneshot_binge": "Oneshot Island Blitz",
+
+        // ── MANGA GENRES (additions) ──
+        "m_tag_isekai_new": "Another Sea World Summon",
+        "m_tag_harem": "Pirate Fan Club Manga",
+        "m_tag_bl": "Brotherly Sea Manga",
+        "m_tag_gl": "Sister Sea Pirates Manga",
+        "m_tag_historical": "Void Century Manga",
+        "m_tag_military": "Marine Corps Manga",
+        "m_tag_school": "Marine Academy Manga",
+        "m_tag_martial_arts": "Sea Combat Manga",
+        "m_tag_vampire": "Thriller Bark Manga",
+        "m_tag_samurai": "Wano Blade Manga",
+        "m_tag_space": "Moon Sky Manga",
+        "m_tag_parody": "Buggy Sea Circus Manga",
+        "m_tag_idol": "Sea Idol Manga",
+        "m_tag_post_apocalyptic": "Post-War Sea Manga",
+        "m_tag_cyberpunk": "Egghead Tech Manga",
+        "m_tag_shoujo": "Nami's Sea Manga",
+        "m_tag_survival": "Sea Survival Manga",
+        "m_tag_cooking": "Sanji's Cookbook Manga",
+        "m_tag_medical": "Chopper's Medical Manga",
+        "m_tag_villainess": "Pirate Empress Manga",
+
+        // ── MANGA COMPLETION (additions) ──
+        "m_multi_reread": "Multiple Sea Arc Rereads",
+        "m_dropped_recovery": "Island Comeback Reader",
+        "m_ten_perfect_scores": "Ten Perfect Sea Grades",
+        "m_complete_genre_span": "All Sea Genre Scout",
+        "m_monthly_completions": "Monthly Sea Victories",
+        "m_yearly_completions": "Yearly Sea Campaign",
+        "m_rapid_complete": "Flash Step Sea Clear",
+        "m_author_complete": "Oda's Full Works Read",
+
+        // ── MANGA DEDICATION (additions) ──
+        "m_genre_master": "Sea Genre Mastery",
+        "m_multi_series_author": "Multi-Series Sea Author Fan",
+        "m_format_diversity": "Diverse Sea Formats",
+        "m_year_dedication": "Year of Sea Dedication",
+        "m_ongoing_follower": "Ongoing Sea Arc Follower",
+        "m_genre_loyalty_50": "Fifty Chapter Sea Loyalty",
+
+        // ── MANGA DISCOVERY (additions) ──
+        "m_top_rated_reader": "Top-Bounty Sea Reader",
+        "m_source_variety": "Sea Source Diversity",
+        "m_low_score_brave": "East Blue Bravery Reader",
+        "m_short_manga_explorer": "Short Island Explorer",
+        "m_long_manga_explorer": "New World Long Read",
+        "m_serialization_explorer": "Serialization Sea Explorer",
+
+        // ── MANGA TIME (additions) ──
+        "m_weekend_binge_hours": "Weekend Sea Read Hours",
+        "m_late_night_regular": "Late Night Sea Regular",
+        "m_sunrise_reader": "Sunrise at Sea Reader",
+        "m_every_day_of_week": "Every Day Sea Reading",
+        "m_monthly_hours": "Monthly Sea Hours Logged",
+        "m_bedtime_reader": "Bedtime Sea Reader",
+
+        // ── MANGA CREATIVE (additions) ──
+        "m_vertical_scroll": "Vertical Sea Scroll",
+        "m_traditional_format": "Traditional Sea Format",
+        "m_cross_media": "Cross-Media Sea Intel",
+        "m_spinoff_reader": "Spinoff Sea Arc",
+        "m_remake_reader": "Remake Sea Assignment",
+        "m_collaboration_reader": "Joint Crew Manga",
+
+        // ── MANGA STREAKS (additions) ──
+        "m_completion_streak": "Arc Completion Chain",
+        "m_rating_streak": "Sea Rating Streak",
+        "m_multi_ch_streak": "Multi-Chapter Sea Streak",
+        "m_author_streak": "Oda Dedication Streak",
+        "m_perfect_week_manga": "Perfect Week at Sea",
+        "m_diverse_streak": "Diverse Sea Read Streak",
+
+        // ── MANGA SCORING (additions) ──
+        "m_masterpiece_hunter": "Masterpiece Sea Hunt",
+        "m_contrarian": "Contrarian Sea Opinion",
+        "m_optimist": "Luffy's Sea Optimism",
+        "m_score_distributor": "Bounty Score Distributor",
+        "m_genre_critic": "Sea Genre Critic",
+        "m_mean_above_8": "Elite Sea Average",
+
+        // ── MANGA HOLIDAY (additions) ──
+        "m_earth_day": "Save the Blue Sea Day",
+        "m_labor_day": "Marine Labor Reading Day",
+        "m_winter_solstice": "Winter Sea Solstice Read",
+        "m_manga_birthday": "Sea Manga Anniversary",
+        "m_every_holiday_reader": "Every Holiday Sea Reader",
+        "m_consecutive_holidays": "Consecutive Holiday Sea Reads",
+
+        // ── MANGA SPECIAL (additions) ──
+        "m_double_digits": "Double Digit Sea Chapters",
+        "m_one_two_three": "East West South Sea Read",
+        "m_lucky_seven": "Seven Lucky Sea Chapters",
+        "m_exact_hundred_ch": "Exactly One Hundred Islands",
+        "m_year_match_count": "Year Match Sea Count",
+        "m_chapter_match_date": "Sea Chapter Date Match",
+
+        // ── MANGA FORMATS ──
+        "m_manga_format": "Sea Manga Specialist",
+        "m_manhwa_format": "Korean Sea Format",
+        "m_manhua_format": "Chinese Sea Format",
+        "m_ln_format": "Sea Light Novel Format",
+        "m_oneshot_format": "Oneshot Island Format",
+        "m_doujin_format": "Doujin Sea Reader",
+        "m_novel_format": "Sea Novel Format",
+        "m_format_master_manga": "Format Master Pirate",
+
+        // ── MANGA META ──
+        "m_meta_first_unlock": "First Sea Power Unlocked",
+        "m_meta_collector": "Sea Badge Collector",
+        "m_meta_category_starter": "Category Sea Initiation",
+        "m_meta_tier_climber": "Bounty Rank Promotion",
+        "m_meta_tier_max": "King-Level Reading Rank",
+        "m_meta_xp_earner": "XP from Sea Reading",
+        "m_meta_difficulty_easy": "East Blue Starter Read",
+        "m_meta_difficulty_hard": "Final Sea Emperor Read",
+        "m_meta_unlock_spree": "Bounty Achievement Burst",
+        "m_meta_completionist": "Meta Sea Completionist",
+        "m_meta_diverse": "Diverse Sea Portfolio",
+        "m_meta_dominator": "Meta Sea Dominator",
     },
     musicUrl: "/public/themes/one-piece-opening.mp3",
     previewColors: {
