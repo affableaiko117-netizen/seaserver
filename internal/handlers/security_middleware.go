@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"net/http"
 	"strings"
 	"sync"
@@ -10,71 +8,6 @@ import (
 
 	"github.com/labstack/echo/v4"
 )
-
-// ============================
-// CSRF Protection
-// ============================
-
-var csrfTokenStore = &sync.Map{}
-
-type csrfEntry struct {
-	token   string
-	expires time.Time
-}
-
-// CSRFMiddleware enforces CSRF token validation on state-changing HTTP methods.
-// Clients must include a matching X-CSRF-Token header on POST/PUT/PATCH/DELETE requests.
-// The CSRF token is set via the X-CSRF-Token response header on any GET request.
-func CSRFMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		clientID, _ := c.Get("Seanime-Client-Id").(string)
-		if clientID == "" {
-			clientID = c.RealIP()
-		}
-
-		method := c.Request().Method
-
-		// For GET/HEAD/OPTIONS requests, issue a CSRF token
-		if method == http.MethodGet || method == http.MethodHead || method == http.MethodOptions {
-			token := generateCSRFToken()
-			csrfTokenStore.Store(clientID, csrfEntry{
-				token:   token,
-				expires: time.Now().Add(6 * time.Hour),
-			})
-			c.Response().Header().Set("X-CSRF-Token", token)
-			return next(c)
-		}
-
-		// For state-changing methods, validate the token
-		requestToken := c.Request().Header.Get("X-CSRF-Token")
-		if requestToken == "" {
-			return echo.NewHTTPError(http.StatusForbidden, "missing CSRF token")
-		}
-
-		entry, ok := csrfTokenStore.Load(clientID)
-		if !ok {
-			return echo.NewHTTPError(http.StatusForbidden, "CSRF token not found, please refresh")
-		}
-
-		stored := entry.(csrfEntry)
-		if time.Now().After(stored.expires) {
-			csrfTokenStore.Delete(clientID)
-			return echo.NewHTTPError(http.StatusForbidden, "CSRF token expired, please refresh")
-		}
-
-		if stored.token != requestToken {
-			return echo.NewHTTPError(http.StatusForbidden, "invalid CSRF token")
-		}
-
-		return next(c)
-	}
-}
-
-func generateCSRFToken() string {
-	b := make([]byte, 32)
-	_, _ = rand.Read(b)
-	return hex.EncodeToString(b)
-}
 
 // ============================
 // Rate Limiting
