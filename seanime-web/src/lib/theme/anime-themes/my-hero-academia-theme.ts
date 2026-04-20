@@ -878,4 +878,15 @@ export const myHeroAcademiaTheme: AnimeThemeConfig = {
         quirk_energy: { label: "Quirk Energy", maxCount: 14, defaultEnabled: true, defaultIntensity: 65 },
     },
     playerIconOverrides: myHeroAcademiaPlayerIcons,
+    milestoneNames: {
+        1:   "Quirkless",
+        5:   "U.A. Trainee",
+        15:  "Provisional License",
+        25:  "Pro Hero",
+        40:  "Top 10 Hero",
+        55:  "No. 1 Hero",
+        70:  "Symbol of Peace",
+        85:  "One For All",
+        100: "Plus Ultra",
+    },
 }

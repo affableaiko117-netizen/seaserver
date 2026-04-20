@@ -879,4 +879,15 @@ export const deathNoteTheme: AnimeThemeConfig = {
         chain_links: { label: "Chain Links", maxCount: 12, defaultEnabled: true, defaultIntensity: 58 },
     },
     playerIconOverrides: deathNotePlayerIcons,
+    milestoneNames: {
+        1:   "Clueless Student",
+        8:   "Suspect",
+        18:  "Task Force Member",
+        30:  "SPK Agent",
+        45:  "L's Successor",
+        60:  "Kira",
+        75:  "Near-Level",
+        88:  "Shinigami King",
+        100: "God of the New World",
+    },
 }

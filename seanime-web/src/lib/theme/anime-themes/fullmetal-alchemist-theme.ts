@@ -878,4 +878,15 @@ export const fullmetalAlchemistTheme: AnimeThemeConfig = {
         homunculus_marks: { label: "Homunculus Marks", maxCount: 10, defaultEnabled: true, defaultIntensity: 45 },
     },
     playerIconOverrides: fullmetalAlchemistPlayerIcons,
+    milestoneNames: {
+        1:   "Civilian",
+        8:   "Aspiring Alchemist",
+        18:  "State Alchemist",
+        30:  "Major",
+        42:  "Lt. Colonel",
+        55:  "Colonel",
+        70:  "General",
+        85:  "F\u00FChrer",
+        100: "Truth",
+    },
 }

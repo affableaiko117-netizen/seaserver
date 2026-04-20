@@ -879,4 +879,15 @@ export const jujutsuKaisenTheme: AnimeThemeConfig = {
         black_flash: { label: "Black Flash", maxCount: 6, defaultEnabled: true, defaultIntensity: 70 },
     },
     playerIconOverrides: jujutsuKaisenPlayerIcons,
+    milestoneNames: {
+        1:   "Grade 4",
+        8:   "Grade 3",
+        18:  "Semi-Grade 2",
+        28:  "Grade 2",
+        40:  "Semi-Grade 1",
+        52:  "Grade 1",
+        65:  "Special Grade",
+        80:  "Jujutsu Elders",
+        100: "Gojo-Level",
+    },
 }

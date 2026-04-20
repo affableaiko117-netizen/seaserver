@@ -879,4 +879,15 @@ export const blackCloverTheme: AnimeThemeConfig = {
         five_leaf_clover: { label: "Five-Leaf Clover", maxCount: 10, defaultEnabled: true, defaultIntensity: 45 },
     },
     playerIconOverrides: blackCloverPlayerIcons,
+    milestoneNames: {
+        1:   "Peasant",
+        8:   "Magic Knight 5th Class",
+        18:  "Magic Knight 3rd Class",
+        30:  "Magic Knight 1st Class",
+        44:  "Royal Knight",
+        58:  "Grand Magic Knight",
+        72:  "Captain",
+        86:  "Arcane Stage",
+        100: "Magic Emperor",
+    },
 }
