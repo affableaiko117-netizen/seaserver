@@ -889,7 +889,8 @@ export const onePieceTheme: AnimeThemeConfig = {
         accent: "#e8c060",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "https://w.wallhaven.cc/full/4y/wallhaven-4yjjj7.jpg",
+    backgroundImageUrl: "/themes/one-piece.jpg",
+    particleColor: "#e87028",
     backgroundDim: 0.30,
     backgroundBlur: 30,
     particleTypes: {

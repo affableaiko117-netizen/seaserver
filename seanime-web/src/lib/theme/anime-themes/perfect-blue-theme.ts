@@ -866,7 +866,8 @@ export const perfectBlueTheme: AnimeThemeConfig = {
         accent: "#8cabed",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/perfect-blue.jpg",
+    particleColor: "#4060c0",
     backgroundDim: 0.3,
     backgroundBlur: 20,
     particleTypes: {

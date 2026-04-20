@@ -867,7 +867,8 @@ export const holylandTheme: AnimeThemeConfig = {
         accent: "#2a4a80",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/holyland.jpg",
+    particleColor: "#606060",
     backgroundDim: 0.3,
     backgroundBlur: 20,
     particleTypes: {

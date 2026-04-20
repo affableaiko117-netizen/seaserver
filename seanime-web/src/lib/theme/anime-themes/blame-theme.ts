@@ -868,7 +868,8 @@ export const blameTheme: AnimeThemeConfig = {
         accent: "#48505a",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/blame.jpg",
+    particleColor: "#506080",
     backgroundDim: 0.2,
     backgroundBlur: 20,
     particleTypes: {

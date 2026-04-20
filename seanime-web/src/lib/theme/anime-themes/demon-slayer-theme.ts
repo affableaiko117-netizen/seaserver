@@ -867,7 +867,8 @@ export const demonSlayerTheme: AnimeThemeConfig = {
         accent: "#44e8d0",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "https://w.wallhaven.cc/full/p9/wallhaven-p97jge.png",
+    backgroundImageUrl: "/themes/demon-slayer.jpg",
+    particleColor: "#c84850",
     backgroundDim: 0.28,
     backgroundBlur: 26,
     particleTypes: {

@@ -848,6 +848,11 @@ export const overlordTheme: AnimeThemeConfig = {
         secondary: "#c09030",
         accent:    "#505050",
     },
+    hasAnimatedElements: true,
+    backgroundImageUrl: "/themes/overlord.png",
+    particleColor: "#a06020",
+    backgroundDim: 0.30,
+    backgroundBlur: 30,
     milestoneNames: {
         1:   "NPC",
         5:   "Yggdrasil Player",

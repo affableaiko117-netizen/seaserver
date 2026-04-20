@@ -868,7 +868,8 @@ export const haruhiSuzumiyaTheme: AnimeThemeConfig = {
         accent: "#aa8700",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/haruhi-suzumiya.jpg",
+    particleColor: "#e85050",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

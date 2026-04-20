@@ -864,7 +864,8 @@ export const bleachTheme: AnimeThemeConfig = {
         accent: "#c0c8f0",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "https://w.wallhaven.cc/full/p9/wallhaven-p98go3.jpg",
+    backgroundImageUrl: "/themes/bleach.jpg",
+    particleColor: "#3a6fc8",
     backgroundDim: 0.10,
     backgroundBlur: 4,
     particleTypes: {

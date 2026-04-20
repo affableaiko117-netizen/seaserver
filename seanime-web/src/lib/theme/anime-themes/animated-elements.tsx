@@ -1,6 +1,7 @@
 "use client"
 import React from "react"
 import type { AnimeThemeId } from "./types"
+import { ParticleBackground } from "@/components/shared/particle-bg"
 
 type ParticleSettings = Record<string, { enabled: boolean; intensity: number }>
 
@@ -8,6 +9,7 @@ type Props = {
     themeId: AnimeThemeId
     intensity: number // 0-100
     particleSettings: ParticleSettings
+    particleColor?: string
 }
 
 function ps(settings: ParticleSettings, key: string): { enabled: boolean; scale: number } {
@@ -16,10 +18,12 @@ function ps(settings: ParticleSettings, key: string): { enabled: boolean; scale:
     return { enabled: true, scale: s.intensity / 100 }
 }
 
-export function ThemeAnimatedOverlay({ themeId, intensity, particleSettings }: Props) {
+export function ThemeAnimatedOverlay({ themeId, intensity, particleSettings, particleColor }: Props) {
     if (intensity <= 0 || themeId === "seanime") return null
 
     const globalScale = intensity / 100
+    // Scale particle quantity with intensity: 30 at minimum → 180 at full
+    const qty = Math.round(30 + globalScale * 150)
 
     return (
         <div
@@ -27,6 +31,16 @@ export function ThemeAnimatedOverlay({ themeId, intensity, particleSettings }: P
             style={{ zIndex: -1, opacity: Math.min(1, 0.3 + globalScale * 0.7) }}
             aria-hidden
         >
+            {/* Universal canvas particles — shown for every non-seanime theme */}
+            <ParticleBackground
+                className="absolute inset-0 w-full h-full"
+                color={particleColor ?? "#ffffff"}
+                quantity={qty}
+                staticity={45}
+                ease={55}
+                size={0.35}
+            />
+            {/* Theme-specific SVG elements */}
             {themeId === "naruto" && <NarutoElements globalScale={globalScale} ps={particleSettings} />}
             {themeId === "bleach" && <BleachElements globalScale={globalScale} ps={particleSettings} />}
             {themeId === "one-piece" && <OnePieceElements globalScale={globalScale} ps={particleSettings} />}

@@ -867,7 +867,8 @@ export const clannadTheme: AnimeThemeConfig = {
         accent: "#b4c8ff",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/clannad.jpg",
+    particleColor: "#4890c8",
     backgroundDim: 0.2,
     backgroundBlur: 20,
     particleTypes: {

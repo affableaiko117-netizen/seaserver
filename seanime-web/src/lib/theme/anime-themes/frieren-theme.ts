@@ -837,7 +837,8 @@ export const frierenTheme: AnimeThemeConfig = {
         accent: "#e8f4ec",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/frieren.jpg",
+    particleColor: "#9870d8",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

@@ -837,7 +837,8 @@ export const chainsawManTheme: AnimeThemeConfig = {
         accent: "#c8c0b8",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/chainsaw-man.jpg",
+    particleColor: "#e84020",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

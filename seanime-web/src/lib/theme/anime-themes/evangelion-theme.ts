@@ -865,7 +865,8 @@ export const evangelionTheme: AnimeThemeConfig = {
         accent: "#cc3333",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/evangelion.jpg",
+    particleColor: "#4c8c50",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

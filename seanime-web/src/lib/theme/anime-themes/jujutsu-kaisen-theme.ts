@@ -868,7 +868,8 @@ export const jujutsuKaisenTheme: AnimeThemeConfig = {
         accent: "#a070f0",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "https://w.wallhaven.cc/full/gp/wallhaven-gpjwd7.jpg",
+    backgroundImageUrl: "/themes/jujutsu-kaisen.png",
+    particleColor: "#4060b0",
     backgroundDim: 0.28,
     backgroundBlur: 28,
     particleTypes: {

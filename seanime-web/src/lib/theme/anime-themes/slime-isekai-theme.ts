@@ -848,6 +848,11 @@ export const slimeIsekaiTheme: AnimeThemeConfig = {
         secondary: "#3ad0cc",
         accent:    "#7b5fc0",
     },
+    hasAnimatedElements: true,
+    backgroundImageUrl: "/themes/slime-isekai.jpg",
+    particleColor: "#3088b0",
+    backgroundDim: 0.30,
+    backgroundBlur: 30,
     milestoneNames: {
         1:   "Slime",
         5:   "Named Monster",

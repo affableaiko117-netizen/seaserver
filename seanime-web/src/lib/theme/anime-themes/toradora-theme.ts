@@ -848,6 +848,11 @@ export const toradoraTheme: AnimeThemeConfig = {
         secondary: "#f0900a",
         accent:    "#38c8d0",
     },
+    hasAnimatedElements: true,
+    backgroundImageUrl: "/themes/toradora.jpg",
+    particleColor: "#e05850",
+    backgroundDim: 0.30,
+    backgroundBlur: 30,
     milestoneNames: {
         1:   "Awkward Classmate",
         5:   "Forced Ally",

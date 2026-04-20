@@ -897,7 +897,8 @@ export const narutoTheme: AnimeThemeConfig = {
         accent: "#ff8c20",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "https://w.wallhaven.cc/full/wq/wallhaven-wq8vzp.png",
+    backgroundImageUrl: "/themes/naruto.jpg",
+    particleColor: "#dc5000",
     backgroundDim: 0.30,
     backgroundBlur: 30,
     particleTypes: {

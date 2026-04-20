@@ -865,7 +865,8 @@ export const monsterTheme: AnimeThemeConfig = {
         accent: "#7a6930",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/monster.png",
+    particleColor: "#707070",
     backgroundDim: 0.3,
     backgroundBlur: 20,
     particleTypes: {

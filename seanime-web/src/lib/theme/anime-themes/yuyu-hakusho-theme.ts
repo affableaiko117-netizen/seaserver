@@ -864,7 +864,8 @@ export const yuyuHakushoTheme: AnimeThemeConfig = {
         accent: "#e8aa00",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/yuyu-hakusho.jpg",
+    particleColor: "#4870d0",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

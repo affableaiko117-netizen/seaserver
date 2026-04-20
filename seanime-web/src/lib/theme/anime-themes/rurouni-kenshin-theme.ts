@@ -865,7 +865,8 @@ export const rourouniKenshinTheme: AnimeThemeConfig = {
         accent: "#ffaab0",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/rurouni-kenshin.jpg",
+    particleColor: "#c85040",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

@@ -867,7 +867,8 @@ export const outlawStarTheme: AnimeThemeConfig = {
         accent: "#ff6666",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/outlaw-star.jpg",
+    particleColor: "#c04830",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

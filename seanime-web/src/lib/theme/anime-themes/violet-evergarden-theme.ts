@@ -848,6 +848,11 @@ export const violetEvergardenTheme: AnimeThemeConfig = {
         secondary: "#5a9de0",
         accent:    "#d4a030",
     },
+    hasAnimatedElements: true,
+    backgroundImageUrl: "/themes/violet-evergarden.jpg",
+    particleColor: "#6888d0",
+    backgroundDim: 0.30,
+    backgroundBlur: 30,
     milestoneNames: {
         1:   "Soldier",
         5:   "Courier",

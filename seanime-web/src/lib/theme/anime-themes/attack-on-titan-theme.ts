@@ -868,7 +868,8 @@ export const attackOnTitanTheme: AnimeThemeConfig = {
         accent: "#8b1a1a",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "https://w.wallhaven.cc/full/ex/wallhaven-ex9gwo.jpg",
+    backgroundImageUrl: "/themes/attack-on-titan.png",
+    particleColor: "#6a5040",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

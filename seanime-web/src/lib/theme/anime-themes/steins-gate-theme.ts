@@ -863,7 +863,8 @@ export const steinsGateTheme: AnimeThemeConfig = {
         accent: "#e8820c",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/steins-gate.jpg",
+    particleColor: "#f0a820",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

@@ -867,7 +867,8 @@ export const blueLockTheme: AnimeThemeConfig = {
         accent: "#3388ff",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/blue-lock.jpg",
+    particleColor: "#2840c0",
     backgroundDim: 0.3,
     backgroundBlur: 25,
     particleTypes: {

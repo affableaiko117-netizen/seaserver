@@ -848,6 +848,11 @@ export const konosubaTheme: AnimeThemeConfig = {
         secondary: "#ff9030",
         accent:    "#f0d040",
     },
+    hasAnimatedElements: true,
+    backgroundImageUrl: "/themes/konosuba.png",
+    particleColor: "#e07850",
+    backgroundDim: 0.30,
+    backgroundBlur: 30,
     milestoneNames: {
         1:   "NEET Isekai'd",
         5:   "Beginner Adventurer",

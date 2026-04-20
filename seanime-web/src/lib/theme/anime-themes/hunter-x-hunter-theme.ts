@@ -867,7 +867,8 @@ export const hunterXHunterTheme: AnimeThemeConfig = {
         accent: "#50e878",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "https://w.wallhaven.cc/full/x8/wallhaven-x8gkvz.jpg",
+    backgroundImageUrl: "/themes/hunter-x-hunter.jpg",
+    particleColor: "#28a060",
     backgroundDim: 0.30,
     backgroundBlur: 28,
     particleTypes: {

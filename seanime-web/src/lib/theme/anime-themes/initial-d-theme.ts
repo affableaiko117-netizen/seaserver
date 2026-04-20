@@ -864,7 +864,8 @@ export const initialDTheme: AnimeThemeConfig = {
         accent: "#f0f0e8",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/initial-d.jpg",
+    particleColor: "#e0d020",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

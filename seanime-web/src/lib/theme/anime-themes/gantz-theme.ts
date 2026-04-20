@@ -864,7 +864,8 @@ export const gantzTheme: AnimeThemeConfig = {
         accent: "#00cc44",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/gantz.jpg",
+    particleColor: "#304050",
     backgroundDim: 0.35,
     backgroundBlur: 15,
     particleTypes: {

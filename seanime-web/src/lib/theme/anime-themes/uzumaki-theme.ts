@@ -867,7 +867,8 @@ export const uzumakiTheme: AnimeThemeConfig = {
         accent: "#50506a",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/uzumaki.jpg",
+    particleColor: "#404040",
     backgroundDim: 0.3,
     backgroundBlur: 20,
     particleTypes: {

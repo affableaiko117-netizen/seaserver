@@ -76,6 +76,7 @@ export const ParticleBackground: React.FC<ParticleBackgroundProps> = ({
     const mouse = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
     const canvasSize = useRef<{ w: number; h: number }>({ w: 0, h: 0 })
     const dpr = typeof window !== "undefined" ? window.devicePixelRatio : 1
+    const animFrameRef = useRef<number>(0)
 
     const [bgMousePosition, setBgMousePosition] = useState({ x: 0, y: 0 })
 
@@ -89,6 +90,7 @@ export const ParticleBackground: React.FC<ParticleBackgroundProps> = ({
 
         return () => {
             window.removeEventListener("resize", initCanvas)
+            cancelAnimationFrame(animFrameRef.current)
         }
     }, [color])
 
@@ -273,9 +275,8 @@ export const ParticleBackground: React.FC<ParticleBackgroundProps> = ({
                 // update the circle position
             }
         })
-        window.requestAnimationFrame(animate)
+        animFrameRef.current = window.requestAnimationFrame(animate)
     }
-
     return (
         <>
             <div className={className} ref={canvasContainerRef} aria-hidden="true">

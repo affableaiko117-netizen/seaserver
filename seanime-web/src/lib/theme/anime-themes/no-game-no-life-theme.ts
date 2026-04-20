@@ -866,7 +866,8 @@ export const noGameNoLifeTheme: AnimeThemeConfig = {
         accent: "#a03790",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/no-game-no-life.jpg",
+    particleColor: "#d08030",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

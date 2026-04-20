@@ -867,8 +867,10 @@ export const soloLevelingTheme: AnimeThemeConfig = {
         accent: "#b300ff",
     },
     hasAnimatedElements: true,
-    backgroundDim: 0.3,
-    backgroundBlur: 20,
+    backgroundImageUrl: "/themes/solo-leveling.png",
+    backgroundDim: 0.30,
+    backgroundBlur: 30,
+    particleColor: "#4060d0",
     particleTypes: {
         shadow_soldiers: { label: "Shadow Soldiers", maxCount: 10, defaultEnabled: true, defaultIntensity: 55 },
         purple_mist: { label: "Purple Mist", maxCount: 8, defaultEnabled: true, defaultIntensity: 50 },

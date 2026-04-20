@@ -865,7 +865,8 @@ export const graveOfTheFirefliesTheme: AnimeThemeConfig = {
         accent: "#d4a050",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/grave-of-the-fireflies.jpg",
+    particleColor: "#d09030",
     backgroundDim: 0.3,
     backgroundBlur: 20,
     particleTypes: {

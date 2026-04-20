@@ -821,6 +821,11 @@ export const mobPsycho100Theme: AnimeThemeConfig = {
         secondary: "#2af0d5",
         accent:    "#ffffff",
     },
+    hasAnimatedElements: true,
+    backgroundImageUrl: "/themes/mob-psycho-100.jpg",
+    particleColor: "#00b9a5",
+    backgroundDim: 0.30,
+    backgroundBlur: 30,
     milestoneNames: {
         1:   "0%",
         5:   "10% Stress",

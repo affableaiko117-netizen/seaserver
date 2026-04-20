@@ -837,7 +837,8 @@ export const haikyuuTheme: AnimeThemeConfig = {
         accent: "#f0c000",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/haikyuu.jpg",
+    particleColor: "#e87020",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

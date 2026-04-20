@@ -871,7 +871,8 @@ export const dragonBallZTheme: AnimeThemeConfig = {
         accent: "#ffbe00",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "https://w.wallhaven.cc/full/zy/wallhaven-zymgky.jpg",
+    backgroundImageUrl: "/themes/dragon-ball-z.jpg",
+    particleColor: "#f0a000",
     backgroundDim: 0.30,
     backgroundBlur: 30,
     particleTypes: {

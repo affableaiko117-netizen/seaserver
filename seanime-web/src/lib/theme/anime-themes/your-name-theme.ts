@@ -848,6 +848,11 @@ export const yourNameTheme: AnimeThemeConfig = {
         secondary: "#5090f0",
         accent:    "#e05050",
     },
+    hasAnimatedElements: true,
+    backgroundImageUrl: "/themes/your-name.jpg",
+    particleColor: "#1e5fd2",
+    backgroundDim: 0.30,
+    backgroundBlur: 30,
     milestoneNames: {
         1:   "Dreamer",
         5:   "Diary Keeper",

@@ -838,7 +838,8 @@ export const vinlandSagaTheme: AnimeThemeConfig = {
         accent: "#c8d8e8",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/vinland-saga.jpg",
+    particleColor: "#6c7840",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

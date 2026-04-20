@@ -867,7 +867,8 @@ export const fullmetalAlchemistTheme: AnimeThemeConfig = {
         accent: "#f0d050",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "https://w.wallhaven.cc/full/4x/wallhaven-4xpv96.png",
+    backgroundImageUrl: "/themes/fullmetal-alchemist.jpg",
+    particleColor: "#c07830",
     backgroundDim: 0.28,
     backgroundBlur: 26,
     particleTypes: {

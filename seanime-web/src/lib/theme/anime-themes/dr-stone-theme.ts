@@ -837,7 +837,8 @@ export const drStoneTheme: AnimeThemeConfig = {
         accent: "#0080ff",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/dr-stone.jpg",
+    particleColor: "#58a830",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

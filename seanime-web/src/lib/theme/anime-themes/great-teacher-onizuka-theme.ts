@@ -867,7 +867,8 @@ export const greatTeacherOnizukaTheme: AnimeThemeConfig = {
         accent: "#ff8c00",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/great-teacher-onizuka.jpg",
+    particleColor: "#d87828",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

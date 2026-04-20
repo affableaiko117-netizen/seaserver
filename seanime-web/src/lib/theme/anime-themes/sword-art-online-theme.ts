@@ -868,7 +868,8 @@ export const swordArtOnlineTheme: AnimeThemeConfig = {
         accent: "#70d0ff",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "https://w.wallhaven.cc/full/85/wallhaven-85j2o1.jpg",
+    backgroundImageUrl: "/themes/sword-art-online.jpg",
+    particleColor: "#3878d8",
     backgroundDim: 0.30,
     backgroundBlur: 28,
     particleTypes: {

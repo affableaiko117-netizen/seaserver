@@ -864,7 +864,8 @@ export const sailorMoonTheme: AnimeThemeConfig = {
         accent: "#f0f0ff",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/sailor-moon.jpg",
+    particleColor: "#e878d8",
     backgroundDim: 0.25,
     backgroundBlur: 25,
     particleTypes: {

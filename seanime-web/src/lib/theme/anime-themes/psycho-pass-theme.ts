@@ -866,7 +866,8 @@ export const psychoPassTheme: AnimeThemeConfig = {
         accent: "#00d4ff",
     },
     hasAnimatedElements: true,
-    backgroundImageUrl: "",
+    backgroundImageUrl: "/themes/psycho-pass.jpg",
+    particleColor: "#60a8c0",
     backgroundDim: 0.35,
     backgroundBlur: 20,
     particleTypes: {
