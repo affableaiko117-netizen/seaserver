@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunkseanime_web=self.webpackChunkseanime_web||[]).push([["4253"],{83596(e,s,r){function n(){throw Error("This is a test error")}r.r(s),r.d(s,{component:()=>n})}}]);
